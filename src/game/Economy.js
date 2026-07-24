@@ -74,6 +74,12 @@ export class Economy {
     this._notify();
   }
 
+  // Начисление гемов
+  addGems(amount = 0) {
+    this.gems += Number(amount) || 0;
+    this._notify();
+  }
+
   // Пересчёт дохода после merge или спавна
   recalcAfterMerge() {
     this._recalcIncome();

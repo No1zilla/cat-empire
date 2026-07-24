@@ -8,6 +8,8 @@ import { Economy } from './Economy.js';
 import { HUD } from '../ui/HUD.js';
 import { OfflineModal } from '../ui/OfflineModal.js';
 import { Tutorial } from '../ui/Tutorial.js';
+import { NewCatModal } from '../ui/NewCatModal.js';
+import { CollectionModal } from '../ui/CollectionModal.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
 // Главный класс игры
@@ -20,6 +22,7 @@ export class Game {
     this.spawnSystem = null;
     this.mergeEngine = null;
     this.dragSystem = null;
+    this.maxCatLevel = 1;
     this._autoSaveInterval = null;
   }
 
@@ -28,21 +31,32 @@ export class Game {
     // 1. Загрузка профиля пользователя с сервера
     let startCoins = 100;
     let startGems = 10;
+    let startMaxCatLevel = 1;
     let userGridState = null;
 
     try {
       const profileData = await fetchProfile();
       if (profileData && profileData.user) {
-        if (profileData.user.coins !== undefined) startCoins = profileData.user.coins;
-        if (profileData.user.gems  !== undefined) startGems  = profileData.user.gems;
-        if (profileData.user.gridState) userGridState = profileData.user.gridState;
+        if (profileData.user.coins       !== undefined) startCoins = profileData.user.coins;
+        if (profileData.user.gems        !== undefined) startGems  = profileData.user.gems;
+        if (profileData.user.maxCatLevel !== undefined) startMaxCatLevel = profileData.user.maxCatLevel;
+        if (profileData.user.gridState)  userGridState = profileData.user.gridState;
       }
     } catch (error) {
       console.warn('Сервер не доступен или ошибка получения профиля, используются дефолтные данные:', error);
     }
 
-    // 2. Создание HUD интерфейса
-    this.hud = new HUD(this.app);
+    this.maxCatLevel = startMaxCatLevel;
+
+    // 2. Создание HUD интерфейса с кнопкой 📖 Котопедии
+    const openCollection = () => {
+      const modal = new CollectionModal(this.app, this.maxCatLevel, () => {
+        console.log('Котопедия закрыта');
+      });
+      this.app.stage.addChild(modal);
+    };
+
+    this.hud = new HUD(this.app, openCollection);
     this.hud.position.set(0, 0);
     this.app.stage.addChild(this.hud);
 
@@ -63,6 +77,13 @@ export class Game {
       ]);
     }
     this.app.stage.addChild(this.grid);
+
+    // Вычисляем максимальный уровень на сетке при старте
+    this.grid.slots.forEach((cat) => {
+      if (cat && cat.level > this.maxCatLevel) {
+        this.maxCatLevel = cat.level;
+      }
+    });
 
     // 5. Создание системы экономики
     this.economy = new Economy(this.grid);
@@ -85,6 +106,27 @@ export class Game {
     // 7. Создание MergeEngine и DragSystem
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
+
+      // TASK-010: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы!
+      if (newLevel > this.maxCatLevel) {
+        this.maxCatLevel = newLevel;
+        const rewardGems = 5;
+        if (this.economy) this.economy.addGems(rewardGems);
+
+        const newCatModal = new NewCatModal(this.app, newLevel, rewardGems, async () => {
+          try {
+            await saveProgress({
+              coins: this.economy ? this.economy.coins : undefined,
+              gems: this.economy ? this.economy.gems : undefined,
+              maxCatLevel: this.maxCatLevel,
+              gridState: this.grid.exportState()
+            });
+          } catch (e) {
+            console.error('Ошибка сохранения после открытия нового кота:', e);
+          }
+        });
+        this.app.stage.addChild(newCatModal);
+      }
     };
 
     this.mergeEngine = new MergeEngine(this.grid, onMerge);
@@ -96,6 +138,7 @@ export class Game {
         await saveProgress({
           coins: this.economy.coins,
           gems: this.economy.gems,
+          maxCatLevel: this.maxCatLevel,
           gridState: this.grid.exportState()
         });
       } catch (e) {
@@ -145,6 +188,7 @@ export class Game {
         await saveProgress({
           coins: this.economy.coins,
           gems: this.economy.gems,
+          maxCatLevel: this.maxCatLevel,
           gridState: this.grid.exportState()
         });
         console.log('🔄 Авто-сохранение баланса и сетки выполнено');
