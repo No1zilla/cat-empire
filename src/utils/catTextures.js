@@ -13,10 +13,11 @@ let textures = null;
  * Вызывать один раз перед game.init().
  */
 export async function loadCatTextures() {
+  const base = import.meta.env.BASE_URL; // '/cat-empire/' на gh-pages, '/' локально
   const [sheet1, sheet2, sheet3] = await Promise.all([
-    Assets.load('/assets/cats/cats_levels_1_5.jpg'),
-    Assets.load('/assets/cats/cats_levels_6_10.jpg'),
-    Assets.load('/assets/cats/cats_levels_11_15.jpg'),
+    Assets.load(`${base}assets/cats/cats_levels_1_5.jpg`),
+    Assets.load(`${base}assets/cats/cats_levels_6_10.jpg`),
+    Assets.load(`${base}assets/cats/cats_levels_11_15.jpg`),
   ]);
 
   const sheets = [sheet1, sheet2, sheet3];

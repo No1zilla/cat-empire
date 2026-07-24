@@ -50,8 +50,12 @@ async function initApp() {
     ? `${userInfo.firstName} ${userInfo.lastName}`.trim()
     : 'Тест Игрок';
 
-  // 6. TASK-008: Загрузка спрайтов котиков перед инициализацией игры
-  await loadCatTextures();
+  // 6. TASK-008: Загрузка спрайтов котиков (с fallback на эмодзи при ошибке)
+  try {
+    await loadCatTextures();
+  } catch (e) {
+    console.warn('⚠️ Спрайты не загружены, используются эмодзи:', e.message);
+  }
 
   // 7. Создать экземпляр Game(app) и вызывать асинхронный game.init()
   const game = new Game(app);
