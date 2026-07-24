@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс котика: Крупная яркая карточка + МАКСИМАЛЬНО КРУПНЫЙ прозрачный спрайт + компактная бейджик-плашка Lvl N
+// Класс котика: ГИГАНТСКАЯ карточка 72x72px + МАКСИМАЛЬНЫЙ спрайт 70x70px + аккуратный угол-бейджик Lvl
 export class Cat extends Container {
   constructor(level = 1, slotIndex = 0) {
     super();
@@ -18,26 +18,26 @@ export class Cat extends Container {
   _draw() {
     this.removeChildren();
 
-    const cardWidth = CONFIG.CELL_SIZE - 4;  // 66px при CELL_SIZE=70
-    const cardHeight = CONFIG.CELL_SIZE - 4; // 66px
+    const cardWidth = CONFIG.CELL_SIZE - 2;  // 72px при CELL_SIZE=74 (ГИГАНТСКИЙ РАЗМЕР!)
+    const cardHeight = CONFIG.CELL_SIZE - 2; // 72px
     const catData = getCatData(this.level);
 
     // Главный контейнер котика (анимируется целиком)
     const mainContainer = new Container();
 
-    // 1. Фон-карточка котика (яркий сочный цвет уровня + яркий белый контур)
+    // 1. Сочная карточка котика с двойным контуром и ярким фоном
     const bg = new Graphics();
     bg.roundRect(0, 0, cardWidth, cardHeight, 12);
     bg.fill(catData.color);
-    bg.stroke({ color: '#ffffff', alpha: 0.5, width: 2.0 });
+    bg.stroke({ color: '#ffffff', alpha: 0.6, width: 2.0 });
     mainContainer.addChild(bg);
 
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      // 2. МАКСИМАЛЬНО КРУПНЫЙ спрайт персонажа (занимает почти все 66px карточки!)
+      // 2. ГИГАНТСКИЙ СПРАЙТ КОТИКА (70x70px — занимает 98% карточки!)
       const sprite = new Sprite(texture);
-      const catSize = cardWidth - 2; // 64px! Персонаж заполняет 97% карточки
+      const catSize = cardWidth - 2; // 70px!
       sprite.width = catSize;
       sprite.height = catSize;
       sprite.x = (cardWidth - catSize) / 2;
@@ -45,7 +45,7 @@ export class Cat extends Container {
       mainContainer.addChild(sprite);
     } else {
       // Fallback на эмодзи
-      const emojiStyle = new TextStyle({ fontSize: 36, align: 'center' });
+      const emojiStyle = new TextStyle({ fontSize: 40, align: 'center' });
       const emojiText = new Text({ text: catData.emoji, style: emojiStyle });
       emojiText.anchor.set(0.5, 0.5);
       emojiText.x = cardWidth / 2;
@@ -53,11 +53,11 @@ export class Cat extends Container {
       mainContainer.addChild(emojiText);
     }
 
-    // 3. Компактная эстетичная бейджик-плашка уровня внизу по центру
-    const badgeW = 36;
+    // 3. Компактный стильный бейджик уровня в ПРАВОМ ВЕРХНЕМ УГЛУ (не заслоняет котика!)
+    const badgeW = 32;
     const badgeH = 14;
     const badgeBg = new Graphics();
-    badgeBg.roundRect((cardWidth - badgeW) / 2, cardHeight - 15, badgeW, badgeH, 5);
+    badgeBg.roundRect(cardWidth - badgeW - 2, 2, badgeW, badgeH, 5);
     badgeBg.fill({ color: 0x000000, alpha: 0.8 });
     badgeBg.stroke({ color: '#ffffff', alpha: 0.4, width: 1 });
     mainContainer.addChild(badgeBg);
@@ -70,8 +70,8 @@ export class Cat extends Container {
     });
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
-    levelText.x = cardWidth / 2;
-    levelText.y = cardHeight - 8;
+    levelText.x = cardWidth - badgeW / 2 - 2;
+    levelText.y = 8.5;
     mainContainer.addChild(levelText);
 
     this.addChild(mainContainer);
@@ -80,8 +80,8 @@ export class Cat extends Container {
 
   // Idle-анимация: котик плавно покачивается вверх-вниз
   _startIdleAnimation() {
-    const amplitude = 3.0;
-    const speed = 0.0025;
+    const amplitude = 3.5;
+    const speed = 0.0028;
     const startTime = Date.now() + Math.random() * 1000;
 
     const tick = () => {
@@ -106,7 +106,7 @@ export class Cat extends Container {
     this._stopIdleAnimation();
     const startTime = Date.now();
     const duration = 350;
-    const jumpHeight = 22;
+    const jumpHeight = 24;
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
