@@ -1,4 +1,4 @@
-// Модуль API клиента для взаимодействия с бэкенд-сервером через HTTPS тоннель
+// Модуль API клиента для взаимодействия с бэкенд-сервером через HTTPS
 
 const BASE_URL = 'https://olive-carpets-cheat.loca.lt/api';
 
@@ -10,39 +10,50 @@ function getVkSignHeader() {
 }
 
 /**
- * Базовый метод для отправки HTTP запросов с заголовком аутентификации VK
+ * Базовый метод для отправки HTTP запросов с тайм-аутом 3 секунды
  */
 async function apiRequest(endpoint, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-vk-sign': getVkSignHeader(),
-    'Bypass-Tunnel-Reminder': 'true', // Пропуск стартового предупреждения localtunnel
-    ...(options.headers || {})
-  };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-vk-sign': getVkSignHeader(),
+      'Bypass-Tunnel-Reminder': 'true',
+      ...(options.headers || {})
+    };
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP Ошибка ${response.status}`);
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP Ошибка ${response.status}`);
+    }
+
+    return response.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn(`[API] Ошибка запроса к ${endpoint}:`, err.message);
+    throw err;
   }
-
-  return response.json();
 }
 
 /**
- * Получение профиля пользователя (с авто-созданием и оффлайн-доходом)
+ * Получение профиля пользователя
  */
 export async function fetchProfile() {
   return apiRequest('/user/profile', { method: 'GET' });
 }
 
 /**
- * Сохранение игрового прогресса (монеты, гемы, уровень, сетка)
- * @param {object} data - { coins, gems, maxCatLevel, gridState }
+ * Сохранение игрового прогресса
  */
 export async function saveProgress(data) {
   return apiRequest('/user/save', {
