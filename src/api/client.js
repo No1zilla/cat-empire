@@ -1,6 +1,6 @@
 // Модуль API клиента для взаимодействия с бэкенд-сервером через HTTPS тоннель
 
-const BASE_URL = 'https://famous-geckos-shine.loca.lt/api';
+const BASE_URL = 'https://olive-carpets-cheat.loca.lt/api';
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign
