@@ -1,6 +1,6 @@
-// Модуль API клиента для взаимодействия с бэкенд-сервером через HTTPS
+// Модуль API клиента для взаимодействия с бэкенд-сервером через чистый HTTPS тоннель
 
-const BASE_URL = 'https://rude-spiders-learn.loca.lt/api';
+const BASE_URL = 'https://2c52ea13b63f10.lhr.life/api';
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign
@@ -10,17 +10,16 @@ function getVkSignHeader() {
 }
 
 /**
- * Базовый метод для отправки HTTP запросов с тайм-аутом 2 секунды
+ * Базовый метод для отправки HTTP запросов с тайм-аутом 3 секунды
  */
 async function apiRequest(endpoint, options = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
 
   try {
     const headers = {
       'Content-Type': 'application/json',
       'x-vk-sign': getVkSignHeader(),
-      'Bypass-Tunnel-Reminder': 'true',
       ...(options.headers || {})
     };
 
@@ -39,12 +38,12 @@ async function apiRequest(endpoint, options = {}) {
     return await response.json();
   } catch (err) {
     clearTimeout(timeoutId);
-    return null; // При любых проблемах с сетью возвращаем null для оффлайн режима
+    return null; // При любых сетевых проблемах оффлайн режим
   }
 }
 
 /**
- * Получение профиля пользователя с безопасным фолбеком
+ * Получение профиля пользователя
  */
 export async function fetchProfile() {
   try {
@@ -56,7 +55,7 @@ export async function fetchProfile() {
 }
 
 /**
- * Сохранение игрового прогресса с безопасным фолбеком
+ * Сохранение игрового прогресса
  */
 export async function saveProgress(data) {
   try {
