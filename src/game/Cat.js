@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс котика: Крупная яркая карточка + крупный прозрачный спрайт + плашка Lvl N + анимации
+// Класс котика: Крупная яркая карточка + МАКСИМАЛЬНО КРУПНЫЙ прозрачный спрайт + компактная бейджик-плашка Lvl N
 export class Cat extends Container {
   constructor(level = 1, slotIndex = 0) {
     super();
@@ -18,52 +18,52 @@ export class Cat extends Container {
   _draw() {
     this.removeChildren();
 
-    const cardWidth = CONFIG.CELL_SIZE - 4;  // 66px при CELL_SIZE=70 (КРУПНО!)
+    const cardWidth = CONFIG.CELL_SIZE - 4;  // 66px при CELL_SIZE=70
     const cardHeight = CONFIG.CELL_SIZE - 4; // 66px
     const catData = getCatData(this.level);
 
     // Главный контейнер котика (анимируется целиком)
     const mainContainer = new Container();
 
-    // 1. Фон-карточка котика (сочный цвет уровня + яркий контур)
+    // 1. Фон-карточка котика (яркий сочный цвет уровня + яркий белый контур)
     const bg = new Graphics();
     bg.roundRect(0, 0, cardWidth, cardHeight, 12);
     bg.fill(catData.color);
-    bg.stroke({ color: '#ffffff', alpha: 0.45, width: 2.0 });
+    bg.stroke({ color: '#ffffff', alpha: 0.5, width: 2.0 });
     mainContainer.addChild(bg);
 
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      // 2. Крупный спрайт персонажа
+      // 2. МАКСИМАЛЬНО КРУПНЫЙ спрайт персонажа (занимает почти все 66px карточки!)
       const sprite = new Sprite(texture);
-      const catSize = cardWidth - 8; // 58px! Персонаж занимает всю карточку
+      const catSize = cardWidth - 2; // 64px! Персонаж заполняет 97% карточки
       sprite.width = catSize;
       sprite.height = catSize;
       sprite.x = (cardWidth - catSize) / 2;
-      sprite.y = (cardHeight - catSize) / 2 - 3;
+      sprite.y = (cardHeight - catSize) / 2;
       mainContainer.addChild(sprite);
     } else {
       // Fallback на эмодзи
-      const emojiStyle = new TextStyle({ fontSize: 34, align: 'center' });
+      const emojiStyle = new TextStyle({ fontSize: 36, align: 'center' });
       const emojiText = new Text({ text: catData.emoji, style: emojiStyle });
       emojiText.anchor.set(0.5, 0.5);
       emojiText.x = cardWidth / 2;
-      emojiText.y = cardHeight / 2 - 4;
+      emojiText.y = cardHeight / 2;
       mainContainer.addChild(emojiText);
     }
 
-    // 3. Аккуратная плашка с уровнем (Lvl N)
-    const badgeW = 42;
-    const badgeH = 15;
+    // 3. Компактная эстетичная бейджик-плашка уровня внизу по центру
+    const badgeW = 36;
+    const badgeH = 14;
     const badgeBg = new Graphics();
-    badgeBg.roundRect((cardWidth - badgeW) / 2, cardHeight - 16, badgeW, badgeH, 6);
-    badgeBg.fill({ color: 0x000000, alpha: 0.75 });
-    badgeBg.stroke({ color: '#ffffff', alpha: 0.3, width: 1 });
+    badgeBg.roundRect((cardWidth - badgeW) / 2, cardHeight - 15, badgeW, badgeH, 5);
+    badgeBg.fill({ color: 0x000000, alpha: 0.8 });
+    badgeBg.stroke({ color: '#ffffff', alpha: 0.4, width: 1 });
     mainContainer.addChild(badgeBg);
 
     const levelStyle = new TextStyle({
-      fontSize: 10,
+      fontSize: 9,
       fill: '#ffffff',
       fontWeight: 'bold',
       align: 'center'
@@ -71,7 +71,7 @@ export class Cat extends Container {
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
     levelText.x = cardWidth / 2;
-    levelText.y = cardHeight - 8.5;
+    levelText.y = cardHeight - 8;
     mainContainer.addChild(levelText);
 
     this.addChild(mainContainer);
