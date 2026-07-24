@@ -1,6 +1,6 @@
 // Модуль API клиента для взаимодействия с бэкенд-сервером через чистый HTTPS тоннель
 
-const BASE_URL = 'https://2c52ea13b63f10.lhr.life/api';
+const BASE_URL = 'https://cat-empire-production.up.railway.app/api';
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign
