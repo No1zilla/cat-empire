@@ -1,17 +1,27 @@
 import { Router } from 'express';
-import { load } from '../db.js';
+import pool from '../db.js';
 import vkAuth from '../middleware/vkAuth.js';
 
 const router = Router();
 
-router.get('/', vkAuth, (req, res) => {
+router.get('/', vkAuth, async (req, res) => {
   try {
-    const db = load();
-    const leaderboard = Object.values(db)
-      .sort((a, b) => b.maxCatLevel - a.maxCatLevel || b.coins - a.coins)
-      .slice(0, 10)
-      .map(({ id, vkId, firstName, lastName, avatar, maxCatLevel, coins }) =>
-        ({ id, vkId, firstName, lastName, avatar, maxCatLevel, coins }));
+    const { rows } = await pool.query(`
+      SELECT id, vk_id, first_name, last_name, avatar, max_cat_level, coins
+      FROM users
+      ORDER BY max_cat_level DESC, coins DESC
+      LIMIT 10
+    `);
+
+    const leaderboard = rows.map(r => ({
+      id: r.id,
+      vkId: r.vk_id,
+      firstName: r.first_name,
+      lastName: r.last_name,
+      avatar: r.avatar,
+      maxCatLevel: r.max_cat_level,
+      coins: parseFloat(r.coins)
+    }));
 
     res.json({ leaderboard });
   } catch (error) {

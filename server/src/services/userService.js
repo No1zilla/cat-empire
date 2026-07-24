@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { load, save } from '../db.js';
+import pool from '../db.js';
 
 function calculateIncomePerSecond(gridStateStr) {
   try {
@@ -12,65 +12,87 @@ function calculateIncomePerSecond(gridStateStr) {
   } catch { return 0; }
 }
 
+function formatUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    vkId: row.vk_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    avatar: row.avatar,
+    coins: parseFloat(row.coins),
+    gems: row.gems,
+    maxCatLevel: row.max_cat_level,
+    gridState: row.grid_state,
+    lastOfflineCheck: new Date(Number(row.last_offline_check) * 1000).toISOString()
+  };
+}
+
 export class UserService {
-  getOrCreateUser(vkUserId) {
+  async getOrCreateUser(vkUserId) {
     const vkId = String(vkUserId);
-    const db   = load();
     const now  = Math.floor(Date.now() / 1000);
 
-    if (!db[vkId]) {
-      db[vkId] = {
-        id: randomUUID(),
-        vkId,
-        firstName: 'Игрок',
-        lastName: '',
-        avatar: '',
-        coins: 100,
-        gems: 10,
-        maxCatLevel: 1,
-        gridState: JSON.stringify([
-          { slotIndex: 0, catLevel: 1 },
-          { slotIndex: 1, catLevel: 1 }
-        ]),
-        lastOfflineCheck: now,
-        createdAt: now
-      };
-      save(db);
+    // Ищем пользователя
+    let { rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]);
+
+    if (rows.length === 0) {
+      // Создаём нового
+      const initialGrid = JSON.stringify([
+        { slotIndex: 0, catLevel: 1 },
+        { slotIndex: 1, catLevel: 1 }
+      ]);
+      const id = randomUUID();
+      await pool.query(`
+        INSERT INTO users (id, vk_id, first_name, coins, gems, max_cat_level, grid_state, last_offline_check, created_at)
+        VALUES ($1, $2, 'Игрок', 100, 10, 1, $3, $4, $4)
+      `, [id, vkId, initialGrid, now]);
+
+      ({ rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]));
     } else {
-      const user   = db[vkId];
-      const diff   = Math.max(0, now - user.lastOfflineCheck);
-      const capped = Math.min(diff, 28800);
-      const income = capped * calculateIncomePerSecond(user.gridState);
+      // Считаем оффлайн-доход
+      const user   = rows[0];
+      const diff   = Math.max(0, now - Number(user.last_offline_check));
+      const capped = Math.min(diff, 28800); // макс 8 часов
+      const income = capped * calculateIncomePerSecond(user.grid_state);
+
       if (income > 0) {
-        user.coins += income;
-        user.lastOfflineCheck = now;
-        save(db);
+        await pool.query(
+          'UPDATE users SET coins = coins + $1, last_offline_check = $2 WHERE vk_id = $3',
+          [income, now, vkId]
+        );
+        ({ rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]));
       }
     }
 
-    return db[vkId];
+    return formatUser(rows[0]);
   }
 
-  saveUserProgress(vkUserId, { coins, gems, maxCatLevel, gridState }) {
+  async saveUserProgress(vkUserId, { coins, gems, maxCatLevel, gridState }) {
     const vkId = String(vkUserId);
-    const db   = load();
     const now  = Math.floor(Date.now() / 1000);
 
-    if (!db[vkId]) throw new Error('Пользователь не найден');
+    const fields = ['last_offline_check = $1'];
+    const values = [now];
+    let   idx    = 2;
 
-    const user = db[vkId];
-    if (coins       !== undefined) user.coins        = coins;
-    if (gems        !== undefined) user.gems         = gems;
-    if (maxCatLevel !== undefined) user.maxCatLevel  = maxCatLevel;
+    if (coins       !== undefined) { fields.push(`coins = $${idx++}`);         values.push(coins); }
+    if (gems        !== undefined) { fields.push(`gems = $${idx++}`);          values.push(gems); }
+    if (maxCatLevel !== undefined) { fields.push(`max_cat_level = $${idx++}`); values.push(maxCatLevel); }
     if (gridState   !== undefined) {
-      user.gridState = typeof gridState === 'string'
-        ? gridState
-        : JSON.stringify(gridState);
+      const gs = typeof gridState === 'string' ? gridState : JSON.stringify(gridState);
+      fields.push(`grid_state = $${idx++}`);
+      values.push(gs);
     }
-    user.lastOfflineCheck = now;
-    save(db);
 
-    return user;
+    values.push(vkId);
+    await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE vk_id = $${idx}`,
+      values
+    );
+
+    const { rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]);
+    return formatUser(rows[0]);
   }
 }
 
