@@ -13,7 +13,7 @@ BigInt.prototype.toJSON = function () {
 };
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3099;
 
 // Настройка middleware
 app.use(cors());
@@ -29,7 +29,11 @@ app.get('/api/health', (req, res) => {
 app.use('/api/user', userRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
-// Запуск сервера
-app.listen(PORT, () => {
-  console.log(`🚀 Сервер «Империя Котиков» запущен на http://localhost:${PORT}`);
-});
+// Запуск сервера для локальной разработки
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Сервер «Империя Котиков» запущен на http://localhost:${PORT}`);
+  });
+}
+
+export default app;
