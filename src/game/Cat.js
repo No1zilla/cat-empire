@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс котика: цветная карточка уровня + спрайт персонажа + плашка Lvl + анимации
+// Класс котика: цветная карточка уровня + прозрачный спрайт котика + плашка Lvl N + анимации
 export class Cat extends Container {
   constructor(level = 1, slotIndex = 0) {
     super();
@@ -25,7 +25,7 @@ export class Cat extends Container {
     // Главный контейнер для всех элементов котика (анимируется целиком)
     const mainContainer = new Container();
 
-    // 1. Фон-карточка котика (яркий цвет уровня + выравнивание + белая полупрозрачная рамка)
+    // 1. Фон-карточка котика (яркий цвет уровня + полупрозрачная рамка)
     const bg = new Graphics();
     bg.roundRect(0, 0, cardWidth, cardHeight, 10);
     bg.fill(catData.color);
@@ -35,24 +35,14 @@ export class Cat extends Container {
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      // 2. Спрайт персонажа с маской
-      const spriteContainer = new Container();
-      const mask = new Graphics();
-      mask.roundRect(0, 0, cardWidth, cardHeight, 10);
-      mask.fill(0xffffff);
-      spriteContainer.addChild(mask);
-      spriteContainer.mask = mask;
-
+      // 2. Прозрачный спрайт персонажа
       const sprite = new Sprite(texture);
-      // Масштабируем спрайт по ширине ячейки
-      const scale = (cardWidth - 4) / sprite.texture.width;
-      sprite.scale.set(scale);
-      sprite.x = (cardWidth - sprite.width) / 2;
-      // Смещаем вниз, чтобы подрезать нижний отступ листа и показать персонажа в центре
-      sprite.y = cardHeight - sprite.height + 6;
-
-      spriteContainer.addChild(sprite);
-      mainContainer.addChild(spriteContainer);
+      const catSize = cardWidth - 8; // 44px
+      sprite.width = catSize;
+      sprite.height = catSize;
+      sprite.x = (cardWidth - catSize) / 2;
+      sprite.y = (cardHeight - catSize) / 2 - 3;
+      mainContainer.addChild(sprite);
     } else {
       // Fallback на эмодзи
       const emojiStyle = new TextStyle({ fontSize: 26, align: 'center' });
