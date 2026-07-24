@@ -7,7 +7,7 @@ import { DragSystem } from './DragSystem.js';
 import { Economy } from './Economy.js';
 import { HUD } from '../ui/HUD.js';
 import { OfflineModal } from '../ui/OfflineModal.js';
-import { Tutorial } from '../ui/Tutorial.js';      // TASK-009
+import { Tutorial } from '../ui/Tutorial.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
 // Главный класс игры
@@ -50,7 +50,7 @@ export class Game {
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     this.grid.x = (CONFIG.GAME_WIDTH - gridWidth) / 2;
-    this.grid.y = 120; // отступ сверху под HUD
+    this.grid.y = 115; // отступ сверху под HUD
 
     // 4. Восстановление состояния котиков на сетке
     if (userGridState) {
@@ -72,30 +72,17 @@ export class Game {
     this.economy.setBalance(startCoins, startGems);
     this.economy.startTicker();
 
-    // 6. Проверка и отображение оффлайн-дохода (OfflineModal)
-    const previousCoins = parseFloat(localStorage.getItem('cat_empire_last_coins') || '0');
-    const offlineEarned = Math.max(0, startCoins - previousCoins);
-
-    if (previousCoins > 0 && offlineEarned > 1) {
-      const modal = new OfflineModal(this.app, offlineEarned, () => {
-        console.log('Оффлайн-доход получен:', offlineEarned);
-      });
-      this.app.stage.addChild(modal);
-    }
-
-    localStorage.setItem('cat_empire_last_coins', String(startCoins));
-
-    // 7. Создание системы спавна и кнопки покупки с привязкой экономики
+    // 6. Создание системы спавна и кнопки покупки
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       console.log('Потрачено:', cost);
     });
 
     const buttonWidth = 220;
     this.spawnSystem.x = (CONFIG.GAME_WIDTH - buttonWidth) / 2;
-    this.spawnSystem.y = this.grid.y + gridWidth + 25;
+    this.spawnSystem.y = this.grid.y + gridWidth + 20;
     this.app.stage.addChild(this.spawnSystem);
 
-    // 8. Создание MergeEngine и DragSystem
+    // 7. Создание MergeEngine и DragSystem
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
     };
@@ -124,6 +111,32 @@ export class Game {
       if (cat !== null) this.dragSystem.makeDraggable(cat);
     });
 
+    // 8. Последовательное отображение модальных окон (Сначала Оффлайн-доход -> По закрытию Туториал)
+    const showTutorialIfNeeded = () => {
+      const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
+      if (!tutorialDone) {
+        const tutorial = new Tutorial(this.app, () => {
+          console.log('✅ Туториал завершён!');
+        });
+        this.app.stage.addChild(tutorial);
+      }
+    };
+
+    const previousCoins = parseFloat(localStorage.getItem('cat_empire_last_coins') || '0');
+    const offlineEarned = Math.max(0, startCoins - previousCoins);
+
+    if (previousCoins > 0 && offlineEarned > 1) {
+      const modal = new OfflineModal(this.app, offlineEarned, () => {
+        console.log('Оффлайн-доход получен:', offlineEarned);
+        showTutorialIfNeeded();
+      });
+      this.app.stage.addChild(modal);
+    } else {
+      showTutorialIfNeeded();
+    }
+
+    localStorage.setItem('cat_empire_last_coins', String(startCoins));
+
     // 9. Авто-сохранение прогресса каждые 30 секунд
     if (this._autoSaveInterval) clearInterval(this._autoSaveInterval);
     this._autoSaveInterval = setInterval(async () => {
@@ -139,15 +152,6 @@ export class Game {
         console.error('Ошибка авто-сохранения:', e);
       }
     }, 30000);
-
-    // 10. TASK-009: Туториал первого запуска (поверх всего)
-    const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
-    if (!tutorialDone) {
-      const tutorial = new Tutorial(this.app, () => {
-        console.log('✅ Туториал завершён!');
-      });
-      this.app.stage.addChild(tutorial);
-    }
   }
 }
 
