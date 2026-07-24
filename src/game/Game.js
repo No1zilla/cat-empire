@@ -10,6 +10,7 @@ import { OfflineModal } from '../ui/OfflineModal.js';
 import { Tutorial } from '../ui/Tutorial.js';
 import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
+import { CatDeck } from '../ui/CatDeck.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
 // Главный класс игры
@@ -22,6 +23,7 @@ export class Game {
     this.spawnSystem = null;
     this.mergeEngine = null;
     this.dragSystem = null;
+    this.catDeck = null;
     this.maxCatLevel = 1;
     this._autoSaveInterval = null;
   }
@@ -100,16 +102,27 @@ export class Game {
 
     const buttonWidth = 300;
     this.spawnSystem.x = (CONFIG.GAME_WIDTH - buttonWidth) / 2;
-    this.spawnSystem.y = this.grid.y + gridWidth + 14;
+    this.spawnSystem.y = this.grid.y + gridWidth + 12;
     this.app.stage.addChild(this.spawnSystem);
 
-    // 7. Создание MergeEngine и DragSystem
+    // 7. Интерактивная колода карт (CatDeck) прямо на главном экране под кнопкой покупки
+    this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
+      if (isUnlocked) {
+        openCollection();
+      }
+    });
+    this.catDeck.y = this.spawnSystem.y + 58;
+    this.app.stage.addChild(this.catDeck);
+
+    // 8. Создание MergeEngine и DragSystem
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
 
-      // TASK-010: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы!
+      // TASK-010: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы + обновление колоды!
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
+        if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
+
         const rewardGems = 5;
         if (this.economy) this.economy.addGems(rewardGems);
 
@@ -154,7 +167,7 @@ export class Game {
       if (cat !== null) this.dragSystem.makeDraggable(cat);
     });
 
-    // 8. Последовательное отображение модальных окон (Сначала Оффлайн-доход -> По закрытию Туториал)
+    // 9. Последовательное отображение модальных окон (Сначала Оффлайн-доход -> По закрытию Туториал)
     const showTutorialIfNeeded = () => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
       if (!tutorialDone) {
@@ -180,7 +193,7 @@ export class Game {
 
     localStorage.setItem('cat_empire_last_coins', String(startCoins));
 
-    // 9. Авто-сохранение прогресса каждые 30 секунд
+    // 10. Авто-сохранение прогресса каждые 30 секунд
     if (this._autoSaveInterval) clearInterval(this._autoSaveInterval);
     this._autoSaveInterval = setInterval(async () => {
       try {
