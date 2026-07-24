@@ -33,9 +33,20 @@ async function initDB() {
   console.log('✅ PostgreSQL подключён, таблица users готова');
 }
 
-initDB().catch(err => {
-  console.error('❌ Ошибка подключения к БД:', err.message);
-  process.exit(1);
-});
+// Пробуем подключиться с повторами (PostgreSQL может стартовать позже)
+async function connectWithRetry(retries = 10, delay = 3000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await initDB();
+      return;
+    } catch (err) {
+      console.error(`❌ Ошибка подключения к БД (попытка ${i + 1}/${retries}):`, err.message);
+      if (i < retries - 1) await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  console.error('❌ Не удалось подключиться к PostgreSQL после всех попыток');
+}
+
+connectWithRetry();
 
 export default pool;
