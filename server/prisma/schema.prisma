@@ -4,7 +4,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "linux-musl-openssl-3.0.x"]
 }
 
 model User {
@@ -17,7 +18,7 @@ model User {
   gems             Int      @default(10)       // Текущий баланс гемов
   maxCatLevel      Int      @default(1)        // Максимальный уровень открытого котика
   gridState        String   @default("[]")     // JSON-строка состояния ячеек (массив объектов {slotIndex, catLevel})
-  lastOfflineCheck DateTime @default(now())// Время последнего начисления доходности
+  lastOfflineCheck DateTime @default(now())    // Время последнего начисления доходности
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

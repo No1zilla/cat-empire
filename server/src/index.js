@@ -13,6 +13,7 @@ BigInt.prototype.toJSON = function () {
 };
 
 const app = express();
+// Railway использует динамический PORT — обязательно читаем из env
 const PORT = process.env.PORT || 3001;
 
 // Настройка middleware
@@ -29,7 +30,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/user', userRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
-// Запуск сервера
-app.listen(PORT, () => {
-  console.log(`🚀 Сервер «Империя Котиков» запущен на http://localhost:${PORT}`);
+// Запуск сервера — слушаем на 0.0.0.0 для Railway
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Сервер «Империя Котиков» запущен на порту ${PORT}`);
 });
