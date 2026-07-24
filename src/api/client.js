@@ -10,11 +10,11 @@ function getVkSignHeader() {
 }
 
 /**
- * Базовый метод для отправки HTTP запросов с тайм-аутом 3 секунды
+ * Базовый метод для отправки HTTP запросов с тайм-аутом 2 секунды
  */
 async function apiRequest(endpoint, options = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
 
   try {
     const headers = {
@@ -33,40 +33,51 @@ async function apiRequest(endpoint, options = {}) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP Ошибка ${response.status}`);
+      return null;
     }
 
-    return response.json();
+    return await response.json();
   } catch (err) {
     clearTimeout(timeoutId);
-    console.warn(`[API] Ошибка запроса к ${endpoint}:`, err.message);
-    throw err;
+    return null; // При любых проблемах с сетью возвращаем null для фолбека
   }
 }
 
 /**
- * Получение профиля пользователя
+ * Получение профиля пользователя с безопасным фолбеком
  */
 export async function fetchProfile() {
-  return apiRequest('/user/profile', { method: 'GET' });
+  try {
+    const data = await apiRequest('/user/profile', { method: 'GET' });
+    return data;
+  } catch (e) {
+    return null;
+  }
 }
 
 /**
- * Сохранение игрового прогресса
+ * Сохранение игрового прогресса с безопасным фолбеком
  */
 export async function saveProgress(data) {
-  return apiRequest('/user/save', {
-    method: 'POST',
-    body: JSON.stringify(data)
-  });
+  try {
+    return await apiRequest('/user/save', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    return null;
+  }
 }
 
 /**
  * Получение таблицы лидеров
  */
 export async function fetchLeaderboard() {
-  return apiRequest('/leaderboard', { method: 'GET' });
+  try {
+    return await apiRequest('/leaderboard', { method: 'GET' });
+  } catch (e) {
+    return { leaderboard: [] };
+  }
 }
 
 export default {

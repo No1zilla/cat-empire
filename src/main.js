@@ -5,12 +5,23 @@ import { Game } from './game/Game.js';
 
 // Точка входа в приложение
 async function initApp() {
+  console.log('🚀 Инициализация приложения...');
+
   // 1. Создать экземпляр VKService и инициализировать VK Bridge
   const vkService = new VKService();
-  await vkService.init();
+  try {
+    await vkService.init();
+  } catch (e) {
+    console.warn('VK Bridge init warning:', e);
+  }
 
   // 2. Получить userInfo через getUserInfo()
-  const userInfo = await vkService.getUserInfo();
+  let userInfo = null;
+  try {
+    userInfo = await vkService.getUserInfo();
+  } catch (e) {
+    console.warn('VK UserInfo warning:', e);
+  }
 
   // 3. Создать PIXI.Application для PixiJS v8
   const app = new Application();
@@ -27,6 +38,9 @@ async function initApp() {
   await app.init(options);
   const container = document.getElementById('game-container');
   if (container) {
+    app.canvas.style.maxWidth = '100%';
+    app.canvas.style.maxHeight = '100%';
+    app.canvas.style.objectFit = 'contain';
     container.appendChild(app.canvas);
   }
 
