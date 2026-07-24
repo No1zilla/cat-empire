@@ -1,28 +1,24 @@
-import Database from 'better-sqlite3';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DATABASE_PATH || join(__dirname, '../../data/game.db');
+const DATA_DIR  = join(__dirname, '../../data');
+const DB_FILE   = join(DATA_DIR, 'users.json');
 
-// Инициализация БД
-const db = new Database(DB_PATH);
+// Создаём папку data если её нет
+if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
-// Создание таблицы если не существует
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id          TEXT PRIMARY KEY,
-    vk_id       TEXT UNIQUE NOT NULL,
-    first_name  TEXT DEFAULT '',
-    last_name   TEXT DEFAULT '',
-    avatar      TEXT DEFAULT '',
-    coins       REAL DEFAULT 100,
-    gems        INTEGER DEFAULT 10,
-    max_cat_level INTEGER DEFAULT 1,
-    grid_state  TEXT DEFAULT '[]',
-    last_offline_check INTEGER DEFAULT (strftime('%s', 'now')),
-    created_at  INTEGER DEFAULT (strftime('%s', 'now'))
-  )
-`);
+// Загружаем БД из файла (или пустой объект)
+function load() {
+  if (!existsSync(DB_FILE)) return {};
+  try { return JSON.parse(readFileSync(DB_FILE, 'utf8')); }
+  catch { return {}; }
+}
 
-export default db;
+// Сохраняем БД в файл
+function save(data) {
+  writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+export { load, save };
