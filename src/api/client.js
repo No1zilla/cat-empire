@@ -1,6 +1,6 @@
 // Модуль API клиента для взаимодействия с бэкенд-сервером через HTTPS
 
-const BASE_URL = 'https://olive-carpets-cheat.loca.lt/api';
+const BASE_URL = 'https://rude-spiders-learn.loca.lt/api';
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign
@@ -39,7 +39,7 @@ async function apiRequest(endpoint, options = {}) {
     return await response.json();
   } catch (err) {
     clearTimeout(timeoutId);
-    return null; // При любых проблемах с сетью возвращаем null для фолбека
+    return null; // При любых проблемах с сетью возвращаем null для оффлайн режима
   }
 }
 
