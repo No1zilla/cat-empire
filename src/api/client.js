@@ -1,6 +1,6 @@
-// Модуль API клиента для взаимодействия с бэкенд-сервером
+// Модуль API клиента для взаимодействия с бэкенд-сервером через HTTPS тоннель
 
-const BASE_URL = 'http://localhost:3001/api';
+const BASE_URL = 'https://famous-geckos-shine.loca.lt/api';
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign
@@ -16,6 +16,7 @@ async function apiRequest(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     'x-vk-sign': getVkSignHeader(),
+    'Bypass-Tunnel-Reminder': 'true', // Пропуск стартового предупреждения localtunnel
     ...(options.headers || {})
   };
 
