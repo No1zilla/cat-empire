@@ -1,17 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-/**
- * Преобразование пользователя для ответа JSON (BigInt vkId -> String)
- */
-function formatUser(user) {
-  if (!user) return null;
-  return {
-    ...user,
-    vkId: user.vkId.toString()
-  };
-}
+import db from '../db.js';
+import { randomUUID } from 'crypto';
 
 /**
  * Расчет пассивного дохода котиков в секунду
@@ -20,69 +8,66 @@ function calculateIncomePerSecond(gridStateStr) {
   try {
     const grid = typeof gridStateStr === 'string' ? JSON.parse(gridStateStr) : gridStateStr;
     if (!Array.isArray(grid)) return 0;
-    
-    // Каждая ячейка с котиком даёт доход = 2^(level - 1) монет/сек (или level монет/сек)
     return grid.reduce((total, cell) => {
       const level = Number(cell.catLevel) || 1;
       return total + Math.pow(2, level - 1);
     }, 0);
-  } catch (e) {
+  } catch {
     return 0;
   }
 }
 
+function formatUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    vkId: row.vk_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    avatar: row.avatar,
+    coins: row.coins,
+    gems: row.gems,
+    maxCatLevel: row.max_cat_level,
+    gridState: row.grid_state,
+    lastOfflineCheck: new Date(row.last_offline_check * 1000).toISOString()
+  };
+}
+
 export class UserService {
   /**
-   * Получение или авто-создание профиля пользователя с расчётом оффлайн-дохода
+   * Получение или авто-создание профиля пользователя
    */
-  async getOrCreateUser(vkUserId) {
-    const vkId = BigInt(vkUserId);
+  getOrCreateUser(vkUserId) {
+    const vkId = String(vkUserId);
+    const now = Math.floor(Date.now() / 1000);
 
-    let user = await prisma.user.findUnique({
-      where: { vkId }
-    });
-
-    const now = new Date();
+    let user = db.prepare('SELECT * FROM users WHERE vk_id = ?').get(vkId);
 
     if (!user) {
-      // Начальная сетка: 2 котика 1-го уровня
-      const initialGrid = [
+      const initialGrid = JSON.stringify([
         { slotIndex: 0, catLevel: 1 },
         { slotIndex: 1, catLevel: 1 }
-      ];
+      ]);
 
-      user = await prisma.user.create({
-        data: {
-          vkId,
-          firstName: 'Игрок',
-          lastName: '',
-          avatar: '',
-          coins: 100,
-          gems: 10,
-          maxCatLevel: 1,
-          gridState: JSON.stringify(initialGrid),
-          lastOfflineCheck: now
-        }
-      });
+      const id = randomUUID();
+      db.prepare(`
+        INSERT INTO users (id, vk_id, first_name, last_name, avatar, coins, gems, max_cat_level, grid_state, last_offline_check)
+        VALUES (?, ?, 'Игрок', '', '', 100, 10, 1, ?, ?)
+      `).run(id, vkId, initialGrid, now);
+
+      user = db.prepare('SELECT * FROM users WHERE vk_id = ?').get(vkId);
     } else {
-      // Расчет оффлайн-дохода с момента lastOfflineCheck
-      const lastCheck = new Date(user.lastOfflineCheck);
-      const diffInSeconds = Math.max(0, Math.floor((now.getTime() - lastCheck.getTime()) / 1000));
-
+      // Расчет оффлайн-дохода
+      const diffInSeconds = Math.max(0, now - user.last_offline_check);
       if (diffInSeconds > 0) {
-        // Ограничение максимум 8 часов (28800 сек) оффлайн-дохода
-        const cappedSeconds = Math.min(diffInSeconds, 28800);
-        const incomePerSec = calculateIncomePerSecond(user.gridState);
+        const cappedSeconds = Math.min(diffInSeconds, 28800); // макс 8 часов
+        const incomePerSec = calculateIncomePerSecond(user.grid_state);
         const offlineEarnings = cappedSeconds * incomePerSec;
 
-        if (offlineEarnings > 0 || cappedSeconds > 0) {
-          user = await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              coins: user.coins + offlineEarnings,
-              lastOfflineCheck: now
-            }
-          });
+        if (offlineEarnings > 0) {
+          db.prepare('UPDATE users SET coins = coins + ?, last_offline_check = ? WHERE vk_id = ?')
+            .run(offlineEarnings, now, vkId);
+          user = db.prepare('SELECT * FROM users WHERE vk_id = ?').get(vkId);
         }
       }
     }
@@ -93,45 +78,40 @@ export class UserService {
   /**
    * Сохранение прогресса игрока
    */
-  async saveUserProgress(vkUserId, { coins, gems, maxCatLevel, gridState }) {
-    const vkId = BigInt(vkUserId);
+  saveUserProgress(vkUserId, { coins, gems, maxCatLevel, gridState }) {
+    const vkId = String(vkUserId);
+    const now = Math.floor(Date.now() / 1000);
 
-    // Валидация входных данных
-    if (coins !== undefined && (typeof coins !== 'number' || coins < 0)) {
+    if (coins !== undefined && (typeof coins !== 'number' || coins < 0))
       throw new Error('Некорректное значение coins');
-    }
-    if (gems !== undefined && (typeof gems !== 'number' || gems < 0)) {
+    if (gems !== undefined && (typeof gems !== 'number' || gems < 0))
       throw new Error('Некорректное значение gems');
-    }
-    if (maxCatLevel !== undefined && (typeof maxCatLevel !== 'number' || maxCatLevel < 1)) {
+    if (maxCatLevel !== undefined && (typeof maxCatLevel !== 'number' || maxCatLevel < 1))
       throw new Error('Некорректное значение maxCatLevel');
-    }
 
     let gridStateString = undefined;
     if (gridState !== undefined) {
       if (typeof gridState === 'string') {
-        // Проверка на валидность JSON
-        JSON.parse(gridState);
+        JSON.parse(gridState); // валидация JSON
         gridStateString = gridState;
-      } else if (Array.isArray(gridState) || typeof gridState === 'object') {
+      } else {
         gridStateString = JSON.stringify(gridState);
       }
     }
 
-    const updateData = {
-      lastOfflineCheck: new Date()
-    };
+    // Динамически собираем SET-часть запроса
+    const fields = ['last_offline_check = ?'];
+    const values = [now];
 
-    if (coins !== undefined) updateData.coins = coins;
-    if (gems !== undefined) updateData.gems = gems;
-    if (maxCatLevel !== undefined) updateData.maxCatLevel = maxCatLevel;
-    if (gridStateString !== undefined) updateData.gridState = gridStateString;
+    if (coins !== undefined)        { fields.push('coins = ?');         values.push(coins); }
+    if (gems !== undefined)         { fields.push('gems = ?');          values.push(gems); }
+    if (maxCatLevel !== undefined)  { fields.push('max_cat_level = ?'); values.push(maxCatLevel); }
+    if (gridStateString !== undefined) { fields.push('grid_state = ?'); values.push(gridStateString); }
 
-    const user = await prisma.user.update({
-      where: { vkId },
-      data: updateData
-    });
+    values.push(vkId);
+    db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE vk_id = ?`).run(...values);
 
+    const user = db.prepare('SELECT * FROM users WHERE vk_id = ?').get(vkId);
     return formatUser(user);
   }
 }

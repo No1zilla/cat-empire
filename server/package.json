@@ -5,21 +5,16 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "build": "npx prisma generate",
-    "postinstall": "npx prisma generate"
+    "dev": "node src/index.js",
+    "start": "node src/index.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "better-sqlite3": "^11.0.0",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
-    "express": "^4.22.2",
-    "prisma": "^5.22.0",
-    "nodemon": "^3.1.14"
-  },
-  "devDependencies": {}
+    "express": "^4.22.2"
+  }
 }

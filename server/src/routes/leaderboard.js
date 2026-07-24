@@ -1,36 +1,30 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import db from '../db.js';
 import vkAuth from '../middleware/vkAuth.js';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/leaderboard - Таблица лидеров (Топ 10)
-router.get('/', vkAuth, async (req, res) => {
+router.get('/', vkAuth, (req, res) => {
   try {
-    const topUsers = await prisma.user.findMany({
-      take: 10,
-      orderBy: [
-        { maxCatLevel: 'desc' },
-        { coins: 'desc' }
-      ],
-      select: {
-        id: true,
-        vkId: true,
-        firstName: true,
-        lastName: true,
-        avatar: true,
-        maxCatLevel: true,
-        coins: true
-      }
-    });
+    const rows = db.prepare(`
+      SELECT id, vk_id, first_name, last_name, avatar, max_cat_level, coins
+      FROM users
+      ORDER BY max_cat_level DESC, coins DESC
+      LIMIT 10
+    `).all();
 
-    const formattedLeaderboard = topUsers.map((user) => ({
-      ...user,
-      vkId: user.vkId.toString()
+    const leaderboard = rows.map(row => ({
+      id: row.id,
+      vkId: row.vk_id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      avatar: row.avatar,
+      maxCatLevel: row.max_cat_level,
+      coins: row.coins
     }));
 
-    res.json({ leaderboard: formattedLeaderboard });
+    res.json({ leaderboard });
   } catch (error) {
     console.error('Ошибка при получении таблицы лидеров:', error);
     res.status(500).json({ error: 'Не удалось получить таблицу лидеров' });
