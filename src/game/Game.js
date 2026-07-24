@@ -7,6 +7,7 @@ import { DragSystem } from './DragSystem.js';
 import { Economy } from './Economy.js';
 import { HUD } from '../ui/HUD.js';
 import { OfflineModal } from '../ui/OfflineModal.js';
+import { Tutorial } from '../ui/Tutorial.js';      // TASK-009
 import { fetchProfile, saveProgress } from '../api/client.js';
 
 // Главный класс игры
@@ -33,7 +34,7 @@ export class Game {
       const profileData = await fetchProfile();
       if (profileData && profileData.user) {
         if (profileData.user.coins !== undefined) startCoins = profileData.user.coins;
-        if (profileData.user.gems !== undefined) startGems = profileData.user.gems;
+        if (profileData.user.gems  !== undefined) startGems  = profileData.user.gems;
         if (profileData.user.gridState) userGridState = profileData.user.gridState;
       }
     } catch (error) {
@@ -66,9 +67,7 @@ export class Game {
     // 5. Создание системы экономики
     this.economy = new Economy(this.grid);
     this.economy.onUpdate = (coins, gems, ips) => {
-      if (this.hud) {
-        this.hud.update(coins, gems, ips);
-      }
+      if (this.hud) this.hud.update(coins, gems, ips);
     };
     this.economy.setBalance(startCoins, startGems);
     this.economy.startTicker();
@@ -122,9 +121,7 @@ export class Game {
 
     // Сделать все существующие котики на сетке перетаскиваемыми
     this.grid.slots.forEach((cat) => {
-      if (cat !== null) {
-        this.dragSystem.makeDraggable(cat);
-      }
+      if (cat !== null) this.dragSystem.makeDraggable(cat);
     });
 
     // 9. Авто-сохранение прогресса каждые 30 секунд
@@ -142,6 +139,15 @@ export class Game {
         console.error('Ошибка авто-сохранения:', e);
       }
     }, 30000);
+
+    // 10. TASK-009: Туториал первого запуска (поверх всего)
+    const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
+    if (!tutorialDone) {
+      const tutorial = new Tutorial(this.app, () => {
+        console.log('✅ Туториал завершён!');
+      });
+      this.app.stage.addChild(tutorial);
+    }
   }
 }
 

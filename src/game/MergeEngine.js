@@ -37,6 +37,7 @@ export class MergeEngine {
     // Создаём нового котика повышенного уровня
     const newCat = new Cat(newLevel, slotIndexB);
     this.grid.addCat(newCat, slotIndexB);
+    newCat.playJumpAnimation(); // TASK-008: анимация прыжка при merge
 
     // Вызываем коллбэк успешного merge
     if (typeof this.onMerge === 'function') {

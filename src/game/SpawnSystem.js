@@ -118,6 +118,7 @@ export class SpawnSystem extends Container {
     const cat = new Cat(1, freeSlot);
     cat.scale.set(0);
     this.grid.addCat(cat, freeSlot);
+    cat.playJumpAnimation(); // TASK-008: анимация прыжка при спавне
 
     // 5. Делаем котика перетаскиваемым
     if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {

@@ -2,6 +2,7 @@ import { Application } from 'pixi.js';
 import { CONFIG } from './config.js';
 import { VKService } from './vk/VKBridge.js';
 import { Game } from './game/Game.js';
+import { loadCatTextures } from './utils/catTextures.js'; // TASK-008
 
 // Точка входа в приложение
 async function initApp() {
@@ -49,7 +50,10 @@ async function initApp() {
     ? `${userInfo.firstName} ${userInfo.lastName}`.trim()
     : 'Тест Игрок';
 
-  // 6. Создать экземпляр Game(app) и вызывать асинхронный game.init()
+  // 6. TASK-008: Загрузка спрайтов котиков перед инициализацией игры
+  await loadCatTextures();
+
+  // 7. Создать экземпляр Game(app) и вызывать асинхронный game.init()
   const game = new Game(app);
   await game.init(userName);
 
