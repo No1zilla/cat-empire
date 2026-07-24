@@ -48,9 +48,9 @@ export class Game {
 
     // 3. Создание и позиционирование игрового поля 5x5
     this.grid = new Grid(this.app);
-    const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
-    this.grid.x = (CONFIG.GAME_WIDTH - gridWidth) / 2;
-    this.grid.y = 115; // отступ сверху под HUD
+    const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING; // 398px
+    this.grid.x = Math.max(0, (CONFIG.GAME_WIDTH - gridWidth) / 2);
+    this.grid.y = 105; // отступ сверху под HUD
 
     // 4. Восстановление состояния котиков на сетке
     if (userGridState) {
@@ -77,9 +77,9 @@ export class Game {
       console.log('Потрачено:', cost);
     });
 
-    const buttonWidth = 220;
+    const buttonWidth = 280;
     this.spawnSystem.x = (CONFIG.GAME_WIDTH - buttonWidth) / 2;
-    this.spawnSystem.y = this.grid.y + gridWidth + 20;
+    this.spawnSystem.y = this.grid.y + gridWidth + 16;
     this.app.stage.addChild(this.spawnSystem);
 
     // 7. Создание MergeEngine и DragSystem

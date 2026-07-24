@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков
+// Система спавна и покупки котиков (Крупная кнопка)
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -17,21 +17,23 @@ export class SpawnSystem extends Container {
     this._createButton();
   }
 
-  // Создание интерактивной кнопки покупки
+  // Создание интерактивной крупной кнопки покупки
   _createButton() {
-    const btnWidth = 220;
-    const btnHeight = 50;
+    const btnWidth = 280;
+    const btnHeight = 54;
 
     const bg = new Graphics();
-    bg.roundRect(0, 0, btnWidth, btnHeight, 12);
+    bg.roundRect(0, 0, btnWidth, btnHeight, 14);
     bg.fill(CONFIG.COLORS.ACCENT);
+    bg.stroke({ color: '#ffffff', alpha: 0.4, width: 2 });
     this.addChild(bg);
 
     const style = new TextStyle({
-      fontSize: 15,
+      fontSize: 17,
       fontWeight: 'bold',
       fill: '#ffffff',
-      align: 'center'
+      align: 'center',
+      dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
     });
 
     const btnText = new Text({
@@ -52,7 +54,7 @@ export class SpawnSystem extends Container {
     });
 
     this.on('pointerover', () => {
-      this.alpha = 0.8;
+      this.alpha = 0.85;
     });
 
     this.on('pointerout', () => {
@@ -60,7 +62,6 @@ export class SpawnSystem extends Container {
     });
   }
 
-  // Показать всплывающее сообщение о нехватке монет
   _showNotEnoughCoins() {
     if (this._warningText) {
       this.removeChild(this._warningText);
@@ -69,7 +70,7 @@ export class SpawnSystem extends Container {
     }
 
     const warningStyle = new TextStyle({
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: 'bold',
       fill: '#e94560',
       align: 'center'
@@ -80,7 +81,7 @@ export class SpawnSystem extends Container {
       style: warningStyle
     });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(110, -20);
+    this._warningText.position.set(140, -20);
     this.addChild(this._warningText);
 
     setTimeout(() => {
@@ -92,53 +93,43 @@ export class SpawnSystem extends Container {
     }, 1000);
   }
 
-  // Логика спавна котика в свободный слот
   async _spawnCat() {
     const SPAWN_COST = 10;
 
-    // 1. Проверка доступности слота
     const freeSlot = this.grid.getFreeSlotIndex();
     if (freeSlot === -1) {
       console.log('Нет свободных ячеек на игровом поле!');
       return;
     }
 
-    // 2. Проверка баланса монет
     if (this.economy && !this.economy.canAfford(SPAWN_COST)) {
       this._showNotEnoughCoins();
       return;
     }
 
-    // 3. Списание средств
     if (this.economy) {
       this.economy.spend(SPAWN_COST);
     }
 
-    // 4. Создаём нового котика 1-го уровня
     const cat = new Cat(1, freeSlot);
     cat.scale.set(0);
     this.grid.addCat(cat, freeSlot);
-    cat.playJumpAnimation(); // TASK-008: анимация прыжка при спавне
+    cat.playJumpAnimation();
 
-    // 5. Делаем котика перетаскиваемым
     if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {
       this.dragSystem.makeDraggable(cat);
     }
 
-    // 6. Пересчёт дохода после появления нового котика
     if (this.economy) {
       this.economy.recalcAfterMerge();
     }
 
-    // 7. Bounce-анимация появления
     this._animateBounce(cat);
 
-    // 8. Коллбэк траты монет
     if (typeof this.onCoinSpend === 'function') {
       this.onCoinSpend(SPAWN_COST);
     }
 
-    // 9. Авто-сохранение прогресса
     try {
       await saveProgress({
         coins: this.economy ? this.economy.coins : undefined,
@@ -150,11 +141,10 @@ export class SpawnSystem extends Container {
     }
   }
 
-  // Вспомогательная bounce-анимация появления
   _animateBounce(cat) {
     const startTime = Date.now();
-    const phase1Duration = 150; // 0 -> 1.2
-    const phase2Duration = 100; // 1.2 -> 1.0
+    const phase1Duration = 150;
+    const phase2Duration = 100;
 
     const animate = () => {
       const elapsed = Date.now() - startTime;

@@ -54,10 +54,10 @@ export class Grid extends Container {
     const cellX = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
     const cellY = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 
-    // Карточка котика имеет размер CELL_SIZE - 10 (60x60), поэтому отступ 5px
+    // Карточка котика имеет размер CELL_SIZE - 4 (66x66), поэтому отступ 2px
     return {
-      x: cellX + 5,
-      y: cellY + 5
+      x: cellX + 2,
+      y: cellY + 2
     };
   }
 

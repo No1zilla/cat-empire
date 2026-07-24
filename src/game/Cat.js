@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс котика: цветная карточка уровня + прозрачный спрайт котика + плашка Lvl N + анимации
+// Класс котика: Крупная яркая карточка + крупный прозрачный спрайт + плашка Lvl N + анимации
 export class Cat extends Container {
   constructor(level = 1, slotIndex = 0) {
     super();
@@ -18,26 +18,26 @@ export class Cat extends Container {
   _draw() {
     this.removeChildren();
 
-    const cardWidth = CONFIG.CELL_SIZE - 10;  // 52px при CELL_SIZE=62
-    const cardHeight = CONFIG.CELL_SIZE - 10; // 52px
+    const cardWidth = CONFIG.CELL_SIZE - 4;  // 66px при CELL_SIZE=70 (КРУПНО!)
+    const cardHeight = CONFIG.CELL_SIZE - 4; // 66px
     const catData = getCatData(this.level);
 
-    // Главный контейнер для всех элементов котика (анимируется целиком)
+    // Главный контейнер котика (анимируется целиком)
     const mainContainer = new Container();
 
-    // 1. Фон-карточка котика (яркий цвет уровня + полупрозрачная рамка)
+    // 1. Фон-карточка котика (сочный цвет уровня + яркий контур)
     const bg = new Graphics();
-    bg.roundRect(0, 0, cardWidth, cardHeight, 10);
+    bg.roundRect(0, 0, cardWidth, cardHeight, 12);
     bg.fill(catData.color);
-    bg.stroke({ color: '#ffffff', alpha: 0.35, width: 1.5 });
+    bg.stroke({ color: '#ffffff', alpha: 0.45, width: 2.0 });
     mainContainer.addChild(bg);
 
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      // 2. Прозрачный спрайт персонажа
+      // 2. Крупный спрайт персонажа
       const sprite = new Sprite(texture);
-      const catSize = cardWidth - 8; // 44px
+      const catSize = cardWidth - 8; // 58px! Персонаж занимает всю карточку
       sprite.width = catSize;
       sprite.height = catSize;
       sprite.x = (cardWidth - catSize) / 2;
@@ -45,7 +45,7 @@ export class Cat extends Container {
       mainContainer.addChild(sprite);
     } else {
       // Fallback на эмодзи
-      const emojiStyle = new TextStyle({ fontSize: 26, align: 'center' });
+      const emojiStyle = new TextStyle({ fontSize: 34, align: 'center' });
       const emojiText = new Text({ text: catData.emoji, style: emojiStyle });
       emojiText.anchor.set(0.5, 0.5);
       emojiText.x = cardWidth / 2;
@@ -53,16 +53,17 @@ export class Cat extends Container {
       mainContainer.addChild(emojiText);
     }
 
-    // 3. Плашка с уровнем (Lvl N)
-    const badgeW = 38;
-    const badgeH = 13;
+    // 3. Аккуратная плашка с уровнем (Lvl N)
+    const badgeW = 42;
+    const badgeH = 15;
     const badgeBg = new Graphics();
-    badgeBg.roundRect((cardWidth - badgeW) / 2, cardHeight - 14, badgeW, badgeH, 5);
-    badgeBg.fill({ color: 0x000000, alpha: 0.65 });
+    badgeBg.roundRect((cardWidth - badgeW) / 2, cardHeight - 16, badgeW, badgeH, 6);
+    badgeBg.fill({ color: 0x000000, alpha: 0.75 });
+    badgeBg.stroke({ color: '#ffffff', alpha: 0.3, width: 1 });
     mainContainer.addChild(badgeBg);
 
     const levelStyle = new TextStyle({
-      fontSize: 9,
+      fontSize: 10,
       fill: '#ffffff',
       fontWeight: 'bold',
       align: 'center'
@@ -70,7 +71,7 @@ export class Cat extends Container {
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
     levelText.x = cardWidth / 2;
-    levelText.y = cardHeight - 7.5;
+    levelText.y = cardHeight - 8.5;
     mainContainer.addChild(levelText);
 
     this.addChild(mainContainer);
@@ -79,7 +80,7 @@ export class Cat extends Container {
 
   // Idle-анимация: котик плавно покачивается вверх-вниз
   _startIdleAnimation() {
-    const amplitude = 2.5;
+    const amplitude = 3.0;
     const speed = 0.0025;
     const startTime = Date.now() + Math.random() * 1000;
 
@@ -105,7 +106,7 @@ export class Cat extends Container {
     this._stopIdleAnimation();
     const startTime = Date.now();
     const duration = 350;
-    const jumpHeight = 18;
+    const jumpHeight = 22;
 
     const animate = () => {
       const elapsed = Date.now() - startTime;

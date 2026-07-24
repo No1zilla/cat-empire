@@ -1,7 +1,7 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 
-// Пользовательский интерфейс (HUD панель верхней части экрана)
+// Пользовательский интерфейс (Крупная сочная HUD панель верхней части экрана)
 export class HUD extends Container {
   constructor(app) {
     super();
@@ -16,33 +16,35 @@ export class HUD extends Container {
   // Отрисовка элементов HUD
   _draw() {
     const hudWidth = CONFIG.GAME_WIDTH;
-    const hudHeight = 90;
+    const hudHeight = 92;
 
-    // 1. Фонавая панель HUD
+    // 1. Фоновая панель HUD
     const bg = new Graphics();
     bg.roundRect(0, 0, hudWidth, hudHeight, 0);
     bg.fill(CONFIG.COLORS.GRID_BG);
+    bg.stroke({ color: CONFIG.COLORS.CELL_BORDER, width: 1.5 });
     this.addChild(bg);
 
     // 2. Иконка и значение монет 🪙
-    const coinIconStyle = new TextStyle({ fontSize: 22 });
+    const coinIconStyle = new TextStyle({ fontSize: 26 });
     const coinIcon = new Text({ text: '🪙', style: coinIconStyle });
-    coinIcon.position.set(15, 15);
+    coinIcon.position.set(15, 12);
     this.addChild(coinIcon);
 
     const coinsStyle = new TextStyle({
-      fontSize: 20,
+      fontSize: 24,
       fontWeight: 'bold',
-      fill: CONFIG.COLORS.GOLD
+      fill: CONFIG.COLORS.GOLD,
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
     this._coinsText = new Text({ text: '0', style: coinsStyle });
-    this._coinsText.position.set(45, 16);
+    this._coinsText.position.set(50, 13);
     this.addChild(this._coinsText);
 
     // 3. Иконка и значение гемов 💎
-    const gemIconStyle = new TextStyle({ fontSize: 22 });
+    const gemIconStyle = new TextStyle({ fontSize: 24 });
     const gemIcon = new Text({ text: '💎', style: gemIconStyle });
-    gemIcon.position.set(15, 48);
+    gemIcon.position.set(15, 50);
     this.addChild(gemIcon);
 
     const gemsStyle = new TextStyle({
@@ -51,16 +53,18 @@ export class HUD extends Container {
       fill: '#a8d8ff'
     });
     this._gemsText = new Text({ text: '0', style: gemsStyle });
-    this._gemsText.position.set(45, 49);
+    this._gemsText.position.set(50, 52);
     this.addChild(this._gemsText);
 
     // 4. Текст пассивного дохода в секунду (+N/сек)
     const ipsStyle = new TextStyle({
-      fontSize: 13,
-      fill: CONFIG.COLORS.TEXT_DIM
+      fontSize: 15,
+      fontWeight: 'bold',
+      fill: '#2ecc71'
     });
     this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });
-    this._ipsText.position.set(hudWidth - 110, 36);
+    this._ipsText.anchor.set(1, 0.5);
+    this._ipsText.position.set(hudWidth - 18, 46);
     this.addChild(this._ipsText);
   }
 
@@ -77,7 +81,6 @@ export class HUD extends Container {
     }
   }
 
-  // Заглушка для рендеринга
   render() {}
 }
 
