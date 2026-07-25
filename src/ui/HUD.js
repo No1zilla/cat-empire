@@ -3,8 +3,7 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
 /**
- * TASK-018B: Идеальная 3-капсульная шапка HUD (как на промо-скриншоте №1)
- * Единая строка из 3-х стильных округлых бабблов (Монеты, Гемы, Доход)
+ * Премиальный HUD AAA-уровня
  */
 export class HUD extends Container {
   constructor(app, onOpenCollection) {
@@ -18,91 +17,82 @@ export class HUD extends Container {
     this._draw();
   }
 
-  // Отрисовка элементов HUD
   _draw() {
     this.removeChildren();
-
     const hudWidth = CONFIG.GAME_WIDTH || 410;
-    const hudHeight = 60;
+    const hudHeight = 85;
 
-    // 1. Тёмно-фиолетовый фон верхней панели
+    // 1. Премиальный фон: тёмный, минималистичный, с едва заметной границей снизу
     const bg = new Graphics();
     bg.rect(0, 0, hudWidth, hudHeight);
-    bg.fill(0x0c081e);
-    bg.stroke({ color: 0x221a42, width: 1.0 });
+    bg.fill({ color: 0x0f0b1e, alpha: 0.95 });
+    
+    // Элегантная неоновая полоска снизу
+    bg.moveTo(0, hudHeight);
+    bg.lineTo(hudWidth, hudHeight);
+    bg.stroke({ color: 0x4a3a82, width: 2, alpha: 0.8 });
     this.addChild(bg);
 
-    // --- БАББЛ 1: МОНЕТЫ 🪙 (Ширина 145px) ---
-    const coinBg = new Graphics();
-    coinBg.roundRect(10, 10, 145, 40, 20);
-    coinBg.fill(0x191333);
-    coinBg.stroke({ color: 0xffd700, width: 1.5, alpha: 0.8 });
-    this.addChild(coinBg);
-
-    // Золотая 3D иконка монеты
-    const goldCoin = UIUtils.createCoinIcon(10);
-    goldCoin.position.set(26, 30);
-    this.addChild(goldCoin);
+    // 2. Блок МОНЕТ (Слева, крупно)
+    const coinIcon = UIUtils.createCoinIcon(16);
+    coinIcon.position.set(34, 30);
+    this.addChild(coinIcon);
 
     const coinsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 13,
-      fontWeight: 'bold',
-      fill: '#ffd700',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
+      fontSize: 32,
+      fontWeight: '900',
+      fill: '#ffd700', // Чистое золото
+      stroke: { color: '#663a00', width: 6, join: 'round' }, // Мощная коричневая обводка
+      dropShadow: { color: '#000000', alpha: 0.4, blur: 0, distance: 3 } // Жесткая тень
     });
     this._coinsText = new Text({ text: '0', style: coinsStyle });
-    this._coinsText.position.set(42, 21);
+    this._coinsText.position.set(60, 10);
     this.addChild(this._coinsText);
 
-    // --- БАББЛ 2: ГЕМЫ 💎 (Ширина 85px) ---
-    const gemBg = new Graphics();
-    gemBg.roundRect(162, 10, 85, 40, 20);
-    gemBg.fill(0x191333);
-    gemBg.stroke({ color: 0x4a90e2, width: 1.5, alpha: 0.8 });
-    this.addChild(gemBg);
-
-    const gemIconStyle = new TextStyle({ fontSize: 17 });
-    const gemIcon = new Text({ text: '💎', style: gemIconStyle });
-    gemIcon.position.set(170, 19);
+    // 3. Блок ГЕМОВ (Слева, под монетами, чуть мельче)
+    const gemStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 18,
+      fontWeight: '900',
+      fill: '#4a90e2',
+      stroke: { color: '#092147', width: 4, join: 'round' }
+    });
+    const gemIcon = new Text({ text: '💎', style: gemStyle });
+    gemIcon.anchor.set(0.5, 0.5);
+    gemIcon.position.set(34, 62);
     this.addChild(gemIcon);
 
     const gemsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 14,
-      fontWeight: 'bold',
+      fontSize: 20,
+      fontWeight: '900',
       fill: '#ffffff',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
+      stroke: { color: '#163a6e', width: 4, join: 'round' },
+      dropShadow: { color: '#000000', alpha: 0.4, blur: 0, distance: 2 }
     });
     this._gemsText = new Text({ text: '0', style: gemsStyle });
-    this._gemsText.position.set(198, 21);
+    this._gemsText.position.set(60, 50);
     this.addChild(this._gemsText);
 
-    // --- БАББЛ 3: ДОХОД ⬆️ (Ширина 148px) ---
-    const ipsBg = new Graphics();
-    ipsBg.roundRect(253, 10, 148, 40, 20);
-    ipsBg.fill(0x0f291a);
-    ipsBg.stroke({ color: 0x2ecc71, width: 1.5, alpha: 0.8 });
-    this.addChild(ipsBg);
-
+    // 4. Блок ДОХОДА (Справа, выровнен по центру)
     const ipsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 12,
-      fontWeight: 'bold',
+      fontSize: 18,
+      fontWeight: '900',
       fill: '#2ecc71',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
+      stroke: { color: '#08451a', width: 4, join: 'round' },
+      dropShadow: { color: '#000000', alpha: 0.4, blur: 0, distance: 2 }
     });
     this._ipsText = new Text({ text: '+0/сек ⬆️', style: ipsStyle });
-    this._ipsText.anchor.set(0.5, 0.5);
-    this._ipsText.position.set(327, 30);
+    this._ipsText.anchor.set(1, 0.5); // Right aligned, vertically centered
+    this._ipsText.position.set(hudWidth - 16, 42); // По центру высоты HUD
     this.addChild(this._ipsText);
   }
 
-  // Обновление значений на панели HUD
   update(coins, gems, incomePerSecond) {
     if (this._coinsText) {
-      const formattedCoins = Math.floor(coins || 0).toLocaleString('ru-RU');
-      this._coinsText.text = formattedCoins;
+      this._coinsText.text = Math.floor(coins || 0).toLocaleString('ru-RU');
     }
     if (this._gemsText) {
       this._gemsText.text = String(gems || 0);
@@ -112,5 +102,3 @@ export class HUD extends Container {
     }
   }
 }
-
-export default HUD;
