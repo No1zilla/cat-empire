@@ -78,32 +78,11 @@ export class Game {
     this.hud.position.set(0, 0);
     this.app.stage.addChild(this.hud);
 
-    // 2B. 3D Логотип «ИМПЕРИЯ КОТИКОВ» над сеткой
-    const logoContainer = new Container();
-    logoContainer.position.set(CONFIG.GAME_WIDTH / 2, 70);
-
-    const logoStyle = new TextStyle({
-      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 22,
-      fontWeight: 'bold',
-      fill: ['#fff3a0', '#ffd700', '#ff8c00'],
-      stroke: { color: 0x110729, width: 4 },
-      dropShadow: { color: '#000000', alpha: 0.8, blur: 4, distance: 2 }
-    });
-
-    const logoText = new Text({
-      text: '👑 ИМПЕРИЯ КОТИКОВ 🐾',
-      style: logoStyle
-    });
-    logoText.anchor.set(0.5, 0.5);
-    logoContainer.addChild(logoText);
-    this.app.stage.addChild(logoContainer);
-
-    // 3. Создание и позиционирование игрового поля 5x5
+    // 3. Увеличенное сочное игровое поле 5x5 (без лишнего логотипа)
     this.grid = new Grid(this.app);
-    const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING; // 400px
+    const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     this.grid.x = 0;
-    this.grid.y = 96;
+    this.grid.y = 68;
     this.app.stage.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке

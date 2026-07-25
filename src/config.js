@@ -1,10 +1,10 @@
 // Константы и конфигурация игры «Империя Котиков» (TASK-015 Visual Glow-Up)
 export const CONFIG = {
-  GAME_WIDTH: 400,         // ширина игрового поля в пикселях
+  GAME_WIDTH: 410,         // ширина игрового поля в пикселях
   GAME_HEIGHT: 700,        // высота (мобильные пропорции)
   GRID_SIZE: 5,            // сетка 5x5
-  CELL_SIZE: 74,           // МАКСИМАЛЬНЫЙ размер ячейки (74px)
-  GRID_PADDING: 5,         // минимальные плотные отступы (5px)
+  CELL_SIZE: 77,           // Крупный сочный размер ячейки (77px)
+  GRID_PADDING: 4,         // плотные аккуратные отступы (4px)
   FONT_FAMILY: "'Fredoka', 'Nunito', sans-serif",
   COLORS: {
     BG_TOP: 0x2a1b54,      // Градиент сверху
