@@ -70,6 +70,9 @@ export class DragSystem {
 
       cat.alpha = 0.85;
       cat.cursor = 'grabbing';
+
+      // TASK-011: Изумрудная подсветка (0x00ff88) всех совпадений при перетаскивании
+      this.grid.updateBoardGlow(cat);
     });
   }
 
@@ -138,6 +141,9 @@ export class DragSystem {
     }
 
     this.dragging = null;
+
+    // TASK-011: Возврат подсветки в режим покоя
+    this.grid.updateBoardGlow();
 
     if (stateChanged && typeof this.onStateChange === 'function') {
       this.onStateChange();

@@ -3,14 +3,18 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс котика: ГИГАНТСКАЯ карточка 72x72px + МАКСИМАЛЬНЫЙ спрайт 70x70px + аккуратный угол-бейджик Lvl
+// Класс котика: ГИГАНТСКАЯ карточка 72x72px + МАКСИМАЛЬНЫЙ спрайт 70x70px + подсветка setGlow
 export class Cat extends Container {
   constructor(level = 1, slotIndex = 0) {
     super();
     this.level = level;
     this.slotIndex = slotIndex;
     this._ticker = null;
+    this._glowTicker = null;
     this._animatedContainer = null;
+    this._glowGraphic = null;
+    this._glowColor = null;
+
     this._draw();
     this._startIdleAnimation();
   }
@@ -53,7 +57,7 @@ export class Cat extends Container {
       mainContainer.addChild(emojiText);
     }
 
-    // 3. Компактный стильный бейджик уровня в ПРАВОМ ВЕРХНЕМ УГЛУ (не заслоняет котика!)
+    // 3. Компактный стильный бейджик уровня в ПРАВОМ ВЕРХНЕМ УГЛУ
     const badgeW = 32;
     const badgeH = 14;
     const badgeBg = new Graphics();
@@ -76,6 +80,77 @@ export class Cat extends Container {
 
     this.addChild(mainContainer);
     this._animatedContainer = mainContainer;
+
+    // Если подсветка уже была включена до _draw, восстанавливаем её
+    if (this._glowColor) {
+      this._createGlowGraphic(this._glowColor);
+    }
+  }
+
+  // TASK-011: Управление подсвечивающей пульсирующей аурой (0xffd700 золотая / 0x00ff88 изумрудная)
+  setGlow(enabled, color = 0xffd700) {
+    if (!enabled) {
+      this._stopGlowAnimation();
+      if (this._glowGraphic) {
+        if (this._glowGraphic.parent) {
+          this._glowGraphic.parent.removeChild(this._glowGraphic);
+        }
+        this._glowGraphic.destroy();
+        this._glowGraphic = null;
+      }
+      this._glowColor = null;
+      return;
+    }
+
+    // Если цвет изродился или подсветка переключается
+    if (this._glowGraphic && this._glowColor === color) return;
+
+    this._stopGlowAnimation();
+    if (this._glowGraphic) {
+      if (this._glowGraphic.parent) {
+        this._glowGraphic.parent.removeChild(this._glowGraphic);
+      }
+      this._glowGraphic.destroy();
+    }
+
+    this._glowColor = color;
+    this._createGlowGraphic(color);
+    this._startGlowAnimation();
+  }
+
+  _createGlowGraphic(color) {
+    const cardWidth = CONFIG.CELL_SIZE - 2;
+    const cardHeight = CONFIG.CELL_SIZE - 2;
+
+    this._glowGraphic = new Graphics();
+    this._glowGraphic.roundRect(-5, -5, cardWidth + 10, cardHeight + 10, 16);
+    this._glowGraphic.fill({ color: color, alpha: 0.35 });
+    this._glowGraphic.stroke({ color: color, width: 3.0, alpha: 0.9 });
+
+    // Помещаем график ауры под карточку
+    this.addChildAt(this._glowGraphic, 0);
+  }
+
+  _startGlowAnimation() {
+    const startTime = Date.now();
+    const speed = 0.005;
+
+    const tick = () => {
+      if (!this._glowGraphic || this.destroyed) return;
+      const elapsed = Date.now() - startTime;
+      const pulse = 0.55 + Math.sin(elapsed * speed) * 0.4; // 0.15 .. 0.95
+      this._glowGraphic.alpha = pulse;
+      this._glowTicker = requestAnimationFrame(tick);
+    };
+
+    this._glowTicker = requestAnimationFrame(tick);
+  }
+
+  _stopGlowAnimation() {
+    if (this._glowTicker) {
+      cancelAnimationFrame(this._glowTicker);
+      this._glowTicker = null;
+    }
   }
 
   // Idle-анимация: котик плавно покачивается вверх-вниз
@@ -133,6 +208,7 @@ export class Cat extends Container {
 
   destroy(options) {
     this._stopIdleAnimation();
+    this._stopGlowAnimation();
     super.destroy(options);
   }
 }

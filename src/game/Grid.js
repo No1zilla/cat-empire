@@ -46,7 +46,7 @@ export class Grid extends Container {
     return this.slots[slotIndex] || null;
   }
 
-  // Получить позицию для котика внутри слота (с центрированием относительно 70x70 ячейки)
+  // Получить позицию для котика внутри слота
   getSlotPosition(slotIndex) {
     const col = slotIndex % 5;
     const row = Math.floor(slotIndex / 5);
@@ -54,11 +54,54 @@ export class Grid extends Container {
     const cellX = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
     const cellY = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 
-    // Карточка котика имеет гигантский размер CELL_SIZE - 2 (72x72), отступ 1px
     return {
       x: cellX + 1,
       y: cellY + 1
     };
+  }
+
+  // TASK-011: Проверяет, есть ли у котика в смежных ячейках (по кресту: влево, вправо, вверх, вниз) котик ТОГО ЖЕ уровня
+  hasAdjacentMatchingCat(slotIndex) {
+    const cat = this.getCatAtSlot(slotIndex);
+    if (!cat) return false;
+
+    const col = slotIndex % 5;
+    const row = Math.floor(slotIndex / 5);
+
+    const neighbors = [
+      col > 0 ? this.getCatAtSlot(slotIndex - 1) : null, // Влево
+      col < 4 ? this.getCatAtSlot(slotIndex + 1) : null, // Вправо
+      row > 0 ? this.getCatAtSlot(slotIndex - 5) : null, // Вверх
+      row < 4 ? this.getCatAtSlot(slotIndex + 5) : null, // Вниз
+    ];
+
+    return neighbors.some((n) => n !== null && n.level === cat.level);
+  }
+
+  // TASK-011: Управление умной подсветкой котиков
+  // - draggingCat === null (Покой): мягкий золотой свет (0xffd700) ТОЛЬКО у смежных пар
+  // - draggingCat !== null (Drag): яркий изумрудный свет (0x00ff88) у ВСЕХ совпадений на поле
+  updateBoardGlow(draggingCat = null) {
+    for (let i = 0; i < 25; i++) {
+      const cat = this.slots[i];
+      if (!cat) continue;
+
+      if (draggingCat === null) {
+        // Режим покоя
+        if (this.hasAdjacentMatchingCat(i)) {
+          cat.setGlow(true, 0xffd700); // мягкий золотой свет
+        } else {
+          cat.setGlow(false);
+        }
+      } else {
+        // Режим Drag (перетаскивание)
+        if (cat !== draggingCat && cat.level === draggingCat.level) {
+          cat.setGlow(true, 0x00ff88); // яркий изумрудный свет
+        } else {
+          cat.setGlow(false);
+        }
+      }
+    }
   }
 
   // Возвращает первый свободный индекс слота или -1
@@ -70,7 +113,6 @@ export class Grid extends Container {
   addCat(cat, slotIndex) {
     if (slotIndex < 0 || slotIndex >= 25) return;
 
-    // Если в этом слоте уже есть другой объект котика, удаляем его
     if (this.slots[slotIndex] && this.slots[slotIndex] !== cat) {
       this.removeCat(slotIndex);
     }
@@ -84,20 +126,24 @@ export class Grid extends Container {
     if (cat.parent !== this) {
       this.addChild(cat);
     }
+
+    this.updateBoardGlow();
   }
 
   // Удалить котика из слота
   removeCat(slotIndex) {
     if (this.slots[slotIndex]) {
       const cat = this.slots[slotIndex];
+      cat.setGlow(false);
       if (cat.parent === this) {
         this.removeChild(cat);
       }
       this.slots[slotIndex] = null;
     }
+    this.updateBoardGlow();
   }
 
-  // Экспорт состояния слотов в массив объектов { slotIndex, catLevel }
+  // Экспорт состояния слотов
   exportState() {
     const state = [];
     for (let i = 0; i < 25; i++) {
@@ -111,9 +157,8 @@ export class Grid extends Container {
     return state;
   }
 
-  // Импорт состояния из массива объектов { slotIndex, catLevel }
+  // Импорт состояния
   importState(gridStateArr) {
-    // Очистить все текущие котики
     for (let i = 0; i < 25; i++) {
       this.removeCat(i);
     }
@@ -137,6 +182,8 @@ export class Grid extends Container {
         }
       });
     }
+
+    this.updateBoardGlow();
   }
 }
 
