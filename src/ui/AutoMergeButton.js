@@ -2,7 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 
 /**
- * TASK-015: Объёмная кнопка бустера «⚡ Авто-Merge» с анимацией нажатия и градиентом
+ * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
  */
 export class AutoMergeButton extends Container {
   constructor(app, economy, onTriggerAutoMerge) {
@@ -59,17 +59,17 @@ export class AutoMergeButton extends Container {
     shine.fill({ color: 0xffffff, alpha: 0.22 });
     this.addChild(shine);
 
-    // 4. Текст кнопки
+    // 4. Текст кнопки "⚡ Соединить все"
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
       dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
 
-    this._btnText = new Text({ text: '⚡ Авто-Merge', style: titleStyle });
+    this._btnText = new Text({ text: '⚡ Соединить все', style: titleStyle });
     this._btnText.anchor.set(0.5, 0);
     this._btnText.position.set(btnWidth / 2, 6);
     this.addChild(this._btnText);
