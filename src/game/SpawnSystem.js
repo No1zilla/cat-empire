@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков (TASK-016: Stats Tracking — totalCatsCreated)
+// Система спавна и покупки котиков (TASK-016: Hold-to-Buy авто-спавн при зажатии)
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -15,6 +15,9 @@ export class SpawnSystem extends Container {
     this._btnText = null;
     this._warningText = null;
     this._breathRaf = null;
+
+    this._holdTimeout = null;
+    this._holdInterval = null;
 
     this._createButton();
     this.updateButtonLabel();
@@ -39,7 +42,7 @@ export class SpawnSystem extends Container {
 
       if (canAfford) {
         const elapsed = performance.now() - start;
-        const pulse = 1.0 + Math.sin(elapsed * 0.0035) * 0.035; // 1.0 -> 1.035 -> 1.0
+        const pulse = 1.0 + Math.sin(elapsed * 0.0035) * 0.035;
         this.scale.set(pulse);
       } else {
         this.scale.set(1.0);
@@ -49,9 +52,9 @@ export class SpawnSystem extends Container {
     this._breathRaf = requestAnimationFrame(tick);
   }
 
-  // Создание сочной объёмной кнопки покупки с бликом
+  // Создание кнопки покупки (width 145px)
   _createButton() {
-    const btnWidth = 230;
+    const btnWidth = 145;
     const btnHeight = 50;
 
     // 1. Нижняя тень
@@ -76,7 +79,7 @@ export class SpawnSystem extends Container {
     // 4. Текст на кнопке (Fredoka font)
     const style = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 15,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
@@ -93,22 +96,51 @@ export class SpawnSystem extends Container {
     this._btnText.y = btnHeight / 2 - 1;
     this.addChild(this._btnText);
 
-    // 5. Настройка интерактивности
+    // 5. Настройка интерактивности и Hold-to-Buy (авто-спавн при зажатии)
     this.eventMode = 'static';
     this.cursor = 'pointer';
 
     this.on('pointerdown', () => {
       this._playClickAnim();
       this._spawnCat();
+      this._startHold();
     });
+
+    const stopHandler = () => this._stopHold();
+    this.on('pointerup', stopHandler);
+    this.on('pointerupoutside', stopHandler);
+    this.on('pointerout', stopHandler);
+    this.on('pointercancel', stopHandler);
 
     this.on('pointerover', () => {
       this.alpha = 0.92;
     });
+  }
 
-    this.on('pointerout', () => {
-      this.alpha = 1.0;
-    });
+  _startHold() {
+    this._stopHold();
+    this._holdTimeout = setTimeout(() => {
+      this._holdInterval = setInterval(() => {
+        const freeSlot = this.grid ? this.grid.getFreeSlotIndex() : -1;
+        const cost = this.economy ? this.economy.getCatCost() : 10;
+        if (freeSlot !== -1 && this.economy && this.economy.canAfford(cost)) {
+          this._spawnCat();
+        } else {
+          this._stopHold();
+        }
+      }, 90);
+    }, 220);
+  }
+
+  _stopHold() {
+    if (this._holdTimeout) {
+      clearTimeout(this._holdTimeout);
+      this._holdTimeout = null;
+    }
+    if (this._holdInterval) {
+      clearInterval(this._holdInterval);
+      this._holdInterval = null;
+    }
   }
 
   _playClickAnim() {
@@ -127,7 +159,7 @@ export class SpawnSystem extends Container {
 
     const warningStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#ff4757',
       align: 'center'
@@ -138,7 +170,7 @@ export class SpawnSystem extends Container {
       style: warningStyle
     });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(115, -20);
+    this._warningText.position.set(72, -18);
     this.addChild(this._warningText);
 
     setTimeout(() => {
@@ -167,7 +199,7 @@ export class SpawnSystem extends Container {
     if (this.economy) {
       this.economy.spend(cost);
       this.economy.totalCatsBought++;
-      this.economy.totalCatsCreated++; // TASK-016: Увеличение счетчика созданных котов
+      this.economy.totalCatsCreated++;
       this.updateButtonLabel();
     }
 
@@ -231,6 +263,7 @@ export class SpawnSystem extends Container {
   }
 
   destroy(options) {
+    this._stopHold();
     if (this._breathRaf) {
       cancelAnimationFrame(this._breathRaf);
       this._breathRaf = null;

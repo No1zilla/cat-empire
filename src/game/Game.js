@@ -14,9 +14,10 @@ import { CollectionModal } from '../ui/CollectionModal.js';
 import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
+import { FillAllButton } from '../ui/FillAllButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры (TASK-016: Динамическая экономика & Счётчики статистики)
+// Главный класс игры (Массовая покупка: Hold-to-buy + 📦 Всё)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -24,6 +25,7 @@ export class Game {
     this.hud = null;
     this.economy = null;
     this.spawnSystem = null;
+    this.fillAllButton = null;
     this.mergeEngine = null;
     this.dragSystem = null;
     this.catDeck = null;
@@ -76,21 +78,20 @@ export class Game {
 
     // 3. Создание и позиционирование игрового поля 5x5
     this.grid = new Grid(this.app);
-    const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING; // ровно 400px!
+    const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING; // 400px
     this.grid.x = 0;
-    this.grid.y = 95; // отступ сверху под HUD
+    this.grid.y = 95;
+    this.app.stage.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке
     if (userGridState) {
       this.grid.importState(userGridState);
     } else {
-      // Начальное дефолтное состояние: 2 котика 1-го уровня
       this.grid.importState([
         { slotIndex: 0, catLevel: 1 },
         { slotIndex: 1, catLevel: 1 }
       ]);
     }
-    this.app.stage.addChild(this.grid);
 
     // Вычисляем максимальный уровень на сетке при старте
     this.grid.slots.forEach((cat) => {
@@ -99,35 +100,95 @@ export class Game {
       }
     });
 
-    // 5. Создание системы экономики с привязкой сетки для динамических цен
+    // 5. Экономика
     this.economy = new Economy(this.grid);
     this.economy.onUpdate = (coins, gems, ips) => {
       if (this.hud) this.hud.update(coins, gems, ips);
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
+      if (this.fillAllButton) this.fillAllButton.updateLabel();
     };
     this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalCatsCreated, startTotalMerges);
     this.economy.startTicker();
 
-    // 6. Создание системы спавна и кнопки покупки (230px)
+    // 6. Сочный ряд 3-х кнопок управления:
+
+    // A) 🐱 Купить (145px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
-      console.log('Потрачено:', cost);
+      if (this.fillAllButton) this.fillAllButton.updateLabel();
     });
     this.spawnSystem.x = 10;
     this.spawnSystem.y = this.grid.y + gridWidth + 12;
     this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
 
-    // TASK-012: Система каскадного авто-слияния и кнопка бустера (140px)
+    // B) 📦 Всё (95px) — закуп всех свободных слотов за 1 клик
+    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async (count, totalCost) => {
+      const freeSlots = [];
+      for (let i = 0; i < 25; i++) {
+        if (this.grid.slots[i] === null) {
+          freeSlots.push(i);
+        }
+      }
+
+      const spawnCount = Math.min(count, freeSlots.length);
+      if (spawnCount === 0) return;
+
+      if (this.economy) {
+        this.economy.spend(totalCost);
+        this.economy.totalCatsBought += spawnCount;
+        this.economy.totalCatsCreated += spawnCount;
+      }
+
+      for (let i = 0; i < spawnCount; i++) {
+        const slot = freeSlots[i];
+        const cat = new Cat(1, slot);
+        cat.scale.set(0);
+        this.grid.addCat(cat, slot);
+        cat.playJumpAnimation();
+
+        if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {
+          this.dragSystem.makeDraggable(cat);
+        }
+
+        this.spawnSystem._animateBounce(cat);
+        await new Promise((r) => setTimeout(r, 35));
+      }
+
+      if (this.economy) {
+        this.economy.recalcAfterMerge();
+      }
+      if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
+      if (this.fillAllButton) this.fillAllButton.updateLabel();
+
+      try {
+        await saveProgress({
+          coins: this.economy ? this.economy.coins : undefined,
+          gems: this.economy ? this.economy.gems : undefined,
+          totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
+          totalCatsCreated: this.economy ? this.economy.totalCatsCreated : undefined,
+          totalMerges: this.economy ? this.economy.totalMerges : undefined,
+          gridState: this.grid.exportState()
+        });
+      } catch (e) {
+        console.error('Ошибка сохранения после массовой покупки:', e);
+      }
+    });
+    this.fillAllButton.x = 160;
+    this.fillAllButton.y = this.spawnSystem.y;
+    this.app.stage.addChild(this.fillAllButton);
+
+    // C) ⚡ Соединить все (135px)
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
       if (this.autoMergeSystem) {
         await this.autoMergeSystem.runAutoMerge();
       }
+      if (this.fillAllButton) this.fillAllButton.updateLabel();
     });
-    this.autoMergeButton.x = 250;
+    this.autoMergeButton.x = 260;
     this.autoMergeButton.y = this.spawnSystem.y;
     this.app.stage.addChild(this.autoMergeButton);
 
-    // 7. Интерактивная колода карт (CatDeck) прямо на главном экране под кнопкой покупки
+    // 7. Интерактивная колода карт (CatDeck)
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
       if (isUnlocked) {
         openCollection();
@@ -136,14 +197,13 @@ export class Game {
     this.catDeck.y = this.spawnSystem.y + 58;
     this.app.stage.addChild(this.catDeck);
 
-    // 8. Создание MergeEngine и DragSystem
+    // 8. Движок Merge и Drag
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
       if (this.economy) {
         this.economy.totalMerges++;
       }
 
-      // TASK-010: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы + обновление колоды!
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
@@ -175,6 +235,7 @@ export class Game {
     const onStateChange = async () => {
       this.economy.recalcAfterMerge();
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
+      if (this.fillAllButton) this.fillAllButton.updateLabel();
       localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
       try {
         await saveProgress({
@@ -194,7 +255,7 @@ export class Game {
     this.dragSystem = new DragSystem(this.app, this.grid, this.mergeEngine, onStateChange);
     this.spawnSystem.dragSystem = this.dragSystem;
 
-    // Подключаем DragSystem к AutoMergeSystem для анимаций
+    // Подключаем DragSystem к AutoMergeSystem
     this.autoMergeSystem = new AutoMergeSystem(
       this.app,
       this.grid,
@@ -204,6 +265,7 @@ export class Game {
         console.log(`⚡ Авто-Merge выполнил ${mergesCount} слияний!`);
         this.economy.recalcAfterMerge();
         if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
+        if (this.fillAllButton) this.fillAllButton.updateLabel();
         localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
         try {
           await saveProgress({
@@ -226,10 +288,9 @@ export class Game {
       if (cat !== null) this.dragSystem.makeDraggable(cat);
     });
 
-    // TASK-015B: Всплывающие зелёные циферки дохода (+N) над котиками на доске
     this._startFloatingIncomePopups();
 
-    // 9. Последовательное отображение модальных окон
+    // 9. Модальные окна
     const showTutorialIfNeeded = () => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
       if (!tutorialDone) {
@@ -255,7 +316,7 @@ export class Game {
 
     localStorage.setItem('cat_empire_last_coins', String(startCoins));
 
-    // 10. Авто-сохранение прогресса каждые 30 секунд
+    // 10. Авто-сохранение каждые 30 секунд
     if (this._autoSaveInterval) clearInterval(this._autoSaveInterval);
     this._autoSaveInterval = setInterval(async () => {
       try {
@@ -276,7 +337,6 @@ export class Game {
     }, 30000);
   }
 
-  // TASK-015B: Цикл всплывающего дохода над котиками
   _startFloatingIncomePopups() {
     if (this._floatingInterval) clearInterval(this._floatingInterval);
 
