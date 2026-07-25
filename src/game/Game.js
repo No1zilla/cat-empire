@@ -17,7 +17,7 @@ import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры (Массовая покупка: Точный расчёт стоимости и спавна)
+// Главный класс игры (Сохранение totalCatsBought в localStorage + сервер)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -38,13 +38,13 @@ export class Game {
 
   // Асинхронный метод инициализации игровой сцены
   async init(userName = 'Тест Игрок') {
-    // 1. Загрузка профиля пользователя с сервера
-    let startCoins = 100;
-    let startGems = 10;
-    let startMaxCatLevel = 1;
-    let startTotalCatsBought = 0;
-    let startTotalCatsCreated = 0;
-    let startTotalMerges = 0;
+    // 1. Инициализация из localStorage (надежный фоллбэк при перезагрузке)
+    let startCoins            = parseFloat(localStorage.getItem('cat_empire_last_coins') || '100');
+    let startGems             = parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10);
+    let startMaxCatLevel      = parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10);
+    let startTotalCatsBought  = parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10);
+    let startTotalCatsCreated = parseInt(localStorage.getItem('cat_empire_last_total_created') || '0', 10);
+    let startTotalMerges      = parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10);
     let userGridState = null;
 
     try {
@@ -59,7 +59,7 @@ export class Game {
         if (profileData.user.gridState)       userGridState = profileData.user.gridState;
       }
     } catch (error) {
-      console.warn('Сервер не доступен или ошибка получения профиля, используются дефолтные данные:', error);
+      console.warn('Сервер не доступен или ошибка получения профиля, используются локальные данные:', error);
     }
 
     this.maxCatLevel = startMaxCatLevel;
@@ -115,6 +115,7 @@ export class Game {
     // A) 🐱 Купить (145px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
+      this._saveToLocalStorage();
     });
     this.spawnSystem.x = 10;
     this.spawnSystem.y = this.grid.y + gridWidth + 12;
@@ -181,6 +182,8 @@ export class Game {
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
 
+      this._saveToLocalStorage();
+
       try {
         await saveProgress({
           coins: this.economy ? this.economy.coins : undefined,
@@ -204,6 +207,7 @@ export class Game {
         await this.autoMergeSystem.runAutoMerge();
       }
       if (this.fillAllButton) this.fillAllButton.updateLabel();
+      this._saveToLocalStorage();
     });
     this.autoMergeButton.x = 260;
     this.autoMergeButton.y = this.spawnSystem.y;
@@ -224,6 +228,7 @@ export class Game {
       if (this.economy) {
         this.economy.totalMerges++;
       }
+      this._saveToLocalStorage();
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
@@ -233,6 +238,7 @@ export class Game {
         if (this.economy) this.economy.addGems(rewardGems);
 
         const newCatModal = new NewCatModal(this.app, newLevel, rewardGems, async () => {
+          this._saveToLocalStorage();
           try {
             await saveProgress({
               coins: this.economy ? this.economy.coins : undefined,
@@ -257,7 +263,7 @@ export class Game {
       this.economy.recalcAfterMerge();
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
-      localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
+      this._saveToLocalStorage();
       try {
         await saveProgress({
           coins: this.economy.coins,
@@ -287,7 +293,7 @@ export class Game {
         this.economy.recalcAfterMerge();
         if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
         if (this.fillAllButton) this.fillAllButton.updateLabel();
-        localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
+        this._saveToLocalStorage();
         try {
           await saveProgress({
             coins: this.economy.coins,
@@ -335,13 +341,13 @@ export class Game {
       showTutorialIfNeeded();
     }
 
-    localStorage.setItem('cat_empire_last_coins', String(startCoins));
+    this._saveToLocalStorage();
 
     // 10. Авто-сохранение каждые 30 секунд
     if (this._autoSaveInterval) clearInterval(this._autoSaveInterval);
     this._autoSaveInterval = setInterval(async () => {
       try {
-        localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
+        this._saveToLocalStorage();
         await saveProgress({
           coins: this.economy.coins,
           gems: this.economy.gems,
@@ -356,6 +362,17 @@ export class Game {
         console.error('Ошибка авто-сохранения:', e);
       }
     }, 30000);
+  }
+
+  // Сохранение полного локального состояния в localStorage
+  _saveToLocalStorage() {
+    if (!this.economy) return;
+    localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
+    localStorage.setItem('cat_empire_last_gems', String(this.economy.gems));
+    localStorage.setItem('cat_empire_last_max_level', String(this.maxCatLevel));
+    localStorage.setItem('cat_empire_last_total_bought', String(this.economy.totalCatsBought));
+    localStorage.setItem('cat_empire_last_total_created', String(this.economy.totalCatsCreated));
+    localStorage.setItem('cat_empire_last_total_merges', String(this.economy.totalMerges));
   }
 
   _startFloatingIncomePopups() {
