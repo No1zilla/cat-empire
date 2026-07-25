@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { showRewardedAd, saveProgress } from '../api/client.js';
 
 /**
- * Всплывающее модальное окно для просмотра VK Rewarded Ads при нехватке гемов
+ * Всплывающее модальное окно с интерактивным плеером 5-секундного рекламного видеоролика VK
  */
 export class AdModal extends Container {
   constructor(app, economy, onRewardGranted) {
@@ -11,24 +11,24 @@ export class AdModal extends Container {
     this.app = app;
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
+    this._interval = null;
 
     this.eventMode = 'static';
-    this._draw();
+    this._drawConfirmState();
   }
 
-  _draw() {
+  // 1. Экран запроса подтверждения просмотра
+  _drawConfirmState() {
     this.removeChildren();
 
     const W = CONFIG.GAME_WIDTH;
     const H = CONFIG.GAME_HEIGHT;
 
-    // 1. Полупрозрачный темный оверлей
     const overlay = new Graphics();
     overlay.rect(0, 0, W, H);
-    overlay.fill({ color: 0x000000, alpha: 0.75 });
+    overlay.fill({ color: 0x000000, alpha: 0.8 });
     this.addChild(overlay);
 
-    // 2. Карточка модалки
     const cardW = 320;
     const cardH = 220;
     const cardX = (W - cardW) / 2;
@@ -40,7 +40,6 @@ export class AdModal extends Container {
     card.stroke({ color: 0xffd700, width: 2.0 });
     this.addChild(card);
 
-    // 3. Заголовок
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 18,
@@ -53,7 +52,6 @@ export class AdModal extends Container {
     title.position.set(W / 2, cardY + 20);
     this.addChild(title);
 
-    // 4. Описание
     const descStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,
@@ -62,14 +60,13 @@ export class AdModal extends Container {
       lineHeight: 20
     });
     const desc = new Text({
-      text: 'Посмотри короткое видео,\nчтобы получить +5 💎 и мгновенно\nобъединить всех котиков на поле!',
+      text: 'Посмотри короткий видеоролик,\nчтобы получить +5 💎 и мгновенно\nобъединить всех котиков на поле!',
       style: descStyle
     });
     desc.anchor.set(0.5, 0);
     desc.position.set(W / 2, cardY + 60);
     this.addChild(desc);
 
-    // 5. Кнопка "🎬 Смотреть (+5 💎)"
     const btnW = 220;
     const btnH = 44;
     const btnX = (W - btnW) / 2;
@@ -82,20 +79,9 @@ export class AdModal extends Container {
     watchBtn.eventMode = 'static';
     watchBtn.cursor = 'pointer';
 
-    watchBtn.on('pointerdown', async (e) => {
+    watchBtn.on('pointerdown', (e) => {
       e.stopPropagation();
-      watchBtn.scale.set(0.95);
-      const res = await showRewardedAd();
-      if (res && res.success) {
-        if (this.economy) {
-          this.economy.addGems(5);
-          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
-        }
-        this._close();
-        this.onRewardGranted();
-      } else {
-        this._close();
-      }
+      this._startVideoPlayer();
     });
 
     this.addChild(watchBtn);
@@ -107,13 +93,12 @@ export class AdModal extends Container {
       fill: '#ffffff',
       align: 'center'
     });
-    const btnText = new Text({ text: '🎬 Смотреть (+5 💎)', style: btnTextStyle });
+    const btnText = new Text({ text: '🎬 Смотреть Видео (+5 💎)', style: btnTextStyle });
     btnText.anchor.set(0.5, 0.5);
     btnText.position.set(W / 2, btnY + btnH / 2);
     btnText.eventMode = 'none';
     this.addChild(btnText);
 
-    // 6. Кнопка закрытия ✕
     const closeBtnStyle = new TextStyle({ fontSize: 18, fill: '#aaaaaa' });
     const closeBtn = new Text({ text: '✕', style: closeBtnStyle });
     closeBtn.anchor.set(0.5, 0.5);
@@ -127,7 +112,123 @@ export class AdModal extends Container {
     this.addChild(closeBtn);
   }
 
+  // 2. Экран воспроизведения 5-секундного рекламного видеоролика VK
+  async _startVideoPlayer() {
+    // Вызываем нативную рекламу VK Bridge на мобильных устройствах
+    showRewardedAd().catch(() => {});
+
+    this.removeChildren();
+
+    const W = CONFIG.GAME_WIDTH;
+    const H = CONFIG.GAME_HEIGHT;
+
+    const bg = new Graphics();
+    bg.rect(0, 0, W, H);
+    bg.fill(0x0a0718);
+    this.addChild(bg);
+
+    // Рамка видеоплеера
+    const playerW = 340;
+    const playerH = 260;
+    const playerX = (W - playerW) / 2;
+    const playerY = (H - playerH) / 2;
+
+    const playerBox = new Graphics();
+    playerBox.roundRect(playerX, playerY, playerW, playerH, 16);
+    playerBox.fill(0x130e28);
+    playerBox.stroke({ color: 0x3b82f6, width: 2.0 });
+    this.addChild(playerBox);
+
+    // Знак видеоплеера ▶
+    const playIconStyle = new TextStyle({ fontSize: 48, fill: '#3b82f6' });
+    const playIcon = new Text({ text: '▶ 🎬', style: playIconStyle });
+    playIcon.anchor.set(0.5, 0.5);
+    playIcon.position.set(W / 2, playerY + 80);
+    this.addChild(playIcon);
+
+    const adTitleStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      align: 'center'
+    });
+    const adTitle = new Text({ text: 'Реклама VK Partner', style: adTitleStyle });
+    adTitle.anchor.set(0.5, 0);
+    adTitle.position.set(W / 2, playerY + 130);
+    this.addChild(adTitle);
+
+    // Таймер обратного отсчета
+    let secondsLeft = 5;
+    const timerStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 13,
+      fontWeight: 'bold',
+      fill: '#ffd700',
+      align: 'center'
+    });
+    const timerText = new Text({ text: `Вознаграждение через: ${secondsLeft} сек`, style: timerStyle });
+    timerText.anchor.set(0.5, 0);
+    timerText.position.set(W / 2, playerY + 165);
+    this.addChild(timerText);
+
+    // Прогресс-бар просмотра
+    const barW = 260;
+    const barH = 10;
+    const barX = (W - barW) / 2;
+    const barY = playerY + 205;
+
+    const barBg = new Graphics();
+    barBg.roundRect(barX, barY, barW, barH, 5);
+    barBg.fill(0x221a40);
+    this.addChild(barBg);
+
+    const barFill = new Graphics();
+    this.addChild(barFill);
+
+    const updateFill = (pct) => {
+      barFill.clear();
+      if (pct > 0) {
+        barFill.roundRect(barX, barY, barW * pct, barH, 5);
+        barFill.fill(0x2ecc71);
+      }
+    };
+
+    updateFill(0.05);
+
+    const totalDuration = 5;
+    const startTime = Date.now();
+
+    this._interval = setInterval(async () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const progress = Math.min(1.0, elapsed / totalDuration);
+      secondsLeft = Math.max(0, Math.ceil(totalDuration - elapsed));
+
+      timerText.text = secondsLeft > 0 ? `Вознаграждение через: ${secondsLeft} сек` : 'Зачисление наград... 🎉';
+      updateFill(progress);
+
+      if (progress >= 1.0) {
+        clearInterval(this._interval);
+        this._interval = null;
+
+        if (this.economy) {
+          this.economy.addGems(5);
+          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+        }
+
+        setTimeout(() => {
+          this._close();
+          this.onRewardGranted();
+        }, 500);
+      }
+    }, 100);
+  }
+
   _close() {
+    if (this._interval) {
+      clearInterval(this._interval);
+      this._interval = null;
+    }
     if (this.parent) this.parent.removeChild(this);
     this.destroy();
   }
