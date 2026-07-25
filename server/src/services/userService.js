@@ -23,6 +23,7 @@ function formatUser(row) {
     coins: parseFloat(row.coins),
     gems: row.gems,
     maxCatLevel: row.max_cat_level,
+    totalCatsBought: row.total_cats_bought || 0,
     gridState: row.grid_state,
     lastOfflineCheck: new Date(Number(row.last_offline_check) * 1000).toISOString()
   };
@@ -44,8 +45,8 @@ export class UserService {
       ]);
       const id = randomUUID();
       await pool.query(`
-        INSERT INTO users (id, vk_id, first_name, coins, gems, max_cat_level, grid_state, last_offline_check, created_at)
-        VALUES ($1, $2, 'Игрок', 100, 10, 1, $3, $4, $4)
+        INSERT INTO users (id, vk_id, first_name, coins, gems, max_cat_level, total_cats_bought, grid_state, last_offline_check, created_at)
+        VALUES ($1, $2, 'Игрок', 100, 10, 1, 0, $3, $4, $4)
       `, [id, vkId, initialGrid, now]);
 
       ({ rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]));
@@ -68,7 +69,7 @@ export class UserService {
     return formatUser(rows[0]);
   }
 
-  async saveUserProgress(vkUserId, { coins, gems, maxCatLevel, gridState }) {
+  async saveUserProgress(vkUserId, { coins, gems, maxCatLevel, totalCatsBought, gridState }) {
     const vkId = String(vkUserId);
     const now  = Math.floor(Date.now() / 1000);
 
@@ -76,10 +77,11 @@ export class UserService {
     const values = [now];
     let   idx    = 2;
 
-    if (coins       !== undefined) { fields.push(`coins = $${idx++}`);         values.push(coins); }
-    if (gems        !== undefined) { fields.push(`gems = $${idx++}`);          values.push(gems); }
-    if (maxCatLevel !== undefined) { fields.push(`max_cat_level = $${idx++}`); values.push(maxCatLevel); }
-    if (gridState   !== undefined) {
+    if (coins           !== undefined) { fields.push(`coins = $${idx++}`);             values.push(coins); }
+    if (gems            !== undefined) { fields.push(`gems = $${idx++}`);              values.push(gems); }
+    if (maxCatLevel     !== undefined) { fields.push(`max_cat_level = $${idx++}`);     values.push(maxCatLevel); }
+    if (totalCatsBought !== undefined) { fields.push(`total_cats_bought = $${idx++}`); values.push(totalCatsBought); }
+    if (gridState       !== undefined) {
       const gs = typeof gridState === 'string' ? gridState : JSON.stringify(gridState);
       fields.push(`grid_state = $${idx++}`);
       values.push(gs);

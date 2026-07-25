@@ -27,8 +27,8 @@ export function getCatData(level) {
   const currentLevel = Math.max(1, Math.min(15, level || 1));
   const baseData = CAT_DATA_MAP[currentLevel] || CAT_DATA_MAP[1];
   
-  // income = Math.pow(3, level - 1)
-  const income = Math.pow(3, currentLevel - 1);
+  // income = Math.pow(2, level - 1)
+  const income = Math.pow(2, currentLevel - 1);
 
   return {
     ...baseData,

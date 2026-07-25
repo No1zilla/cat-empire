@@ -12,9 +12,19 @@ export class SpawnSystem extends Container {
     this.economy = economy;
     this.onCoinSpend = onCoinSpend || (() => {});
     this.dragSystem = null;
+    this._btnText = null;
     this._warningText = null;
 
     this._createButton();
+    this.updateButtonLabel();
+  }
+
+  // Обновление ценника на кнопке покупки
+  updateButtonLabel() {
+    const cost = this.economy ? this.economy.getCatCost() : 10;
+    if (this._btnText) {
+      this._btnText.text = `🐱 Купить (${cost} 🪙)`;
+    }
   }
 
   // Создание интерактивной крупной кнопки покупки
@@ -36,14 +46,15 @@ export class SpawnSystem extends Container {
       dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
     });
 
-    const btnText = new Text({
-      text: '🐱 Купить (10 🪙)',
+    const cost = this.economy ? this.economy.getCatCost() : 10;
+    this._btnText = new Text({
+      text: `🐱 Купить (${cost} 🪙)`,
       style: style
     });
-    btnText.anchor.set(0.5, 0.5);
-    btnText.x = btnWidth / 2;
-    btnText.y = btnHeight / 2;
-    this.addChild(btnText);
+    this._btnText.anchor.set(0.5, 0.5);
+    this._btnText.x = btnWidth / 2;
+    this._btnText.y = btnHeight / 2;
+    this.addChild(this._btnText);
 
     // Настройка интерактивности кнопки
     this.eventMode = 'static';
@@ -81,7 +92,7 @@ export class SpawnSystem extends Container {
       style: warningStyle
     });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(140, -20);
+    this._warningText.position.set(115, -20);
     this.addChild(this._warningText);
 
     setTimeout(() => {
@@ -94,7 +105,7 @@ export class SpawnSystem extends Container {
   }
 
   async _spawnCat() {
-    const SPAWN_COST = 10;
+    const cost = this.economy ? this.economy.getCatCost() : 10;
 
     const freeSlot = this.grid.getFreeSlotIndex();
     if (freeSlot === -1) {
@@ -102,13 +113,15 @@ export class SpawnSystem extends Container {
       return;
     }
 
-    if (this.economy && !this.economy.canAfford(SPAWN_COST)) {
+    if (this.economy && !this.economy.canAfford(cost)) {
       this._showNotEnoughCoins();
       return;
     }
 
     if (this.economy) {
-      this.economy.spend(SPAWN_COST);
+      this.economy.spend(cost);
+      this.economy.totalCatsBought++;
+      this.updateButtonLabel();
     }
 
     const cat = new Cat(1, freeSlot);
@@ -127,13 +140,14 @@ export class SpawnSystem extends Container {
     this._animateBounce(cat);
 
     if (typeof this.onCoinSpend === 'function') {
-      this.onCoinSpend(SPAWN_COST);
+      this.onCoinSpend(cost);
     }
 
     try {
       await saveProgress({
         coins: this.economy ? this.economy.coins : undefined,
         gems: this.economy ? this.economy.gems : undefined,
+        totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
         gridState: this.grid.exportState()
       });
     } catch (error) {

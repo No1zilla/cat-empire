@@ -25,11 +25,20 @@ async function initDB() {
       coins             FLOAT DEFAULT 100,
       gems              INTEGER DEFAULT 10,
       max_cat_level     INTEGER DEFAULT 1,
+      total_cats_bought INTEGER DEFAULT 0,
       grid_state        TEXT DEFAULT '[]',
       last_offline_check BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()),
       created_at        BIGINT DEFAULT EXTRACT(EPOCH FROM NOW())
     )
   `);
+
+  // Авто-миграция для существующих БД
+  try {
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS total_cats_bought INTEGER DEFAULT 0;');
+  } catch (e) {
+    // игнорируем если колонка уже существует
+  }
+
   console.log('✅ PostgreSQL подключён, таблица users готова');
 }
 

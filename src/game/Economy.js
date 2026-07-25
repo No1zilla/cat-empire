@@ -1,20 +1,27 @@
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс управления экономикой (баланс, доходность, тикер)
+// Класс управления экономикой (баланс, доходность, тикер, инфляция)
 export class Economy {
   constructor(grid) {
     this.grid = grid;
     this.coins = 0;
     this.gems = 0;
+    this.totalCatsBought = 0;
     this.incomePerSecond = 0;
     this._ticker = null;
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
 
+  // TASK-013: Расчёт динамической стоимости котика по формуле Math.floor(10 * 1.15^N)
+  getCatCost() {
+    return Math.floor(10 * Math.pow(1.15, this.totalCatsBought || 0));
+  }
+
   // Установить начальный баланс
-  setBalance(coins, gems) {
+  setBalance(coins, gems, totalCatsBought = 0) {
     this.coins = Number(coins) || 0;
     this.gems = Number(gems) || 0;
+    this.totalCatsBought = Number(totalCatsBought) || 0;
     this._recalcIncome();
     this._notify();
   }
@@ -25,7 +32,7 @@ export class Economy {
     if (this.grid && Array.isArray(this.grid.slots)) {
       this.grid.slots.forEach((cat) => {
         if (cat !== null && cat.level) {
-          // Доход котика уровня N = 3^(level - 1)
+          // Доход котика уровня N = 2^(level - 1)
           const catData = getCatData(cat.level);
           totalIncome += catData.income;
         }

@@ -38,15 +38,17 @@ export class Game {
     let startCoins = 100;
     let startGems = 10;
     let startMaxCatLevel = 1;
+    let startTotalCatsBought = 0;
     let userGridState = null;
 
     try {
       const profileData = await fetchProfile();
       if (profileData && profileData.user) {
-        if (profileData.user.coins       !== undefined) startCoins = profileData.user.coins;
-        if (profileData.user.gems        !== undefined) startGems  = profileData.user.gems;
-        if (profileData.user.maxCatLevel !== undefined) startMaxCatLevel = profileData.user.maxCatLevel;
-        if (profileData.user.gridState)  userGridState = profileData.user.gridState;
+        if (profileData.user.coins           !== undefined) startCoins = profileData.user.coins;
+        if (profileData.user.gems            !== undefined) startGems  = profileData.user.gems;
+        if (profileData.user.maxCatLevel     !== undefined) startMaxCatLevel = profileData.user.maxCatLevel;
+        if (profileData.user.totalCatsBought !== undefined) startTotalCatsBought = profileData.user.totalCatsBought;
+        if (profileData.user.gridState)      userGridState = profileData.user.gridState;
       }
     } catch (error) {
       console.warn('Сервер не доступен или ошибка получения профиля, используются дефолтные данные:', error);
@@ -96,7 +98,7 @@ export class Game {
     this.economy.onUpdate = (coins, gems, ips) => {
       if (this.hud) this.hud.update(coins, gems, ips);
     };
-    this.economy.setBalance(startCoins, startGems);
+    this.economy.setBalance(startCoins, startGems, startTotalCatsBought);
     this.economy.startTicker();
 
     // 6. Создание системы спавна и кнопки покупки (230px)
@@ -105,6 +107,7 @@ export class Game {
     });
     this.spawnSystem.x = 10;
     this.spawnSystem.y = this.grid.y + gridWidth + 12;
+    this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
 
     // TASK-012: Система каскадного авто-слияния и кнопка бустера (140px)
@@ -143,6 +146,7 @@ export class Game {
             await saveProgress({
               coins: this.economy ? this.economy.coins : undefined,
               gems: this.economy ? this.economy.gems : undefined,
+              totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
               maxCatLevel: this.maxCatLevel,
               gridState: this.grid.exportState()
             });
@@ -163,6 +167,7 @@ export class Game {
         await saveProgress({
           coins: this.economy.coins,
           gems: this.economy.gems,
+          totalCatsBought: this.economy.totalCatsBought,
           maxCatLevel: this.maxCatLevel,
           gridState: this.grid.exportState()
         });
@@ -188,6 +193,7 @@ export class Game {
           await saveProgress({
             coins: this.economy.coins,
             gems: this.economy.gems,
+            totalCatsBought: this.economy.totalCatsBought,
             maxCatLevel: this.maxCatLevel,
             gridState: this.grid.exportState()
           });
@@ -236,6 +242,7 @@ export class Game {
         await saveProgress({
           coins: this.economy.coins,
           gems: this.economy.gems,
+          totalCatsBought: this.economy.totalCatsBought,
           maxCatLevel: this.maxCatLevel,
           gridState: this.grid.exportState()
         });
