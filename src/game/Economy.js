@@ -1,6 +1,6 @@
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс управления экономикой (Линейная динамическая цена: +1 монета за каждого котика на поле)
+// Класс управления экономикой (Простая цена: 10 + totalCatsBought, ровно +1 монета за покупку)
 export class Economy {
   constructor(grid) {
     this.grid = grid;
@@ -14,10 +14,9 @@ export class Economy {
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
 
-  // Динамическая цена зависит от количества котиков НА ПОЛЕ: ровно +1 монета за каждого котика!
+  // Простая понятная цена: 10 монет + 1 монета за каждую совершённую покупку (каждый клик +1!)
   getCatCost() {
-    const activeCats = this.grid ? this.grid.getActiveCatsCount() : 0;
-    return 10 + activeCats;
+    return 10 + (this.totalCatsBought || 0);
   }
 
   // Установить начальный баланс и счётчики статистики
@@ -92,7 +91,16 @@ export class Economy {
     this._notify();
   }
 
-  // Пересчёт дохода после merge или спавна — моментальное снижение/изменение цены на кнопке!
+  // Списание гемов
+  spendGems(amount = 0) {
+    if (this.gems < amount) {
+      throw new Error('Недостаточно гемов');
+    }
+    this.gems -= Number(amount);
+    this._notify();
+  }
+
+  // Пересчёт дохода после merge или спавна
   recalcAfterMerge() {
     this._recalcIncome();
     this._notify();

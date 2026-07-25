@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { saveProgress } from '../api/client.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -184,11 +185,25 @@ export class AutoMergeButton extends Container {
       }
 
       if (this.economy) {
-        this.economy.gems -= GEM_COST;
-        this.economy._notify();
+        try {
+          this.economy.spendGems(GEM_COST);
+        } catch (e) {
+          this._showWarning('Мало 💎 гемов!');
+          return;
+        }
       }
 
       await this.onTriggerAutoMerge();
+
+      try {
+        await saveProgress({
+          coins: this.economy ? this.economy.coins : undefined,
+          gems: this.economy ? this.economy.gems : undefined,
+          totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
+        });
+      } catch (err) {
+        console.error('Ошибка автосохранения гемов:', err);
+      }
     }
   }
 
