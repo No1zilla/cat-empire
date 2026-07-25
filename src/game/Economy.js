@@ -1,6 +1,6 @@
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс управления экономикой (TASK-016: Динамическая цена от котиков на поле & Счётчики статистики)
+// Класс управления экономикой (Линейная динамическая цена: +1 монета за каждого котика на поле)
 export class Economy {
   constructor(grid) {
     this.grid = grid;
@@ -14,13 +14,10 @@ export class Economy {
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
 
-  // TASK-016: Динамическая цена зависит от количества котиков НА ПОЛЕ (getActiveCatsCount)
+  // Динамическая цена зависит от количества котиков НА ПОЛЕ: ровно +1 монета за каждого котика!
   getCatCost() {
     const activeCats = this.grid ? this.grid.getActiveCatsCount() : 0;
-    const baseCost = Math.floor(10 * Math.pow(1.15, activeCats));
-    // Ограничение Target TTB (не более 30 сек пассивного дохода)
-    const maxCap = Math.max(10, Math.floor((this.incomePerSecond || 0) * 30));
-    return Math.min(baseCost, maxCap);
+    return 10 + activeCats;
   }
 
   // Установить начальный баланс и счётчики статистики
