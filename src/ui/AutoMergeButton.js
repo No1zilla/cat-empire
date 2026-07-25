@@ -186,11 +186,13 @@ export class AutoMergeButton extends Container {
     } else {
       const GEM_COST = 5;
       if (this.economy && this.economy.gems < GEM_COST) {
-        const stage = this.stage || (this.parent ? (this.parent.stage || this.parent.parent?.stage) : null);
+        const stage = this.app ? this.app.stage : (this.parent || this.stage);
         if (stage) {
-          const adModal = new AdModal(null, this.economy, async () => {
+          stage.sortableChildren = true;
+          const adModal = new AdModal(this.app, this.economy, async () => {
             await this.onTriggerAutoMerge();
           });
+          adModal.zIndex = 99999;
           stage.addChild(adModal);
         } else {
           this._showWarning('Мало 💎 гемов!');

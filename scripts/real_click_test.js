@@ -105,7 +105,7 @@ server.listen(9999, async () => {
   await page.mouse.click(mergeX, mergeY);
   await page.waitForTimeout(500);
 
-  // 4. Нажать Соединить при 0 гемов -> Открывает AdModal!
+  // 4. Клик при 0 гемов -> Открывает AdModal!
   console.log('🎬 Клик при 0 гемов — Вызов модального окна AdModal...');
   await page.mouse.click(mergeX, mergeY);
   await page.waitForTimeout(800);
@@ -113,9 +113,9 @@ server.listen(9999, async () => {
   await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/video_step1_modal.png' });
   console.log('📸 Скриншот 1 (Запрос просмотра рекламы) сохранен');
 
-  // 5. Клик по кнопке "🎬 Смотреть Видео (+5 💎)" (x=205, y=517)
+  // 5. Клик по кнопке "🎬 Смотреть Видео (+5 💎)" на (x=205, y=475)
   const watchX = box.x + 205 * scaleX;
-  const watchY = box.y + 517 * scaleY;
+  const watchY = box.y + 475 * scaleY;
   console.log(`🎬 Нажатие кнопки "Смотреть Видео" на (${watchX.toFixed(0)}, ${watchY.toFixed(0)})...`);
   await page.mouse.click(watchX, watchY);
   await page.waitForTimeout(1500);
