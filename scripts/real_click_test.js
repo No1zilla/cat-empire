@@ -74,7 +74,7 @@ server.listen(9999, async () => {
 
   // 1. Пропуск оффлайн-дохода «👛 Забрать!»
   await page.mouse.click(box.x + 205 * scaleX, box.y + 427 * scaleY);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
 
   // Пропуск 3 шагов туториала
   await page.mouse.click(box.x + 200 * scaleX, box.y + 437 * scaleY);
@@ -84,28 +84,30 @@ server.listen(9999, async () => {
   await page.mouse.click(box.x + 200 * scaleX, box.y + 587 * scaleY);
   await page.waitForTimeout(500);
 
-  // Закрываем NewCatModal если открылся
-  await page.mouse.click(box.x + 205 * scaleX, box.y + 465 * scaleY);
-  await page.waitForTimeout(400);
-
   const mergeX = box.x + 330 * scaleX;
   const mergeY = box.y + 570 * scaleY;
+  const dismissModalX = box.x + 205 * scaleX;
+  const dismissModalY = box.y + 465 * scaleY;
 
-  // 1. Бесплатное слияние
+  // 1. Нажать «Соединить» бесплатно
   await page.mouse.click(mergeX, mergeY);
-  await page.waitForTimeout(500);
-  await page.mouse.click(box.x + 205 * scaleX, box.y + 465 * scaleY);
   await page.waitForTimeout(400);
+  await page.mouse.click(dismissModalX, dismissModalY); // Закрыть модалку Нового котика
+  await page.waitForTimeout(300);
 
-  // 2. Потратить первые 5 гемов (с 10 до 5)
+  // 2. Списать 5 гемов (10 -> 5)
   await page.mouse.click(mergeX, mergeY);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
+  await page.mouse.click(dismissModalX, dismissModalY);
+  await page.waitForTimeout(300);
 
-  // 3. Потратить ещё 5 гемов (с 5 до 0)
+  // 3. Списать 5 гемов (5 -> 0)
   await page.mouse.click(mergeX, mergeY);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
+  await page.mouse.click(dismissModalX, dismissModalY);
+  await page.waitForTimeout(300);
 
-  // 4. Клик при 0 гемов -> Открывает AdModal!
+  // 4. Клик при 0 гемов -> Вызывает AdModal!
   console.log('🎬 Клик при 0 гемов — Вызов модального окна AdModal...');
   await page.mouse.click(mergeX, mergeY);
   await page.waitForTimeout(800);
@@ -113,9 +115,9 @@ server.listen(9999, async () => {
   await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/video_step1_modal.png' });
   console.log('📸 Скриншот 1 (Запрос просмотра рекламы) сохранен');
 
-  // 5. Клик по кнопке "🎬 Смотреть Видео (+5 💎)" на (x=205, y=475)
+  // 5. Клик по кнопке "🎬 Смотреть Видео (+5 💎)" на (x=205, y=517)
   const watchX = box.x + 205 * scaleX;
-  const watchY = box.y + 475 * scaleY;
+  const watchY = box.y + 517 * scaleY;
   console.log(`🎬 Нажатие кнопки "Смотреть Видео" на (${watchX.toFixed(0)}, ${watchY.toFixed(0)})...`);
   await page.mouse.click(watchX, watchY);
   await page.waitForTimeout(1500);

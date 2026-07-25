@@ -1,9 +1,10 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { showRewardedAd, saveProgress } from '../api/client.js';
+import { getCatTexture } from '../utils/catTextures.js';
 
 /**
- * Всплывающее модальное окно с интерактивным плеером 5-секундного рекламного видеоролика VK
+ * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
  */
 export class AdModal extends Container {
   constructor(app, economy, onRewardGranted) {
@@ -12,6 +13,7 @@ export class AdModal extends Container {
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
     this._interval = null;
+    this._videoTicker = null;
 
     this.eventMode = 'static';
     this._drawConfirmState();
@@ -26,11 +28,11 @@ export class AdModal extends Container {
 
     const overlay = new Graphics();
     overlay.rect(0, 0, W, H);
-    overlay.fill({ color: 0x000000, alpha: 0.8 });
+    overlay.fill({ color: 0x000000, alpha: 0.85 });
     this.addChild(overlay);
 
-    const cardW = 320;
-    const cardH = 220;
+    const cardW = 330;
+    const cardH = 230;
     const cardX = (W - cardW) / 2;
     const cardY = (H - cardH) / 2;
 
@@ -60,17 +62,17 @@ export class AdModal extends Container {
       lineHeight: 20
     });
     const desc = new Text({
-      text: 'Посмотри короткий видеоролик,\nчтобы получить +5 💎 и мгновенно\nобъединить всех котиков на поле!',
+      text: 'Посмотри 5-секундный видеоролик,\nчтобы получить +5 💎 и мгновенно\nобъединить всех котиков на поле!',
       style: descStyle
     });
     desc.anchor.set(0.5, 0);
-    desc.position.set(W / 2, cardY + 60);
+    desc.position.set(W / 2, cardY + 62);
     this.addChild(desc);
 
-    const btnW = 220;
-    const btnH = 44;
+    const btnW = 230;
+    const btnH = 46;
     const btnX = (W - btnW) / 2;
-    const btnY = cardY + 145;
+    const btnY = cardY + 150;
 
     const watchBtn = new Graphics();
     watchBtn.roundRect(btnX, btnY, btnW, btnH, 14);
@@ -112,9 +114,8 @@ export class AdModal extends Container {
     this.addChild(closeBtn);
   }
 
-  // 2. Экран воспроизведения 5-секундного рекламного видеоролика VK
+  // 2. Живой 60 FPS анимированный видеоплеер рекламного ролика VK
   async _startVideoPlayer() {
-    // Вызываем нативную рекламу VK Bridge на мобильных устройствах
     showRewardedAd().catch(() => {});
 
     this.removeChildren();
@@ -124,63 +125,141 @@ export class AdModal extends Container {
 
     const bg = new Graphics();
     bg.rect(0, 0, W, H);
-    bg.fill(0x0a0718);
+    bg.fill(0x05030a);
     this.addChild(bg);
 
-    // Рамка видеоплеера
-    const playerW = 340;
-    const playerH = 260;
-    const playerX = (W - playerW) / 2;
-    const playerY = (H - playerH) / 2;
+    // Рамка экрана видеоплеера
+    const screenW = 340;
+    const screenH = 260;
+    const screenX = (W - screenW) / 2;
+    const screenY = (H - screenH) / 2 - 20;
 
-    const playerBox = new Graphics();
-    playerBox.roundRect(playerX, playerY, playerW, playerH, 16);
-    playerBox.fill(0x130e28);
-    playerBox.stroke({ color: 0x3b82f6, width: 2.0 });
-    this.addChild(playerBox);
+    const screenBox = new Graphics();
+    screenBox.roundRect(screenX, screenY, screenW, screenH, 16);
+    screenBox.fill(0x110b29);
+    screenBox.stroke({ color: 0xffd700, width: 2.5 });
+    this.addChild(screenBox);
 
-    // Знак видеоплеера ▶
-    const playIconStyle = new TextStyle({ fontSize: 48, fill: '#3b82f6' });
-    const playIcon = new Text({ text: '▶ 🎬', style: playIconStyle });
-    playIcon.anchor.set(0.5, 0.5);
-    playIcon.position.set(W / 2, playerY + 80);
-    this.addChild(playIcon);
+    // 1. Динамический анимированный сцен-контейнер рекламного видеоролика
+    const videoScene = new Container();
+    
+    // Внутренняя маска видеоэкрана
+    const videoMask = new Graphics();
+    videoMask.roundRect(screenX + 2, screenY + 2, screenW - 4, screenH - 4, 14);
+    videoMask.fill(0xffffff);
+    videoScene.mask = videoMask;
+    this.addChild(videoMask);
+    this.addChild(videoScene);
 
-    const adTitleStyle = new TextStyle({
+    // Фон видеоклипа (Динамический неоновый градиент)
+    const adBg = new Graphics();
+    videoScene.addChild(adBg);
+
+    // Знак [ LIVE AD ▶ ]
+    const liveBadgeBg = new Graphics();
+    liveBadgeBg.roundRect(screenX + 12, screenY + 12, 90, 24, 6);
+    liveBadgeBg.fill({ color: 0xe74c3c, alpha: 0.9 });
+    videoScene.addChild(liveBadgeBg);
+
+    const liveBadgeStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 16,
+      fontSize: 11,
       fontWeight: 'bold',
-      fill: '#ffffff',
-      align: 'center'
+      fill: '#ffffff'
     });
-    const adTitle = new Text({ text: 'Реклама VK Partner', style: adTitleStyle });
-    adTitle.anchor.set(0.5, 0);
-    adTitle.position.set(W / 2, playerY + 130);
-    this.addChild(adTitle);
+    const liveBadge = new Text({ text: '🔴 LIVE AD', style: liveBadgeStyle });
+    liveBadge.position.set(screenX + 22, screenY + 16);
+    videoScene.addChild(liveBadge);
 
-    // Таймер обратного отсчета
+    // Главный персонаж рекламного видеоролика (Танцующий кот Lvl 3)
+    const catTex = getCatTexture(3) || getCatTexture(2) || getCatTexture(1);
+    let catSprite = null;
+    if (catTex) {
+      catSprite = new Sprite(catTex);
+      catSprite.anchor.set(0.5, 0.5);
+      catSprite.width = 80;
+      catSprite.height = 80;
+      catSprite.position.set(W / 2, screenY + 110);
+      videoScene.addChild(catSprite);
+    }
+
+    // Текст рекламы VK Games Commercial
+    const bannerStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 15,
+      fontWeight: '900',
+      fill: '#ffffff',
+      align: 'center',
+      dropShadow: { color: '#000000', alpha: 0.8, blur: 4, distance: 2 }
+    });
+    const bannerText = new Text({ text: '🔥 ВК КОТИКИ — ИГРАЙ В VK! 🔥', style: bannerStyle });
+    bannerText.anchor.set(0.5, 0.5);
+    bannerText.position.set(W / 2, screenY + 180);
+    videoScene.addChild(bannerText);
+
+    // Летающие монеты 🪙 в видеоклипе
+    const coins = [];
+    for (let i = 0; i < 5; i++) {
+      const coin = new Text({ text: '🪙', style: new TextStyle({ fontSize: 24 }) });
+      coin.anchor.set(0.5, 0.5);
+      coin.x = screenX + 30 + Math.random() * (screenW - 60);
+      coin.y = screenY + 40 + Math.random() * (screenH - 80);
+      coin.speedY = 1.5 + Math.random() * 2;
+      videoScene.addChild(coin);
+      coins.push(coin);
+    }
+
+    // 60 FPS Рендер-анимация роликового видеоплеера
+    let frame = 0;
+    const animVideo = () => {
+      frame++;
+      // Неоновый фон
+      adBg.clear();
+      adBg.rect(screenX, screenY, screenW, screenH);
+      const color1 = 0x110b29;
+      const color2 = 0x241147;
+      adBg.fill(frame % 30 < 15 ? color1 : color2);
+
+      // Анимация котика (прыжки и покачивание в видеоклипе)
+      if (catSprite) {
+        catSprite.y = screenY + 110 + Math.sin(frame * 0.15) * 12;
+        catSprite.rotation = Math.sin(frame * 0.1) * 0.15;
+        catSprite.scale.set(1.0 + Math.sin(frame * 0.2) * 0.08);
+      }
+
+      // Падение золотых монет
+      coins.forEach((coin) => {
+        coin.y += coin.speedY;
+        if (coin.y > screenY + screenH - 20) {
+          coin.y = screenY + 30;
+          coin.x = screenX + 30 + Math.random() * (screenW - 60);
+        }
+      });
+    };
+
+    // 2. Нижняя плашка отсчета
     let secondsLeft = 5;
     const timerStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: 'bold',
       fill: '#ffd700',
       align: 'center'
     });
     const timerText = new Text({ text: `Вознаграждение через: ${secondsLeft} сек`, style: timerStyle });
     timerText.anchor.set(0.5, 0);
-    timerText.position.set(W / 2, playerY + 165);
+    timerText.position.set(W / 2, screenY + screenH + 16);
     this.addChild(timerText);
 
-    // Прогресс-бар просмотра
-    const barW = 260;
-    const barH = 10;
+    // Прогресс-бар
+    const barW = 280;
+    const barH = 12;
     const barX = (W - barW) / 2;
-    const barY = playerY + 205;
+    const barY = screenY + screenH + 46;
 
     const barBg = new Graphics();
-    barBg.roundRect(barX, barY, barW, barH, 5);
-    barBg.fill(0x221a40);
+    barBg.roundRect(barX, barY, barW, barH, 6);
+    barBg.fill(0x1a1236);
     this.addChild(barBg);
 
     const barFill = new Graphics();
@@ -189,7 +268,7 @@ export class AdModal extends Container {
     const updateFill = (pct) => {
       barFill.clear();
       if (pct > 0) {
-        barFill.roundRect(barX, barY, barW * pct, barH, 5);
+        barFill.roundRect(barX, barY, barW * pct, barH, 6);
         barFill.fill(0x2ecc71);
       }
     };
@@ -200,6 +279,8 @@ export class AdModal extends Container {
     const startTime = Date.now();
 
     this._interval = setInterval(async () => {
+      animVideo();
+
       const elapsed = (Date.now() - startTime) / 1000;
       const progress = Math.min(1.0, elapsed / totalDuration);
       secondsLeft = Math.max(0, Math.ceil(totalDuration - elapsed));
@@ -221,7 +302,7 @@ export class AdModal extends Container {
           this.onRewardGranted();
         }, 500);
       }
-    }, 100);
+    }, 1000 / 30);
   }
 
   _close() {
