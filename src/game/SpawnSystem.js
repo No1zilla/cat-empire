@@ -32,24 +32,12 @@ export class SpawnSystem extends Container {
     }
   }
 
-  // Плавное медленное «дыхание» кнопки при наличии монет у игрока
   _startBreathingAnimation() {
-    const start = performance.now();
-    const tick = () => {
-      if (this.destroyed) return;
-      const cost = this.economy ? this.economy.getCatCost() : 10;
-      const canAfford = this.economy ? this.economy.canAfford(cost) : false;
-
-      if (canAfford) {
-        const elapsed = performance.now() - start;
-        const pulse = 1.0 + Math.sin(elapsed * 0.0035) * 0.035;
-        this.scale.set(pulse);
-      } else {
-        this.scale.set(1.0);
-      }
-      this._breathRaf = requestAnimationFrame(tick);
-    };
-    this._breathRaf = requestAnimationFrame(tick);
+    if (this._breathRaf) {
+      cancelAnimationFrame(this._breathRaf);
+      this._breathRaf = null;
+    }
+    this.scale.set(1.0);
   }
 
   // Создание кнопки покупки (width 145px)
