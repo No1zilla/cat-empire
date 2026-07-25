@@ -185,7 +185,7 @@ export class AutoMergeButton extends Container {
     } else {
       const GEM_COST = 5;
       if (this.economy && this.economy.gems < GEM_COST) {
-        // Показ VK Rewarded Ads для получения +5 гемов!
+        // Показ VK Rewarded Ads для получения +5 гемов и запуска слияния!
         this._showWarning('🎬 Смотрим видео...');
         const adResult = await showRewardedAd();
         if (adResult && adResult.success) {
@@ -196,6 +196,8 @@ export class AutoMergeButton extends Container {
               await saveProgress({ gems: this.economy.gems });
             } catch (e) {}
           }
+          // Запускаем слияние котиков сразу после успешного просмотра рекламы!
+          await this.onTriggerAutoMerge();
         } else {
           this._showWarning('Мало 💎 гемов!');
         }
