@@ -4,7 +4,7 @@ import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
 /**
- * Горизонтальная интерактивная карусель «Колода карт» прямо на главном экране.
+ * Современная плавная карусель «Колода карт» с инерционным скроллом, стрелками ◀ ▶ и колесом мыши
  */
 export class CatDeck extends Container {
   constructor(app, maxUnlockedLevel = 1, onCardClick) {
@@ -12,12 +12,25 @@ export class CatDeck extends Container {
     this.app = app;
     this.maxUnlockedLevel = Math.max(1, Math.min(15, maxUnlockedLevel || 1));
     this.onCardClick = onCardClick || (() => {});
-    this._cardsContainer = null;
-    this._dragStartX = 0;
-    this._containerStartX = 0;
+
+    // Физика и параметры скролла
+    this._currentX = 0;
+    this._targetX = 0;
+    this._velocity = 0;
     this._isDragging = false;
+    this._dragStartX = 0;
+    this._dragStartTargetX = 0;
+    this._isMoved = false;
+    this._lastMoveTime = 0;
+    this._lastMoveX = 0;
+    this._animRaf = null;
 
     this._draw();
+    this._setupEvents();
+    this._startSmoothLoop();
+
+    // Авто-скролл к высшему открытому котику при старте
+    this.scrollToLevel(this.maxUnlockedLevel);
   }
 
   _draw() {
@@ -29,7 +42,7 @@ export class CatDeck extends Container {
     // 1. Прозрачный фон секции колоды
     const bg = new Graphics();
     bg.roundRect(10, 0, W - 20, deckH, 14);
-    bg.fill({ color: 0x16213e, alpha: 0.85 });
+    bg.fill({ color: 0x16213e, alpha: 0.9 });
     bg.stroke({ color: CONFIG.COLORS.CELL_BORDER || '#533483', width: 1.5 });
     this.addChild(bg);
 
@@ -46,16 +59,18 @@ export class CatDeck extends Container {
     titleText.position.set(22, 8);
     this.addChild(titleText);
 
-    // Подсказка «Прокручивай»
-    const hintStyle = new TextStyle({ fontSize: 11, fill: '#8899aa' });
-    const hintText = new Text({ text: 'Прокручивай ➔', style: hintStyle });
+    // Подсказка
+    const hintStyle = new TextStyle({ fontSize: 10, fill: '#8899aa' });
+    const hintText = new Text({ text: 'Листай ◄ ►', style: hintStyle });
     hintText.anchor.set(1, 0);
-    hintText.position.set(W - 22, 9);
+    hintText.position.set(W - 40, 9);
     this.addChild(hintText);
 
-    // 3. Маскированный прокручиваемый контейнер для карточек
+    // 3. Зона маскирования (ширина 320px по центру)
+    const maskX = 40;
+    const maskW = W - 80;
     const mask = new Graphics();
-    mask.rect(15, 28, W - 30, 90);
+    mask.rect(maskX, 26, maskW, 92);
     mask.fill(0xffffff);
     this.addChild(mask);
 
@@ -66,7 +81,7 @@ export class CatDeck extends Container {
     const cardW = 54;
     const cardH = 78;
     const padX = 8;
-    const startX = 20;
+    const startX = maskX + 4;
 
     for (let level = 1; level <= 15; level++) {
       const isUnlocked = level <= this.maxUnlockedLevel;
@@ -82,7 +97,6 @@ export class CatDeck extends Container {
 
       if (isUnlocked) {
         cardBg.fill(catData.color);
-        // Золотая рамка для самого высшего открытого уровня
         if (level === this.maxUnlockedLevel) {
           cardBg.stroke({ color: '#ffd700', width: 2.5 });
         } else {
@@ -112,14 +126,12 @@ export class CatDeck extends Container {
           cardGroup.addChild(emoji);
         }
 
-        // Lvl N
         const lvlStyle = new TextStyle({ fontSize: 9, fontWeight: 'bold', fill: '#ffffff' });
         const lvlText = new Text({ text: `Lvl ${level}`, style: lvlStyle });
         lvlText.anchor.set(0.5, 0);
         lvlText.position.set(cardW / 2, 52);
         cardGroup.addChild(lvlText);
 
-        // Доход
         const incStyle = new TextStyle({ fontSize: 8, fontWeight: 'bold', fill: '#2ecc71' });
         const incText = new Text({ text: `+${catData.income}`, style: incStyle });
         incText.anchor.set(0.5, 0);
@@ -139,44 +151,206 @@ export class CatDeck extends Container {
         cardGroup.addChild(secretText);
       }
 
-      cardGroup.eventMode = 'static';
-      cardGroup.cursor = 'pointer';
-      cardGroup.on('pointerdown', () => {
-        if (typeof this.onCardClick === 'function') {
-          this.onCardClick(level, isUnlocked);
-        }
-      });
-
       this._cardsContainer.addChild(cardGroup);
     }
 
-    // 4. Перетаскивание/скролл свайпом
+    // 4. Интерактивные неоновые стрелки влево ◀ и вправо ▶
+    const btnSize = 28;
+
+    // Стрелка влево ◀
+    const leftBtn = new Graphics();
+    leftBtn.roundRect(14, 58, btnSize, btnSize, 8);
+    leftBtn.fill({ color: 0x0f172a, alpha: 0.9 });
+    leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#e94560', width: 1.5 });
+    leftBtn.eventMode = 'static';
+    leftBtn.cursor = 'pointer';
+    leftBtn.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this.scrollBy(180); // Прокрутка влево на ~3 карточки
+    });
+    this.addChild(leftBtn);
+
+    const leftTextStyle = new TextStyle({ fontSize: 13, fill: '#ffffff', fontWeight: 'bold' });
+    const leftIcon = new Text({ text: '◀', style: leftTextStyle });
+    leftIcon.anchor.set(0.5, 0.5);
+    leftIcon.position.set(14 + btnSize / 2, 58 + btnSize / 2);
+    leftIcon.eventMode = 'none';
+    this.addChild(leftIcon);
+
+    // Стрелка вправо ▶
+    const rightBtn = new Graphics();
+    rightBtn.roundRect(W - 42, 58, btnSize, btnSize, 8);
+    rightBtn.fill({ color: 0x0f172a, alpha: 0.9 });
+    rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#e94560', width: 1.5 });
+    rightBtn.eventMode = 'static';
+    rightBtn.cursor = 'pointer';
+    rightBtn.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this.scrollBy(-180); // Прокрутка вправо на ~3 карточки
+    });
+    this.addChild(rightBtn);
+
+    const rightTextStyle = new TextStyle({ fontSize: 13, fill: '#ffffff', fontWeight: 'bold' });
+    const rightIcon = new Text({ text: '▶', style: rightTextStyle });
+    rightIcon.anchor.set(0.5, 0.5);
+    rightIcon.position.set(W - 42 + btnSize / 2, 58 + btnSize / 2);
+    rightIcon.eventMode = 'none';
+    this.addChild(rightIcon);
+  }
+
+  // Настройка gesture слушателей для жест-драга и тапа по карточкам
+  _setupEvents() {
     this.eventMode = 'static';
-    const totalContentW = startX + 15 * (cardW + padX) + 10;
-    const minX = Math.min(0, W - 30 - totalContentW);
+    this.cursor = 'grab';
+
+    const cardW = 54;
+    const padX = 8;
+    const startX = 44;
+    const totalW = startX + 15 * (cardW + padX);
+    const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
 
     this.on('pointerdown', (e) => {
       this._isDragging = true;
+      this._isMoved = false;
+      this._velocity = 0;
       this._dragStartX = e.global.x;
-      this._containerStartX = this._cardsContainer.x;
+      this._dragStartTargetX = this._targetX;
+      this._lastMoveX = e.global.x;
+      this._lastMoveTime = performance.now();
+      this.cursor = 'grabbing';
     });
 
     this.on('pointermove', (e) => {
       if (!this._isDragging) return;
       const dx = e.global.x - this._dragStartX;
-      let newX = this._containerStartX + dx;
-      newX = Math.max(minX, Math.min(0, newX));
-      this._cardsContainer.x = newX;
+      if (Math.abs(dx) > 6) {
+        this._isMoved = true;
+      }
+
+      const now = performance.now();
+      const dt = now - this._lastMoveTime;
+      if (dt > 0) {
+        this._velocity = (e.global.x - this._lastMoveX) / dt * 15;
+        this._lastMoveX = e.global.x;
+        this._lastMoveTime = now;
+      }
+
+      let newX = this._dragStartTargetX + dx;
+      // Сопротивление на границах
+      if (newX > 0) newX *= 0.3;
+      if (newX < minX) newX = minX + (newX - minX) * 0.3;
+
+      this._targetX = newX;
     });
 
-    const stopDrag = () => { this._isDragging = false; };
-    this.on('pointerup', stopDrag);
-    this.on('pointerupoutside', stopDrag);
+    const onUp = (e) => {
+      if (!this._isDragging) return;
+      this._isDragging = false;
+      this.cursor = 'grab';
+
+      // Применяем инерцию
+      if (Math.abs(this._velocity) > 1) {
+        this._targetX += this._velocity * 8;
+      }
+
+      // Клампим к границам
+      this._targetX = Math.max(minX, Math.min(0, this._targetX));
+
+      // Если клик без таскания -> проверяем попадание по карточке
+      if (!this._isMoved && e) {
+        const local = this._cardsContainer.toLocal(e.global);
+        for (let i = 0; i < 15; i++) {
+          const level = i + 1;
+          const cx = startX + i * (cardW + padX);
+          if (local.x >= cx && local.x <= cx + cardW && local.y >= 32 && local.y <= 110) {
+            const isUnlocked = level <= this.maxUnlockedLevel;
+            this.onCardClick(level, isUnlocked);
+            break;
+          }
+        }
+      }
+    };
+
+    this.on('pointerup', onUp);
+    this.on('pointerupoutside', onUp);
+
+    // Поддержка колесика мыши (Wheel)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('wheel', (e) => {
+        if (!this.destroyed && this.worldVisible) {
+          const delta = e.deltaX || e.deltaY;
+          if (delta !== 0) {
+            this.scrollBy(-delta * 0.8);
+          }
+        }
+      }, { passive: true });
+    }
+  }
+
+  // Плавный запуск LERP-петли анимации
+  _startSmoothLoop() {
+    const cardW = 54;
+    const padX = 8;
+    const startX = 44;
+    const totalW = startX + 15 * (cardW + padX);
+    const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
+
+    const update = () => {
+      if (this.destroyed) return;
+
+      // Лерп сглаживание движения
+      this._currentX += (this._targetX - this._currentX) * 0.22;
+      if (this._cardsContainer) {
+        this._cardsContainer.x = this._currentX;
+      }
+
+      // Затухание инерции
+      if (!this._isDragging && Math.abs(this._velocity) > 0.1) {
+        this._velocity *= 0.88;
+      } else {
+        this._velocity = 0;
+      }
+
+      this._animRaf = requestAnimationFrame(update);
+    };
+
+    this._animRaf = requestAnimationFrame(update);
+  }
+
+  scrollBy(deltaX) {
+    const cardW = 54;
+    const padX = 8;
+    const startX = 44;
+    const totalW = startX + 15 * (cardW + padX);
+    const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
+
+    this._targetX = Math.max(minX, Math.min(0, this._targetX + deltaX));
+  }
+
+  scrollToLevel(level) {
+    const cardW = 54;
+    const padX = 8;
+    const startX = 44;
+    const totalW = startX + 15 * (cardW + padX);
+    const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
+
+    const targetCardX = startX + (level - 1) * (cardW + padX);
+    let desiredX = -(targetCardX - 100);
+    this._targetX = Math.max(minX, Math.min(0, desiredX));
   }
 
   updateMaxLevel(newMaxLevel) {
     this.maxUnlockedLevel = Math.max(1, Math.min(15, newMaxLevel || 1));
     this._draw();
+    this.scrollToLevel(this.maxUnlockedLevel);
+  }
+
+  destroy(options) {
+    if (this._animRaf) {
+      cancelAnimationFrame(this._animRaf);
+      this._animRaf = null;
+    }
+    super.destroy(options);
   }
 }
 
