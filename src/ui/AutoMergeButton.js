@@ -1,6 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { saveProgress } from '../api/client.js';
+import { saveProgress, showRewardedAd } from '../api/client.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -185,7 +185,20 @@ export class AutoMergeButton extends Container {
     } else {
       const GEM_COST = 5;
       if (this.economy && this.economy.gems < GEM_COST) {
-        this._showWarning('Мало 💎 гемов!');
+        // Показ VK Rewarded Ads для получения +5 гемов!
+        this._showWarning('🎬 Смотрим видео...');
+        const adResult = await showRewardedAd();
+        if (adResult && adResult.success) {
+          if (this.economy) {
+            this.economy.addGems(5);
+            this._showWarning('+5 💎 получено! 🎉');
+            try {
+              await saveProgress({ gems: this.economy.gems });
+            } catch (e) {}
+          }
+        } else {
+          this._showWarning('Мало 💎 гемов!');
+        }
         return;
       }
 

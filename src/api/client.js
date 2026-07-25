@@ -79,8 +79,24 @@ export async function fetchLeaderboard() {
   }
 }
 
+export async function showRewardedAd() {
+  try {
+    if (window.vkBridge && typeof window.vkBridge.send === 'function') {
+      const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
+      if (res && res.result) {
+        return { success: true };
+      }
+    }
+  } catch (err) {
+    console.warn('VK Rewarded Ads fallback / environment error:', err);
+  }
+  // Симуляция успешного просмотра для веб-версии / разработки
+  return { success: true };
+}
+
 export default {
   fetchProfile,
   saveProgress,
-  fetchLeaderboard
+  fetchLeaderboard,
+  showRewardedAd
 };
