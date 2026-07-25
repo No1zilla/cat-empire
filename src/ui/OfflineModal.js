@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 // TASK-015: Модальное окно оффлайн-дохода с пружинящей анимацией появления
 export class OfflineModal extends Container {
@@ -76,13 +77,8 @@ export class OfflineModal extends Container {
     title.position.set(CONFIG.GAME_WIDTH / 2, cardY + 20);
     this.addChild(title);
 
-    // 4. Большая иконка монеты 🪙
-    const coinIconStyle = new TextStyle({ fontSize: 48 });
-    const coinIcon = new Text({
-      text: '🪙',
-      style: coinIconStyle
-    });
-    coinIcon.anchor.set(0.5, 0.5);
+    // 4. Большая иконка монеты
+    const coinIcon = UIUtils.createCoinIcon(24, true);
     coinIcon.position.set(CONFIG.GAME_WIDTH / 2, cardY + 95);
     this.addChild(coinIcon);
 

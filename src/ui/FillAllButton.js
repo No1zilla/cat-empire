@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -51,15 +52,25 @@ export class FillAllButton extends Container {
   updateLabel() {
     const { count, cost, freeSlotsCount } = this.getFillData();
     if (this._subText) {
+      this._subText.removeChildren();
       if (freeSlotsCount === 0) {
-        this._subText.text = 'ПОЛНО';
+        this._subText.text = 'ЗАПОЛНЕНО';
         this._subText.style.fill = '#e5e7eb';
       } else if (count === 0) {
         const nextCost = 10 + (this.economy ? this.economy.totalCatsBought : 0);
-        this._subText.text = `${nextCost} 🪙`;
+        this._subText.text = `${nextCost} `;
+        const coinIcon = UIUtils.createCoinIcon(6, true);
+        coinIcon.position.set(this._subText.width / 2 + 8, 8);
+        this._subText.addChild(coinIcon);
         this._subText.style.fill = '#fff3a0';
       } else {
-        this._subText.text = `${count} шт (${cost} 🪙)`;
+        this._subText.text = `${count} шт (${cost} `;
+        const coinIcon = UIUtils.createCoinIcon(6, true);
+        coinIcon.position.set(this._subText.width / 2 + 8, 8);
+        this._subText.addChild(coinIcon);
+        const bracket = new Text({ text: ')', style: this._subText.style });
+        bracket.position.set(this._subText.width / 2 + 18, 0);
+        this._subText.addChild(bracket);
         this._subText.style.fill = '#ffffff';
       }
     }
@@ -145,26 +156,40 @@ export class FillAllButton extends Container {
     }, 100);
   }
 
-  _showWarning(text) {
+  _showWarning(text, showCoin = false) {
     if (this._warningText) {
       this.removeChild(this._warningText);
       this._warningText.destroy();
       this._warningText = null;
     }
+    if (this._warningCoin) {
+      this.removeChild(this._warningCoin);
+      this._warningCoin.destroy();
+      this._warningCoin = null;
+    }
 
     const warnStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 11,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
       dropShadow: { color: '#e74c3c', alpha: 0.9, blur: 3 }
     });
 
-    this._warningText = new Text({ text, style: warnStyle });
+    this._warningText = new Text({
+      text: text,
+      style: warnStyle
+    });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(52, -15);
+    this._warningText.position.set(52, -18);
     this.addChild(this._warningText);
+
+    if (showCoin) {
+      this._warningCoin = UIUtils.createCoinIcon(7, true);
+      this._warningCoin.position.set(52 + this._warningText.width / 2 + 6, -18);
+      this.addChild(this._warningCoin);
+    }
 
     setTimeout(() => {
       if (this._warningText) {
@@ -172,19 +197,24 @@ export class FillAllButton extends Container {
         this._warningText.destroy();
         this._warningText = null;
       }
-    }, 1000);
+      if (this._warningCoin) {
+        this.removeChild(this._warningCoin);
+        this._warningCoin.destroy();
+        this._warningCoin = null;
+      }
+    }, 1200);
   }
 
   async _handleClick() {
     const { count, cost, freeSlotsCount } = this.getFillData();
 
     if (freeSlotsCount === 0) {
-      this._showWarning('Поле полно!');
+      this._showWarning('Нет свободных мест! 🚫');
       return;
     }
 
-    if (count === 0) {
-      this._showWarning('Мало 🪙!');
+    if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
+      this._showWarning('Мало монет! ', true);
       return;
     }
 

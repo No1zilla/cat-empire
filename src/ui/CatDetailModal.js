@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { UIUtils } from '../utils/UIUtils.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
@@ -150,11 +151,15 @@ export class CatDetailModal extends Container {
       fill: '#2ecc71'
     });
     const incValue = new Text({
-      text: `+${catData.income} монет/сек 🪙`,
+      text: `+${catData.income} монет/сек`,
       style: incValueStyle
     });
     incValue.position.set(cardX + 38, cardY + 276);
     this.addChild(incValue);
+
+    const coinIcon = UIUtils.createCoinIcon(8, true);
+    coinIcon.position.set(cardX + 38 + incValue.width + 12, cardY + 276 + incValue.height / 2 - 1);
+    this.addChild(coinIcon);
 
     // 6. Описание / Лор котика
     const descStyle = new TextStyle({

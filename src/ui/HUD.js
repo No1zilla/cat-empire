@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * HUD в стиле промо-арта
@@ -34,10 +35,9 @@ export class HUD extends Container {
     bg.stroke({ color: 0x3d356c, width: 2, alpha: 0.8 });
     this.addChild(bg);
 
-    // 2. Иконка и значение монет 🪙
-    const coinIconStyle = new TextStyle({ fontSize: 26, dropShadow: { color: '#000000', alpha: 0.5, blur: 2, distance: 1 } });
-    const coinIcon = new Text({ text: '🪙', style: coinIconStyle });
-    coinIcon.position.set(20, 16);
+    // 2. Иконка и значение монет
+    const coinIcon = UIUtils.createCoinIcon(14, true);
+    coinIcon.position.set(28, 28);
     this.addChild(coinIcon);
 
     const coinsStyle = new TextStyle({

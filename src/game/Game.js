@@ -54,10 +54,10 @@ export class Game {
       if (profileData && profileData.user) {
         if (profileData.user.coins            !== undefined) startCoins = profileData.user.coins;
         if (profileData.user.gems             !== undefined) startGems  = profileData.user.gems;
-        if (profileData.user.maxCatLevel      !== undefined) startMaxCatLevel = profileData.user.maxCatLevel;
-        if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = profileData.user.totalCatsBought;
-        if (profileData.user.totalCatsCreated !== undefined) startTotalCatsCreated = profileData.user.totalCatsCreated;
-        if (profileData.user.totalMerges      !== undefined) startTotalMerges = profileData.user.totalMerges;
+        if (profileData.user.maxCatLevel      !== undefined) startMaxCatLevel = Math.max(startMaxCatLevel, Number(profileData.user.maxCatLevel) || 1);
+        if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = Math.max(startTotalCatsBought, Number(profileData.user.totalCatsBought) || 0);
+        if (profileData.user.totalCatsCreated !== undefined) startTotalCatsCreated = Math.max(startTotalCatsCreated, Number(profileData.user.totalCatsCreated) || 0);
+        if (profileData.user.totalMerges      !== undefined) startTotalMerges = Math.max(startTotalMerges, Number(profileData.user.totalMerges) || 0);
         if (profileData.user.gridState)       userGridState = profileData.user.gridState;
       }
     } catch (error) {

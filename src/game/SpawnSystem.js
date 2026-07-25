@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * Система спавна и покупки котиков (Чистая сочная 3D кнопка без наслоений текста)
@@ -28,7 +29,14 @@ export class SpawnSystem extends Container {
   updateButtonLabel() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
     if (this._btnText) {
-      this._btnText.text = `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`;
+      this._btnText.removeChildren();
+      this._btnText.text = `Купить (${cost.toLocaleString('ru-RU')} `;
+      const coinIcon = UIUtils.createCoinIcon(6, true);
+      coinIcon.position.set(this._btnText.width / 2 + 6, 0);
+      this._btnText.addChild(coinIcon);
+      const bracket = new Text({ text: ')', style: this._btnText.style });
+      bracket.position.set(this._btnText.width / 2 + 16, -this._btnText.height / 2);
+      this._btnText.addChild(bracket);
     }
   }
 
@@ -70,7 +78,7 @@ export class SpawnSystem extends Container {
 
     const cost = this.economy ? this.economy.getCatCost() : 10;
     this._btnText = new Text({
-      text: `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
+      text: `Купить`,
       style: style
     });
     this._btnText.anchor.set(0.5, 0.5);
