@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков 1-го уровня
+// Система спавна и покупки котиков (TASK-016: Stats Tracking — totalCatsCreated)
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -167,10 +167,10 @@ export class SpawnSystem extends Container {
     if (this.economy) {
       this.economy.spend(cost);
       this.economy.totalCatsBought++;
+      this.economy.totalCatsCreated++; // TASK-016: Увеличение счетчика созданных котов
       this.updateButtonLabel();
     }
 
-    // Всегда спавним 1-го котика!
     const cat = new Cat(1, freeSlot);
     cat.scale.set(0);
     this.grid.addCat(cat, freeSlot);
@@ -195,6 +195,8 @@ export class SpawnSystem extends Container {
         coins: this.economy ? this.economy.coins : undefined,
         gems: this.economy ? this.economy.gems : undefined,
         totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
+        totalCatsCreated: this.economy ? this.economy.totalCatsCreated : undefined,
+        totalMerges: this.economy ? this.economy.totalMerges : undefined,
         gridState: this.grid.exportState()
       });
     } catch (error) {

@@ -16,7 +16,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры (TASK-016: Smart Shop integration)
+// Главный класс игры (TASK-016: Динамическая экономика & Счётчики статистики)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -41,16 +41,20 @@ export class Game {
     let startGems = 10;
     let startMaxCatLevel = 1;
     let startTotalCatsBought = 0;
+    let startTotalCatsCreated = 0;
+    let startTotalMerges = 0;
     let userGridState = null;
 
     try {
       const profileData = await fetchProfile();
       if (profileData && profileData.user) {
-        if (profileData.user.coins           !== undefined) startCoins = profileData.user.coins;
-        if (profileData.user.gems            !== undefined) startGems  = profileData.user.gems;
-        if (profileData.user.maxCatLevel     !== undefined) startMaxCatLevel = profileData.user.maxCatLevel;
-        if (profileData.user.totalCatsBought !== undefined) startTotalCatsBought = profileData.user.totalCatsBought;
-        if (profileData.user.gridState)      userGridState = profileData.user.gridState;
+        if (profileData.user.coins            !== undefined) startCoins = profileData.user.coins;
+        if (profileData.user.gems             !== undefined) startGems  = profileData.user.gems;
+        if (profileData.user.maxCatLevel      !== undefined) startMaxCatLevel = profileData.user.maxCatLevel;
+        if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = profileData.user.totalCatsBought;
+        if (profileData.user.totalCatsCreated !== undefined) startTotalCatsCreated = profileData.user.totalCatsCreated;
+        if (profileData.user.totalMerges      !== undefined) startTotalMerges = profileData.user.totalMerges;
+        if (profileData.user.gridState)       userGridState = profileData.user.gridState;
       }
     } catch (error) {
       console.warn('Сервер не доступен или ошибка получения профиля, используются дефолтные данные:', error);
@@ -95,13 +99,13 @@ export class Game {
       }
     });
 
-    // 5. Создание системы экономики
+    // 5. Создание системы экономики с привязкой сетки для динамических цен
     this.economy = new Economy(this.grid);
     this.economy.onUpdate = (coins, gems, ips) => {
       if (this.hud) this.hud.update(coins, gems, ips);
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
     };
-    this.economy.setBalance(startCoins, startGems, startTotalCatsBought);
+    this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalCatsCreated, startTotalMerges);
     this.economy.startTicker();
 
     // 6. Создание системы спавна и кнопки покупки (230px)
@@ -110,7 +114,7 @@ export class Game {
     });
     this.spawnSystem.x = 10;
     this.spawnSystem.y = this.grid.y + gridWidth + 12;
-    this.spawnSystem.updateButtonLabel(this.maxCatLevel);
+    this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
 
     // TASK-012: Система каскадного авто-слияния и кнопка бустера (140px)
@@ -135,12 +139,14 @@ export class Game {
     // 8. Создание MergeEngine и DragSystem
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
+      if (this.economy) {
+        this.economy.totalMerges++;
+      }
 
-      // TASK-010 & TASK-016: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы + обновление Smart Shop!
+      // TASK-010: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы + обновление колоды!
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
-        if (this.spawnSystem) this.spawnSystem.updateButtonLabel(this.maxCatLevel);
 
         const rewardGems = 5;
         if (this.economy) this.economy.addGems(rewardGems);
@@ -151,6 +157,8 @@ export class Game {
               coins: this.economy ? this.economy.coins : undefined,
               gems: this.economy ? this.economy.gems : undefined,
               totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
+              totalCatsCreated: this.economy ? this.economy.totalCatsCreated : undefined,
+              totalMerges: this.economy ? this.economy.totalMerges : undefined,
               maxCatLevel: this.maxCatLevel,
               gridState: this.grid.exportState()
             });
@@ -166,13 +174,15 @@ export class Game {
 
     const onStateChange = async () => {
       this.economy.recalcAfterMerge();
-      if (this.spawnSystem) this.spawnSystem.updateButtonLabel(this.maxCatLevel);
+      if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
       try {
         await saveProgress({
           coins: this.economy.coins,
           gems: this.economy.gems,
           totalCatsBought: this.economy.totalCatsBought,
+          totalCatsCreated: this.economy.totalCatsCreated,
+          totalMerges: this.economy.totalMerges,
           maxCatLevel: this.maxCatLevel,
           gridState: this.grid.exportState()
         });
@@ -193,13 +203,15 @@ export class Game {
       async (mergesCount) => {
         console.log(`⚡ Авто-Merge выполнил ${mergesCount} слияний!`);
         this.economy.recalcAfterMerge();
-        if (this.spawnSystem) this.spawnSystem.updateButtonLabel(this.maxCatLevel);
+        if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
         localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
         try {
           await saveProgress({
             coins: this.economy.coins,
             gems: this.economy.gems,
             totalCatsBought: this.economy.totalCatsBought,
+            totalCatsCreated: this.economy.totalCatsCreated,
+            totalMerges: this.economy.totalMerges,
             maxCatLevel: this.maxCatLevel,
             gridState: this.grid.exportState()
           });
@@ -217,7 +229,7 @@ export class Game {
     // TASK-015B: Всплывающие зелёные циферки дохода (+N) над котиками на доске
     this._startFloatingIncomePopups();
 
-    // 9. Последовательное отображение модальных окон (Сначала Оффлайн-доход -> По закрытию Туториал)
+    // 9. Последовательное отображение модальных окон
     const showTutorialIfNeeded = () => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
       if (!tutorialDone) {
@@ -252,10 +264,12 @@ export class Game {
           coins: this.economy.coins,
           gems: this.economy.gems,
           totalCatsBought: this.economy.totalCatsBought,
+          totalCatsCreated: this.economy.totalCatsCreated,
+          totalMerges: this.economy.totalMerges,
           maxCatLevel: this.maxCatLevel,
           gridState: this.grid.exportState()
         });
-        console.log('🔄 Авто-сохранение баланса и сетки выполнено');
+        console.log('🔄 Авто-сохранение баланса и статистики выполнено');
       } catch (e) {
         console.error('Ошибка авто-сохранения:', e);
       }

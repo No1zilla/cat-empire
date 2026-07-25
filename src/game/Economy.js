@@ -1,30 +1,35 @@
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс управления экономикой (1.07 inflation & Target TTB 30s cap)
+// Класс управления экономикой (TASK-016: Динамическая цена от котиков на поле & Счётчики статистики)
 export class Economy {
   constructor(grid) {
     this.grid = grid;
     this.coins = 0;
     this.gems = 0;
     this.totalCatsBought = 0;
+    this.totalCatsCreated = 0;
+    this.totalMerges = 0;
     this.incomePerSecond = 0;
     this._ticker = null;
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
 
-  // Расчёт стоимости 1-го котика (1.07 инфляция, кап Target TTB = 30 сек пассивного дохода)
+  // TASK-016: Динамическая цена зависит от количества котиков НА ПОЛЕ (getActiveCatsCount)
   getCatCost() {
-    const baseCost = Math.floor(10 * Math.pow(1.07, this.totalCatsBought || 0));
-    // Ограничение Target TTB (не более 30 сек текущего пассивного дохода)
+    const activeCats = this.grid ? this.grid.getActiveCatsCount() : 0;
+    const baseCost = Math.floor(10 * Math.pow(1.15, activeCats));
+    // Ограничение Target TTB (не более 30 сек пассивного дохода)
     const maxCap = Math.max(10, Math.floor((this.incomePerSecond || 0) * 30));
     return Math.min(baseCost, maxCap);
   }
 
-  // Установить начальный баланс
-  setBalance(coins, gems, totalCatsBought = 0) {
+  // Установить начальный баланс и счётчики статистики
+  setBalance(coins, gems, totalCatsBought = 0, totalCatsCreated = 0, totalMerges = 0) {
     this.coins = Number(coins) || 0;
     this.gems = Number(gems) || 0;
     this.totalCatsBought = Number(totalCatsBought) || 0;
+    this.totalCatsCreated = Number(totalCatsCreated) || Number(totalCatsBought) || 0;
+    this.totalMerges = Number(totalMerges) || 0;
     this._recalcIncome();
     this._notify();
   }
@@ -90,7 +95,7 @@ export class Economy {
     this._notify();
   }
 
-  // Пересчёт дохода после merge или спавна
+  // Пересчёт дохода после merge или спавна — моментальное снижение/изменение цены на кнопке!
   recalcAfterMerge() {
     this._recalcIncome();
     this._notify();

@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 
-// Класс игрового поля 5x5 (TASK-015B: Monolithic Glassmorphism Frame)
+// Класс игрового поля 5x5 (TASK-016: getActiveCatsCount)
 export class Grid extends Container {
   constructor(app) {
     super();
@@ -11,6 +11,11 @@ export class Grid extends Container {
 
     this._drawBackground();
     this._drawCells();
+  }
+
+  // TASK-016: Метод получения количества активных котиков на сетке (0..25)
+  getActiveCatsCount() {
+    return this.slots.filter((cat) => cat !== null).length;
   }
 
   // TASK-015B: Отрисовка подложки сетки с монолитной рамкой матового стекла (Glassmorphism)
