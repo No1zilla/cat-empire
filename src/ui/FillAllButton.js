@@ -65,11 +65,11 @@ export class FillAllButton extends Container {
         this._subText.style.fill = '#fff3a0';
       } else {
         this._subText.text = `${count} шт (${cost} `;
-        const coinIcon = UIUtils.createCoinIcon(6, true);
+        const coinIcon = UIUtils.createCoinIcon(6);
         coinIcon.position.set(this._subText.width / 2 + 8, 8);
         this._subText.addChild(coinIcon);
         const bracket = new Text({ text: ')', style: this._subText.style });
-        bracket.position.set(this._subText.width / 2 + 18, 0);
+        bracket.position.set(this._subText.width / 2 + 16, 0);
         this._subText.addChild(bracket);
         this._subText.style.fill = '#ffffff';
       }

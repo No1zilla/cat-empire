@@ -25,18 +25,15 @@ export class SpawnSystem extends Container {
     this.updateButtonLabel();
   }
 
-  // Обновление ценника на кнопке покупки
   updateButtonLabel() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
-    if (this._btnText) {
-      this._btnText.removeChildren();
-      this._btnText.text = `Купить (${cost.toLocaleString('ru-RU')} `;
-      const coinIcon = UIUtils.createCoinIcon(6, true);
-      coinIcon.position.set(this._btnText.width / 2 + 6, 0);
-      this._btnText.addChild(coinIcon);
-      const bracket = new Text({ text: ')', style: this._btnText.style });
-      bracket.position.set(this._btnText.width / 2 + 16, -this._btnText.height / 2);
-      this._btnText.addChild(bracket);
+    if (this._subText) {
+      this._subText.removeChildren();
+      this._subText.text = `${cost.toLocaleString('ru-RU')} `;
+      const coinIcon = UIUtils.createCoinIcon(6);
+      // Anchor of subtext is 0.5, 0. We place coin to the right of text.
+      coinIcon.position.set(this._subText.width / 2 + 8, 8);
+      this._subText.addChild(coinIcon);
     }
   }
 
@@ -47,44 +44,58 @@ export class SpawnSystem extends Container {
 
     this.removeChildren();
 
+    this._innerContainer = new Container();
+    this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
+    this._innerContainer.position.set(btnWidth / 2, btnHeight / 2);
+    this.addChild(this._innerContainer);
+
     // 1. Нижняя тень
     const shadowBg = new Graphics();
     shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
     shadowBg.fill(0x9e2a3b);
-    this.addChild(shadowBg);
+    this._innerContainer.addChild(shadowBg);
 
     // 2. Основная градиентная карточка кнопки
     const bg = new Graphics();
     bg.roundRect(0, 0, btnWidth, btnHeight, 14);
     bg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
     bg.stroke({ color: '#ffffff', alpha: 0.7, width: 2.0 });
-    this.addChild(bg);
+    this._innerContainer.addChild(bg);
 
     // 3. Блик сверху на кнопке
     const shine = new Graphics();
     shine.roundRect(2, 2, btnWidth - 4, 18, 10);
     shine.fill({ color: 0xffffff, alpha: 0.22 });
-    this.addChild(shine);
+    this._innerContainer.addChild(shine);
 
     // 4. Единый чёткий текст на кнопке
-    const style = new TextStyle({
+    const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 12,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 3, distance: 1 }
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
 
-    const cost = this.economy ? this.economy.getCatCost() : 10;
-    this._btnText = new Text({
-      text: `Купить`,
-      style: style
+    this._btnText = new Text({ text: '🐱 Купить', style: titleStyle });
+    this._btnText.anchor.set(0.5, 0);
+    this._btnText.position.set(btnWidth / 2, 6);
+    this._innerContainer.addChild(this._btnText);
+
+    const subStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 10,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      align: 'center',
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 2, distance: 1 }
     });
-    this._btnText.anchor.set(0.5, 0.5);
-    this._btnText.x = btnWidth / 2;
-    this._btnText.y = btnHeight / 2;
-    this.addChild(this._btnText);
+
+    this._subText = new Text({ text: '0', style: subStyle });
+    this._subText.anchor.set(0.5, 0);
+    this._subText.position.set(btnWidth / 2, 24);
+    this._innerContainer.addChild(this._subText);
 
     // 5. Настройка интерактивности и Hold-to-Buy
     this.eventMode = 'static';
