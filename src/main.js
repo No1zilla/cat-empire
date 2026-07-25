@@ -4,9 +4,31 @@ import { VKService } from './vk/VKBridge.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 
+// Обновление прогресс-бара на экране загрузки (Splash Screen)
+function updateSplashProgress(percent, statusText) {
+  const bar = document.getElementById('splash-progress');
+  const txt = document.getElementById('splash-status-text');
+  if (bar) bar.style.width = `${percent}%`;
+  if (txt && statusText) txt.innerText = statusText;
+}
+
+// Плавное удаление экрана загрузки
+function hideSplashScreen() {
+  const splash = document.getElementById('splash-screen');
+  if (splash) {
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity 0.45s ease-out';
+    setTimeout(() => {
+      if (splash.parent) splash.parent.removeChild(splash);
+      splash.remove();
+    }, 450);
+  }
+}
+
 // Точка входа в приложение
 async function initApp() {
-  console.log('🚀 Инициализация приложения (TASK-015 Visual Glow-Up)...');
+  console.log('🚀 Инициализация приложения с роскошным Splash-экраном...');
+  updateSplashProgress(15, 'Подключаем VK Bridge...');
 
   // 1. Создать экземпляр VKService и инициализировать VK Bridge
   const vkService = new VKService();
@@ -16,7 +38,7 @@ async function initApp() {
     console.warn('VK Bridge init warning:', e);
   }
 
-  // 2. Получить userInfo через getUserInfo()
+  updateSplashProgress(35, 'Получаем профиль игрока...');
   let userInfo = null;
   try {
     userInfo = await vkService.getUserInfo();
@@ -25,6 +47,7 @@ async function initApp() {
   }
 
   // 3. Создать PIXI.Application для PixiJS v8
+  updateSplashProgress(55, 'Инициализируем графику PixiJS...');
   const app = new Application();
   const options = {
     width: CONFIG.GAME_WIDTH,
@@ -35,7 +58,6 @@ async function initApp() {
     antialias: true
   };
 
-  // 4. Инициализация PixiJS v8 (асинхронно)
   await app.init(options);
   const container = document.getElementById('game-container');
   if (container) {
@@ -45,26 +67,29 @@ async function initApp() {
     container.appendChild(app.canvas);
   }
 
-  // TASK-015: Глобальный фон и система плавающих звёздных частиц
   _createBackgroundAndParticles(app);
 
-  // 5. Подготовка имени пользователя
   const userName = userInfo
     ? `${userInfo.firstName} ${userInfo.lastName}`.trim()
     : 'Тест Игрок';
 
-  // 6. Загрузка спрайтов котиков
+  updateSplashProgress(75, 'Загружаем текстуры котиков...');
   try {
     await loadCatTextures();
   } catch (e) {
     console.warn('⚠️ Спрайты не загружены, используются эмодзи:', e.message);
   }
 
-  // 7. Создать экземпляр Game(app) и запустить
+  updateSplashProgress(90, 'Строим королевство котиков...');
   const game = new Game(app);
   await game.init(userName);
 
-  console.log('🐱 Империя Котиков запущены со стилем Premium Glow-Up!');
+  updateSplashProgress(100, 'Готово! 👑');
+  setTimeout(() => {
+    hideSplashScreen();
+  }, 150);
+
+  console.log('🐱 Империя Котиков запущены со стилем Premium Splash & Glow!');
 }
 
 /**
@@ -76,19 +101,16 @@ function _createBackgroundAndParticles(app) {
 
   const bgContainer = new Container();
 
-  // 1. Тёмно-фиолетовая подложка
   const bg = new Graphics();
   bg.rect(0, 0, W, H);
   bg.fill(0x100b20);
   bgContainer.addChild(bg);
 
-  // Мягкое внутреннее свечение в центре (радиальный шар)
   const glowCenter = new Graphics();
   glowCenter.circle(W / 2, H / 2 - 50, 220);
   glowCenter.fill({ color: 0x3d2375, alpha: 0.35 });
   bgContainer.addChild(glowCenter);
 
-  // 2. Система дрейфующих плавающих частиц (звёздочек)
   const particleCount = 28;
   const particles = [];
 
@@ -122,7 +144,6 @@ function _createBackgroundAndParticles(app) {
 
   app.stage.addChildAt(bgContainer, 0);
 
-  // Петля анимации движения частиц
   const start = performance.now();
   const updateParticles = () => {
     if (app.destroyed) return;
@@ -149,4 +170,5 @@ function _createBackgroundAndParticles(app) {
 
 initApp().catch((error) => {
   console.error('Ошибка при инициализации приложения:', error);
+  hideSplashScreen();
 });

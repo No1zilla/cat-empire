@@ -7,7 +7,7 @@
   <link rel="icon" href="./favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -20,7 +20,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background: radial-gradient(circle at center, #2a1b54 0%, #100b20 100%);
+      background: #100b20;
       font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
     }
     #game-container {
@@ -29,10 +29,143 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* 🔥 Роскошный Экран Загрузки (Splash Screen) */
+    #splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+      background: radial-gradient(ellipse at center, #2b1856 0%, #0d081d 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    /* Светящийся Аура-Ореол вокруг Иконки */
+    .splash-icon-wrapper {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .splash-icon-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: -15px;
+      right: -15px;
+      bottom: -15px;
+      border-radius: 36px;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, rgba(255, 94, 98, 0.2) 60%, transparent 80%);
+      animation: pulseGlow 2s infinite alternate;
+    }
+    .splash-icon {
+      width: 110px;
+      height: 110px;
+      border-radius: 26px;
+      object-fit: cover;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.8);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Заголовок с золотым градиентом */
+    .splash-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(180deg, #fff7ad 0%, #ffd700 50%, #ff8c00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+      margin-bottom: 6px;
+    }
+
+    .splash-subtitle {
+      font-size: 13px;
+      color: #a8d8ff;
+      font-weight: 600;
+      opacity: 0.9;
+      margin-bottom: 32px;
+    }
+
+    /* Прогресс-бар */
+    .progress-bar-container {
+      width: 240px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+      margin-bottom: 14px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff5e62 0%, #ffd700 100%);
+      border-radius: 8px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+      position: relative;
+    }
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+      animation: shimmer 1.5s infinite;
+    }
+
+    .splash-status {
+      font-size: 12px;
+      color: #d1d5db;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      animation: fadeInOut 1.5s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: scale(0.95); opacity: 0.6; }
+      100% { transform: scale(1.08); opacity: 1.0; }
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0.5; }
+      100% { opacity: 1.0; }
     }
   </style>
 </head>
 <body>
+  <!-- 🔥 Роскошный Сплаш-Экран Загрузки -->
+  <div id="splash-screen">
+    <div class="splash-icon-wrapper">
+      <img class="splash-icon" src="./logo.jpg" alt="Империя Котиков">
+    </div>
+    <h1 class="splash-title">ИМПЕРИЯ КОТИКОВ</h1>
+    <p class="splash-subtitle">Королевский Merge-Кликер 👑</p>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="splash-progress"></div>
+    </div>
+    <p class="splash-status" id="splash-status-text">Загрузка пушистой империи...</p>
+  </div>
+
   <div id="game-container"></div>
   <script type="module" src="./src/main.js"></script>
 </body>
