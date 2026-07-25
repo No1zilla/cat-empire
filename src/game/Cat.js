@@ -41,25 +41,14 @@ export class Cat extends Container {
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      const catSize = cardWidth - 6;
-
-      const spriteContainer = new Container();
-      const mask = new Graphics();
-      mask.roundRect(0, 0, catSize, catSize, 14);
-      mask.fill(0xffffff);
-      spriteContainer.addChild(mask);
-      spriteContainer.mask = mask;
-
+      const catSize = cardWidth - 4;
       const sprite = new Sprite(texture);
-      sprite.width = catSize + 6;
-      sprite.height = catSize + 6;
-      sprite.x = -3;
-      sprite.y = -3;
-      spriteContainer.addChild(sprite);
-
-      spriteContainer.x = (cardWidth - catSize) / 2;
-      spriteContainer.y = (cardHeight - catSize) / 2 - 2;
-      mainContainer.addChild(spriteContainer);
+      sprite.anchor.set(0.5, 0.5);
+      sprite.width = catSize;
+      sprite.height = catSize;
+      sprite.x = cardWidth / 2;
+      sprite.y = cardHeight / 2 - 2;
+      mainContainer.addChild(sprite);
     } else {
       const emojiStyle = new TextStyle({ fontSize: 38, align: 'center' });
       const emojiText = new Text({ text: catData.emoji, style: emojiStyle });
