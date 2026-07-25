@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков (TASK-016: Smart Shop — покупка прокачанных котиков MaxLevel - 3)
+// Система спавна и покупки котиков 1-го уровня
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -12,7 +12,6 @@ export class SpawnSystem extends Container {
     this.economy = economy;
     this.onCoinSpend = onCoinSpend || (() => {});
     this.dragSystem = null;
-    this.maxCatLevel = 1;
     this._btnText = null;
     this._warningText = null;
     this._breathRaf = null;
@@ -22,31 +21,20 @@ export class SpawnSystem extends Container {
     this._startBreathingAnimation();
   }
 
-  // TASK-016: Вычисление уровня спавна в магазине (Smart Shop: MaxLevel - 3)
-  getSpawnLevel() {
-    return Math.max(1, (this.maxCatLevel || 1) - 3);
-  }
-
   // Обновление ценника на кнопке покупки
-  updateButtonLabel(maxCatLevel) {
-    if (maxCatLevel !== undefined) {
-      this.maxCatLevel = maxCatLevel;
-    }
-    const spawnLevel = this.getSpawnLevel();
-    const cost = this.economy ? this.economy.getCatCost(spawnLevel) : 10;
-
+  updateButtonLabel() {
+    const cost = this.economy ? this.economy.getCatCost() : 10;
     if (this._btnText) {
-      this._btnText.text = `🐱 Lvl ${spawnLevel} (${cost.toLocaleString('ru-RU')} 🪙)`;
+      this._btnText.text = `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`;
     }
   }
 
-  // TASK-015B: Плавное медленное «дыхание» кнопки при наличии монет у игрока
+  // Плавное медленное «дыхание» кнопки при наличии монет у игрока
   _startBreathingAnimation() {
     const start = performance.now();
     const tick = () => {
       if (this.destroyed) return;
-      const spawnLevel = this.getSpawnLevel();
-      const cost = this.economy ? this.economy.getCatCost(spawnLevel) : 10;
+      const cost = this.economy ? this.economy.getCatCost() : 10;
       const canAfford = this.economy ? this.economy.canAfford(cost) : false;
 
       if (canAfford) {
@@ -95,10 +83,9 @@ export class SpawnSystem extends Container {
       dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1.5 }
     });
 
-    const spawnLevel = this.getSpawnLevel();
-    const cost = this.economy ? this.economy.getCatCost(spawnLevel) : 10;
+    const cost = this.economy ? this.economy.getCatCost() : 10;
     this._btnText = new Text({
-      text: `🐱 Lvl ${spawnLevel} (${cost.toLocaleString('ru-RU')} 🪙)`,
+      text: `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
       style: style
     });
     this._btnText.anchor.set(0.5, 0.5);
@@ -164,8 +151,7 @@ export class SpawnSystem extends Container {
   }
 
   async _spawnCat() {
-    const spawnLevel = this.getSpawnLevel();
-    const cost = this.economy ? this.economy.getCatCost(spawnLevel) : 10;
+    const cost = this.economy ? this.economy.getCatCost() : 10;
 
     const freeSlot = this.grid.getFreeSlotIndex();
     if (freeSlot === -1) {
@@ -184,8 +170,8 @@ export class SpawnSystem extends Container {
       this.updateButtonLabel();
     }
 
-    // Спавним котика нужного уровня согласно Smart Shop!
-    const cat = new Cat(spawnLevel, freeSlot);
+    // Всегда спавним 1-го котика!
+    const cat = new Cat(1, freeSlot);
     cat.scale.set(0);
     this.grid.addCat(cat, freeSlot);
     cat.playJumpAnimation();

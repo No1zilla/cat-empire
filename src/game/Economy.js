@@ -1,6 +1,6 @@
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс управления экономикой (TASK-016: 1.07 inflation & Target TTB 30s cap)
+// Класс управления экономикой (1.07 inflation & Target TTB 30s cap)
 export class Economy {
   constructor(grid) {
     this.grid = grid;
@@ -12,12 +12,11 @@ export class Economy {
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
 
-  // TASK-016: Смягчённый расчёт стоимости котика (1.07) с капом Target TTB 30 сек
-  getCatCost(spawnLevel = 1) {
-    const lvl = Math.max(1, spawnLevel || 1);
-    const baseCost = Math.floor(10 * Math.pow(1.07, this.totalCatsBought || 0) * Math.pow(2.2, lvl - 1));
+  // Расчёт стоимости 1-го котика (1.07 инфляция, кап Target TTB = 30 сек пассивного дохода)
+  getCatCost() {
+    const baseCost = Math.floor(10 * Math.pow(1.07, this.totalCatsBought || 0));
     // Ограничение Target TTB (не более 30 сек текущего пассивного дохода)
-    const maxCap = Math.max(10, Math.floor((this.incomePerSecond || 0) * 30 * Math.pow(1.8, lvl - 1)));
+    const maxCap = Math.max(10, Math.floor((this.incomePerSecond || 0) * 30));
     return Math.min(baseCost, maxCap);
   }
 
