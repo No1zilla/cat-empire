@@ -32,27 +32,17 @@ export class Cat extends Container {
     // Главный контейнер котика
     const mainContainer = new Container();
 
-    // 1. Сочная карточка котика и 3D Пьедестал
-    const bg = new Graphics();
-    bg.roundRect(0, 0, cardWidth, cardHeight, 12);
-    bg.fill(catData.color);
-    bg.stroke({ color: '#ffffff', alpha: 0.6, width: 2.0 });
-    mainContainer.addChild(bg);
-
-    const pedestalTex = getUITexture('pedestal_gold');
-    if (pedestalTex) {
-      const pedestalSprite = new Sprite(pedestalTex);
-      pedestalSprite.width = cardWidth;
-      pedestalSprite.height = cardHeight;
-      pedestalSprite.alpha = 0.5;
-      mainContainer.addChild(pedestalSprite);
-    }
+    // 1. Овальный подставка-glow под котиком (без тёмной квадратной коробки)
+    const baseGlow = new Graphics();
+    baseGlow.ellipse(cardWidth / 2, cardHeight - 12, 28, 10);
+    baseGlow.fill({ color: catData.color || 0xffd700, alpha: 0.45 });
+    mainContainer.addChild(baseGlow);
 
     const texture = getCatTexture(this.level);
 
     if (texture) {
       const sprite = new Sprite(texture);
-      const catSize = cardWidth - 2;
+      const catSize = cardWidth - 4;
       sprite.width = catSize;
       sprite.height = catSize;
       sprite.x = (cardWidth - catSize) / 2;

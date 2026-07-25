@@ -1,5 +1,6 @@
-import { Container, Text, TextStyle } from 'pixi.js';
+import { Container, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { getUITexture } from '../utils/catTextures.js';
 import { Grid } from './Grid.js';
 import { Cat } from './Cat.js';
 import { SpawnSystem } from './SpawnSystem.js';
@@ -77,11 +78,22 @@ export class Game {
     this.hud.position.set(0, 0);
     this.app.stage.addChild(this.hud);
 
+    // 2B. 3D Логотип «ИМПЕРИЯ КОТИКОВ» над сеткой
+    const logoTex = getUITexture('logo');
+    if (logoTex) {
+      const logoSprite = new Sprite(logoTex);
+      logoSprite.width = 220;
+      logoSprite.height = 36;
+      logoSprite.anchor.set(0.5, 0);
+      logoSprite.position.set(CONFIG.GAME_WIDTH / 2, 65);
+      this.app.stage.addChild(logoSprite);
+    }
+
     // 3. Создание и позиционирование игрового поля 5x5
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING; // 400px
     this.grid.x = 0;
-    this.grid.y = 95;
+    this.grid.y = 105;
     this.app.stage.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке
