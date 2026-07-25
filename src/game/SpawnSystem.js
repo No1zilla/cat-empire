@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков (TASK-016: Hold-to-Buy авто-спавн при зажатии)
+// Система спавна и покупки котиков (TASK-016: Подсказка "💡 Зажмите для авто")
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -13,6 +13,7 @@ export class SpawnSystem extends Container {
     this.onCoinSpend = onCoinSpend || (() => {});
     this.dragSystem = null;
     this._btnText = null;
+    this._subText = null;
     this._warningText = null;
     this._breathRaf = null;
 
@@ -52,7 +53,7 @@ export class SpawnSystem extends Container {
     this._breathRaf = requestAnimationFrame(tick);
   }
 
-  // Создание кнопки покупки (width 145px)
+  // Создание кнопки покупки (width 145px) с очевидной подсказкой для игрока
   _createButton() {
     const btnWidth = 145;
     const btnHeight = 50;
@@ -79,11 +80,11 @@ export class SpawnSystem extends Container {
     // 4. Текст на кнопке (Fredoka font)
     const style = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
-      dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1.5 }
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
 
     const cost = this.economy ? this.economy.getCatCost() : 10;
@@ -91,12 +92,26 @@ export class SpawnSystem extends Container {
       text: `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
       style: style
     });
-    this._btnText.anchor.set(0.5, 0.5);
+    this._btnText.anchor.set(0.5, 0);
     this._btnText.x = btnWidth / 2;
-    this._btnText.y = btnHeight / 2 - 1;
+    this._btnText.y = 6;
     this.addChild(this._btnText);
 
-    // 5. Настройка интерактивности и Hold-to-Buy (авто-спавн при зажатии)
+    // 5. Понятная подсказка для игрока "💡 Зажмите для авто"
+    const subStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 9.5,
+      fontWeight: 'bold',
+      fill: '#ffd700',
+      align: 'center'
+    });
+    this._subText = new Text({ text: '💡 Зажмите для авто', style: subStyle });
+    this._subText.anchor.set(0.5, 0);
+    this._subText.x = btnWidth / 2;
+    this._subText.y = 27;
+    this.addChild(this._subText);
+
+    // 6. Настройка интерактивности и Hold-to-Buy (авто-спавн при зажатии)
     this.eventMode = 'static';
     this.cursor = 'pointer';
 

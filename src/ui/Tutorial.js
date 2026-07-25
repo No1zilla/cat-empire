@@ -15,12 +15,12 @@ export class Tutorial extends Container {
     this.steps = [
       {
         title: '🐱 Покупай котиков!',
-        text: 'Нажми кнопку\n«Купить котика»,\nчтобы добавить\nкотика на поле.',
+        text: 'Нажми «Купить»,\nчтобы добавить котика.\n💡 Зажмите кнопку для\nбыстрой авто-покупки!',
         highlightTarget: 'button',
         cardY: 280,
-        cardH: 175,
-        handStartX: 200, handStartY: 550,
-        handEndX:   200, handEndY:   605,
+        cardH: 185,
+        handStartX: 85,  handStartY: 560,
+        handEndX:   85,  handEndY:   605,
       },
       {
         title: '🔀 Перетаскивай!',
@@ -73,7 +73,7 @@ export class Tutorial extends Container {
     // 2. Spotlight (подсвеченная зона)
     const spotlight = new Graphics();
     if (step.highlightTarget === 'button') {
-      spotlight.roundRect(60, 605, 280, 58, 12);
+      spotlight.roundRect(10, 605, 145, 52, 12);
     } else if (step.highlightTarget === 'grid') {
       spotlight.roundRect(10, 115, 380, 380, 16);
     } else {
@@ -95,6 +95,7 @@ export class Tutorial extends Container {
 
     // Заголовок
     const titleStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 18, fontWeight: 'bold', fill: '#ffffff', align: 'center'
     });
     const titleText = new Text({ text: step.title, style: titleStyle });
@@ -105,18 +106,19 @@ export class Tutorial extends Container {
 
     // Текст описания
     const descStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 14, fill: '#cccccc', align: 'center', lineHeight: 20
     });
     const descText = new Text({ text: step.text, style: descStyle });
     descText.anchor.set(0.5, 0);
     descText.x = W / 2;
-    descText.y = cardY + 50;
+    descText.y = cardY + 48;
     this.addChild(descText);
 
     // 4. Кнопка «Понятно!»
-    const btnY = cardY + cardH - 48;
+    const btnY = cardY + cardH - 46;
     const btnBg = new Graphics();
-    btnBg.roundRect(110, btnY, 180, 38, 10);
+    btnBg.roundRect(110, btnY, 180, 36, 10);
     btnBg.fill(CONFIG.COLORS.ACCENT || 0xe94560);
     btnBg.eventMode = 'static';
     btnBg.cursor = 'pointer';
@@ -129,12 +131,13 @@ export class Tutorial extends Container {
     this.addChild(btnBg);
 
     const btnStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 15, fontWeight: 'bold', fill: '#ffffff', align: 'center'
     });
     const btnText = new Text({ text: 'Понятно! →', style: btnStyle });
     btnText.anchor.set(0.5, 0.5);
     btnText.x = 200;
-    btnText.y = btnY + 19;
+    btnText.y = btnY + 18;
     btnText.eventMode = 'none';
     this.addChild(btnText);
 
@@ -166,7 +169,7 @@ export class Tutorial extends Container {
       const dot = new Text({ text: '●', style: dotStyle });
       dot.anchor.set(0.5, 0.5);
       dot.x = W / 2 - 20 + i * 20;
-      dot.y = cardY + cardH - 12;
+      dot.y = cardY + cardH - 10;
       this.addChild(dot);
     }
   }
