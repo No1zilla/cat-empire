@@ -1,10 +1,11 @@
-import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { getUITexture } from '../utils/catTextures.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков (TASK-016: Hold-to-Buy авто-спавн при зажатии)
+/**
+ * Система спавна и покупки котиков (Чистая сочная 3D кнопка без наслоений текста)
+ */
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -15,63 +16,49 @@ export class SpawnSystem extends Container {
     this.dragSystem = null;
     this._btnText = null;
     this._warningText = null;
-    this._breathRaf = null;
 
     this._holdTimeout = null;
     this._holdInterval = null;
 
     this._createButton();
     this.updateButtonLabel();
-    this._startBreathingAnimation();
   }
 
   // Обновление ценника на кнопке покупки
   updateButtonLabel() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
     if (this._btnText) {
-      this._btnText.text = `Купить (${cost.toLocaleString('ru-RU')} 🪙)`;
+      this._btnText.text = `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`;
     }
   }
 
-  _startBreathingAnimation() {
-    if (this._breathRaf) {
-      cancelAnimationFrame(this._breathRaf);
-      this._breathRaf = null;
-    }
-    this.scale.set(1.0);
-  }
-
-  // Создание кнопки покупки (width 145px)
+  // Создание кнопки покупки (фиксированная ширина 135px, без дублирующихся артов)
   _createButton() {
-    const btnWidth = 145;
+    const btnWidth = 135;
     const btnHeight = 50;
 
-    this._innerContainer = new Container();
-    this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
-    this._innerContainer.position.set(btnWidth / 2, btnHeight / 2);
-    this.addChild(this._innerContainer);
+    this.removeChildren();
 
     // 1. Нижняя тень
     const shadowBg = new Graphics();
     shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
     shadowBg.fill(0x9e2a3b);
-    this._innerContainer.addChild(shadowBg);
+    this.addChild(shadowBg);
 
     // 2. Основная градиентная карточка кнопки
-    const btnTex = getUITexture('btn_buy_pink');
-    if (btnTex) {
-      const btnSprite = new Sprite(btnTex);
-      btnSprite.width = btnWidth;
-      btnSprite.height = btnHeight;
-      this._innerContainer.addChild(btnSprite);
-    } else {
-      const bg = new Graphics();
-      bg.roundRect(0, 0, btnWidth, btnHeight, 14);
-      bg.fill(0xff3b6e);
-      bg.stroke({ color: '#ffffff', alpha: 0.7, width: 2.0 });
-      this._innerContainer.addChild(bg);
-    }
+    const bg = new Graphics();
+    bg.roundRect(0, 0, btnWidth, btnHeight, 14);
+    bg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
+    bg.stroke({ color: '#ffffff', alpha: 0.7, width: 2.0 });
+    this.addChild(bg);
 
+    // 3. Блик сверху на кнопке
+    const shine = new Graphics();
+    shine.roundRect(2, 2, btnWidth - 4, 18, 10);
+    shine.fill({ color: 0xffffff, alpha: 0.22 });
+    this.addChild(shine);
+
+    // 4. Единый чёткий текст на кнопке
     const style = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 12,
@@ -83,15 +70,15 @@ export class SpawnSystem extends Container {
 
     const cost = this.economy ? this.economy.getCatCost() : 10;
     this._btnText = new Text({
-      text: `Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
+      text: `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
       style: style
     });
     this._btnText.anchor.set(0.5, 0.5);
-    this._btnText.x = btnWidth / 2 + 10;
+    this._btnText.x = btnWidth / 2;
     this._btnText.y = btnHeight / 2;
-    this._innerContainer.addChild(this._btnText);
+    this.addChild(this._btnText);
 
-    // 5. Настройка интерактивности и Hold-to-Buy (авто-спавн при зажатии)
+    // 5. Настройка интерактивности и Hold-to-Buy
     this.eventMode = 'static';
     this.cursor = 'pointer';
 
@@ -101,10 +88,7 @@ export class SpawnSystem extends Container {
       this._startHold();
     });
 
-    const stopHandler = () => {
-      this._stopHold();
-      if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
-    };
+    const stopHandler = () => this._stopHold();
     this.on('pointerup', stopHandler);
     this.on('pointerupoutside', stopHandler);
     this.on('pointerout', stopHandler);
@@ -119,16 +103,9 @@ export class SpawnSystem extends Container {
     this._stopHold();
     this._holdTimeout = setTimeout(() => {
       this._holdInterval = setInterval(() => {
-        const freeSlot = this.grid ? this.grid.getFreeSlotIndex() : -1;
-        const cost = this.economy ? this.economy.getCatCost() : 10;
-        if (freeSlot !== -1 && this.economy && this.economy.canAfford(cost)) {
-          this._playClickAnim();
-          this._spawnCat();
-        } else {
-          this._stopHold();
-        }
-      }, 90);
-    }, 220);
+        this._spawnCat();
+      }, 140);
+    }, 280);
   }
 
   _stopHold() {
@@ -143,35 +120,31 @@ export class SpawnSystem extends Container {
   }
 
   _playClickAnim() {
-    if (this._innerContainer) this._innerContainer.scale.set(0.90);
+    this.scale.set(0.94);
     setTimeout(() => {
-      if (!this.destroyed && this._innerContainer && !this._holdInterval) {
-        this._innerContainer.scale.set(1.0);
-      }
+      if (!this.destroyed) this.scale.set(1.0);
     }, 80);
   }
 
-  _showNotEnoughCoins() {
+  _showWarning(text) {
     if (this._warningText) {
       this.removeChild(this._warningText);
       this._warningText.destroy();
       this._warningText = null;
     }
 
-    const warningStyle = new TextStyle({
+    const style = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 12,
       fontWeight: 'bold',
-      fill: '#ff4757',
-      align: 'center'
+      fill: '#ffffff',
+      align: 'center',
+      dropShadow: { color: '#e74c3c', alpha: 0.9, blur: 3 }
     });
 
-    this._warningText = new Text({
-      text: 'Мало монет! 🪙',
-      style: warningStyle
-    });
+    this._warningText = new Text({ text, style });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(72, -18);
+    this._warningText.position.set(67, -15);
     this.addChild(this._warningText);
 
     setTimeout(() => {
@@ -186,14 +159,14 @@ export class SpawnSystem extends Container {
   async _spawnCat() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
 
-    const freeSlot = this.grid.getFreeSlotIndex();
-    if (freeSlot === -1) {
-      console.log('Нет свободных ячеек на игровом поле!');
+    if (this.economy && !this.economy.canAfford(cost)) {
+      this._showWarning('Мало 🪙!');
       return;
     }
 
-    if (this.economy && !this.economy.canAfford(cost)) {
-      this._showNotEnoughCoins();
+    const emptySlot = this.grid.getFirstEmptySlot();
+    if (emptySlot === -1) {
+      this._showWarning('Поле полно!');
       return;
     }
 
@@ -201,27 +174,20 @@ export class SpawnSystem extends Container {
       this.economy.spend(cost);
       this.economy.totalCatsBought++;
       this.economy.totalCatsCreated++;
-      this.updateButtonLabel();
     }
 
-    const cat = new Cat(1, freeSlot);
+    const cat = new Cat(1, emptySlot);
     cat.scale.set(0);
-    this.grid.addCat(cat, freeSlot);
+    this.grid.addCat(cat, emptySlot);
     cat.playJumpAnimation();
 
     if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {
       this.dragSystem.makeDraggable(cat);
     }
 
-    if (this.economy) {
-      this.economy.recalcAfterMerge();
-    }
-
     this._animateBounce(cat);
-
-    if (typeof this.onCoinSpend === 'function') {
-      this.onCoinSpend(cost);
-    }
+    this.updateButtonLabel();
+    this.onCoinSpend(cost);
 
     try {
       await saveProgress({
@@ -232,44 +198,29 @@ export class SpawnSystem extends Container {
         totalMerges: this.economy ? this.economy.totalMerges : undefined,
         gridState: this.grid.exportState()
       });
-    } catch (error) {
-      console.error('Ошибка автосохранения при спавне:', error);
+    } catch (err) {
+      console.error('Ошибка автосохранения при покупке кота:', err);
     }
   }
 
   _animateBounce(cat) {
-    const startTime = Date.now();
-    const phase1Duration = 150;
-    const phase2Duration = 100;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-
-      if (elapsed < phase1Duration) {
-        const progress = elapsed / phase1Duration;
-        const scale = progress * 1.2;
-        cat.scale.set(scale);
-        requestAnimationFrame(animate);
-      } else if (elapsed < phase1Duration + phase2Duration) {
-        const progress = (elapsed - phase1Duration) / phase2Duration;
-        const scale = 1.2 - progress * 0.2;
-        cat.scale.set(scale);
-        requestAnimationFrame(animate);
+    const start = performance.now();
+    const bounce = () => {
+      if (cat.destroyed) return;
+      const elapsed = performance.now() - start;
+      if (elapsed < 150) {
+        const p = elapsed / 150;
+        cat.scale.set(p * 1.12);
+      } else if (elapsed < 250) {
+        const p = (elapsed - 150) / 100;
+        cat.scale.set(1.12 - p * 0.12);
       } else {
         cat.scale.set(1.0);
+        return;
       }
+      requestAnimationFrame(bounce);
     };
-
-    requestAnimationFrame(animate);
-  }
-
-  destroy(options) {
-    this._stopHold();
-    if (this._breathRaf) {
-      cancelAnimationFrame(this._breathRaf);
-      this._breathRaf = null;
-    }
-    super.destroy(options);
+    requestAnimationFrame(bounce);
   }
 }
 
