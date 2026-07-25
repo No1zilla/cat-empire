@@ -9,7 +9,8 @@ export class VKService {
   // Инициализация VK Bridge
   async init() {
     try {
-      const result = await this.bridge.send('VKWebAppInit');
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 500));
+      const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
       console.log('VKWebAppInit result:', result);
       return result;
     } catch (error) {
@@ -21,24 +22,25 @@ export class VKService {
   // Получение данных пользователя
   async getUserInfo() {
     try {
-      const user = await this.bridge.send('VKWebAppGetUserInfo');
-      console.log('VKWebAppGetUserInfo result:', user);
-      return {
-        id: user.id,
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        photo: user.photo_200 || user.photo_100 || ''
-      };
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 500));
+      const user = await Promise.race([this.bridge.send('VKWebAppGetUserInfo'), timeout]);
+      if (user) {
+        return {
+          id: user.id,
+          firstName: user.first_name || '',
+          lastName: user.last_name || '',
+          photo: user.photo_200 || user.photo_100 || ''
+        };
+      }
     } catch (error) {
       console.error('VKWebAppGetUserInfo error:', error);
-      // Возврат mock-данных при недоступности VK Bridge (локальная разработка)
-      return {
-        id: 0,
-        firstName: 'Тест',
-        lastName: 'Игрок',
-        photo: ''
-      };
     }
+    return {
+      id: 0,
+      firstName: 'Тест',
+      lastName: 'Игрок',
+      photo: ''
+    };
   }
 
   // TASK-015B: Тактильная отдача (вибрация VK Haptics)

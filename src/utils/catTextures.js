@@ -8,30 +8,24 @@ let uiTextures = {};
  * Вызывать один раз перед game.init().
  */
 export async function loadCatTextures() {
-  const base = import.meta.env.BASE_URL; // '/cat-empire/' на gh-pages, '/' локально
-  const promises = [];
-
-  for (let level = 1; level <= 15; level++) {
-    promises.push(Assets.load(`${base}assets/cats/cat_${level}.png`));
-  }
-
-  // Загружаем 3D активы из промо-артов
-  promises.push(Assets.load(`${base}assets/ui/pedestal_gold.jpg`));
-  promises.push(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`));
-  promises.push(Assets.load(`${base}assets/ui/btn_buy_pink.jpg`));
-
-  const loaded = await Promise.all(promises);
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
   textures = {};
+  uiTextures = {};
 
   for (let level = 1; level <= 15; level++) {
-    textures[level] = loaded[level - 1];
+    try {
+      textures[level] = await Assets.load(`${base}assets/cats/cat_${level}.png`);
+    } catch (e) {
+      console.warn(`Failed to load cat_${level}.png, fallback to emoji:`, e);
+      textures[level] = null;
+    }
   }
 
-  uiTextures['pedestal_gold'] = loaded[15];
-  uiTextures['logo'] = loaded[16];
-  uiTextures['btn_buy_pink'] = loaded[17];
+  try { uiTextures['pedestal_gold'] = await Assets.load(`${base}assets/ui/pedestal_gold.jpg`); } catch (e) {}
+  try { uiTextures['logo'] = await Assets.load(`${base}assets/ui/logo_cat_empire.jpg`); } catch (e) {}
+  try { uiTextures['btn_buy_pink'] = await Assets.load(`${base}assets/ui/btn_buy_pink.jpg`); } catch (e) {}
 
-  console.log('🎨 Все 15 спрайтов и 3D UI-активы загружены!');
+  console.log('🎨 Текстуры загружены!');
   return textures;
 }
 
