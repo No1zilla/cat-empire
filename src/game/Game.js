@@ -120,7 +120,7 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
-    this.spawnSystem.x = 10;
+    this.spawnSystem.x = 12;
     this.spawnSystem.y = buttonRowY;
     this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
@@ -200,11 +200,11 @@ export class Game {
         console.error('Ошибка сохранения после массовой покупки:', e);
       }
     });
-    this.fillAllButton.x = 150;
+    this.fillAllButton.x = 144;
     this.fillAllButton.y = buttonRowY;
     this.app.stage.addChild(this.fillAllButton);
 
-    // C) ⚡ Соединить все (135px)
+    // C) ⚡ Соединить все (122px)
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
       if (this.autoMergeSystem) {
         await this.autoMergeSystem.runAutoMerge();
@@ -212,7 +212,7 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
-    this.autoMergeButton.x = 260;
+    this.autoMergeButton.x = 276;
     this.autoMergeButton.y = buttonRowY;
     this.app.stage.addChild(this.autoMergeButton);
 

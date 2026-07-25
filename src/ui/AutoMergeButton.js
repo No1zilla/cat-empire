@@ -38,7 +38,7 @@ export class AutoMergeButton extends Container {
   _draw() {
     this.removeChildren();
 
-    const btnWidth = 140;
+    const btnWidth = 122;
     const btnHeight = 50;
 
     this._innerContainer = new Container();

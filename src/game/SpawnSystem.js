@@ -39,7 +39,7 @@ export class SpawnSystem extends Container {
 
   // Создание кнопки покупки (фиксированная ширина 135px, без дублирующихся артов)
   _createButton() {
-    const btnWidth = 135;
+    const btnWidth = 122;
     const btnHeight = 50;
 
     this.removeChildren();
