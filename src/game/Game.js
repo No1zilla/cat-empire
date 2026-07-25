@@ -17,7 +17,7 @@ import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры (Массовая покупка: Hold-to-buy + 📦 Всё)
+// Главный класс игры (Массовая покупка: Точный расчёт стоимости и спавна)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -121,8 +121,8 @@ export class Game {
     this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
 
-    // B) 📦 Всё (95px) — закуп всех свободных слотов за 1 клик
-    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async (count, totalCost) => {
+    // B) 📦 Всё (95px) — 100% точный выкуп свободных слотов
+    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
       const freeSlots = [];
       for (let i = 0; i < 25; i++) {
         if (this.grid.slots[i] === null) {
@@ -130,11 +130,32 @@ export class Game {
         }
       }
 
-      const spawnCount = Math.min(count, freeSlots.length);
-      if (spawnCount === 0) return;
+      if (freeSlots.length === 0) {
+        if (this.fillAllButton) this.fillAllButton._showWarning('Поле полно!');
+        return;
+      }
+
+      let actualTotalCost = 0;
+      let spawnCount = 0;
+      const currentBought = this.economy ? this.economy.totalCatsBought : 0;
+
+      for (let i = 0; i < freeSlots.length; i++) {
+        const catCost = 10 + (currentBought + i);
+        if (this.economy && this.economy.coins >= actualTotalCost + catCost) {
+          actualTotalCost += catCost;
+          spawnCount++;
+        } else {
+          break;
+        }
+      }
+
+      if (spawnCount === 0) {
+        if (this.fillAllButton) this.fillAllButton._showWarning('Мало 🪙!');
+        return;
+      }
 
       if (this.economy) {
-        this.economy.spend(totalCost);
+        this.economy.spend(actualTotalCost);
         this.economy.totalCatsBought += spawnCount;
         this.economy.totalCatsCreated += spawnCount;
       }
