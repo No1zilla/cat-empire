@@ -32,24 +32,36 @@ export class Cat extends Container {
     // Главный контейнер котика
     const mainContainer = new Container();
 
-    // 1. Овальный подставка-glow под котиком (без тёмной квадратной коробки)
+    // 1. Овальный подставка-glow под котиком
     const baseGlow = new Graphics();
-    baseGlow.ellipse(cardWidth / 2, cardHeight - 12, 28, 10);
-    baseGlow.fill({ color: catData.color || 0xffd700, alpha: 0.45 });
+    baseGlow.ellipse(cardWidth / 2, cardHeight - 8, 28, 10);
+    baseGlow.fill({ color: catData.color || 0xffd700, alpha: 0.55 });
     mainContainer.addChild(baseGlow);
 
     const texture = getCatTexture(this.level);
 
     if (texture) {
+      const catSize = cardWidth - 6;
+
+      const spriteContainer = new Container();
+      const mask = new Graphics();
+      mask.roundRect(0, 0, catSize, catSize, 14);
+      mask.fill(0xffffff);
+      spriteContainer.addChild(mask);
+      spriteContainer.mask = mask;
+
       const sprite = new Sprite(texture);
-      const catSize = cardWidth - 4;
-      sprite.width = catSize;
-      sprite.height = catSize;
-      sprite.x = (cardWidth - catSize) / 2;
-      sprite.y = (cardHeight - catSize) / 2;
-      mainContainer.addChild(sprite);
+      sprite.width = catSize + 6;
+      sprite.height = catSize + 6;
+      sprite.x = -3;
+      sprite.y = -3;
+      spriteContainer.addChild(sprite);
+
+      spriteContainer.x = (cardWidth - catSize) / 2;
+      spriteContainer.y = (cardHeight - catSize) / 2 - 2;
+      mainContainer.addChild(spriteContainer);
     } else {
-      const emojiStyle = new TextStyle({ fontSize: 40, align: 'center' });
+      const emojiStyle = new TextStyle({ fontSize: 38, align: 'center' });
       const emojiText = new Text({ text: catData.emoji, style: emojiStyle });
       emojiText.anchor.set(0.5, 0.5);
       emojiText.x = cardWidth / 2;
