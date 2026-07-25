@@ -16,7 +16,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры (TASK-015B: Floating Income Popups)
+// Главный класс игры (TASK-016: Smart Shop integration)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -99,6 +99,7 @@ export class Game {
     this.economy = new Economy(this.grid);
     this.economy.onUpdate = (coins, gems, ips) => {
       if (this.hud) this.hud.update(coins, gems, ips);
+      if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
     };
     this.economy.setBalance(startCoins, startGems, startTotalCatsBought);
     this.economy.startTicker();
@@ -109,7 +110,7 @@ export class Game {
     });
     this.spawnSystem.x = 10;
     this.spawnSystem.y = this.grid.y + gridWidth + 12;
-    this.spawnSystem.updateButtonLabel();
+    this.spawnSystem.updateButtonLabel(this.maxCatLevel);
     this.app.stage.addChild(this.spawnSystem);
 
     // TASK-012: Система каскадного авто-слияния и кнопка бустера (140px)
@@ -135,10 +136,11 @@ export class Game {
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
 
-      // TASK-010: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы + обновление колоды!
+      // TASK-010 & TASK-016: Если этот уровень открыт ВПЕРВЫЕ -> Wow-экран + гемы + обновление Smart Shop!
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
+        if (this.spawnSystem) this.spawnSystem.updateButtonLabel(this.maxCatLevel);
 
         const rewardGems = 5;
         if (this.economy) this.economy.addGems(rewardGems);
@@ -164,6 +166,7 @@ export class Game {
 
     const onStateChange = async () => {
       this.economy.recalcAfterMerge();
+      if (this.spawnSystem) this.spawnSystem.updateButtonLabel(this.maxCatLevel);
       localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
       try {
         await saveProgress({
@@ -190,6 +193,7 @@ export class Game {
       async (mergesCount) => {
         console.log(`⚡ Авто-Merge выполнил ${mergesCount} слияний!`);
         this.economy.recalcAfterMerge();
+        if (this.spawnSystem) this.spawnSystem.updateButtonLabel(this.maxCatLevel);
         localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
         try {
           await saveProgress({
