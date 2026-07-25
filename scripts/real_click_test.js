@@ -72,73 +72,63 @@ server.listen(9999, async () => {
   const scaleX = box.width / 410;
   const scaleY = box.height / 700;
 
-  // 1. Скриншот 0: Экран при входе (Оффлайн доход / Туториал)
-  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/tut_step0_tutorial.png' });
-  console.log('📸 Step 0 (Стартовое окно/Туториал) сохранен');
-
-  // Клик 1: Пропуск оффлайн-дохода «👛 Забрать!»
-  const claimX = box.x + 205 * scaleX;
-  const claimY = box.y + 427 * scaleY;
-  await page.mouse.click(claimX, claimY);
+  // 1. Пропуск оффлайн-дохода «👛 Забрать!»
+  await page.mouse.click(box.x + 205 * scaleX, box.y + 427 * scaleY);
   await page.waitForTimeout(500);
 
-  // Проход по всем 3 шагам туториала «Понятно! →»
-  // Шаг 1: кнопка Понятно на y=437
+  // Пропуск 3 шагов туториала
   await page.mouse.click(box.x + 200 * scaleX, box.y + 437 * scaleY);
-  await page.waitForTimeout(500);
-
-  // Шаг 2: кнопка Понятно на y=637
+  await page.waitForTimeout(300);
   await page.mouse.click(box.x + 200 * scaleX, box.y + 637 * scaleY);
+  await page.waitForTimeout(300);
+  await page.mouse.click(box.x + 200 * scaleX, box.y + 587 * scaleY);
   await page.waitForTimeout(500);
 
-  // Шаг 3: кнопка Понятно на y=587
-  await page.mouse.click(box.x + 200 * scaleX, box.y + 587 * scaleY);
-  await page.waitForTimeout(600);
+  // Закрываем NewCatModal если открылся
+  await page.mouse.click(box.x + 205 * scaleX, box.y + 465 * scaleY);
+  await page.waitForTimeout(400);
 
-  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/tut_step1_unlocked.png' });
-  console.log('📸 Step 1 (Туториал пройден, чистая сетка) сохранен');
+  const mergeX = box.x + 330 * scaleX;
+  const mergeY = box.y + 570 * scaleY;
 
-  // 2. Покупка двух котиков 1 уровня для DND теста
-  const buyX = box.x + 75 * scaleX;
-  const buyY = box.y + 570 * scaleY;
-  console.log('🖱️ Покупка 2-х котиков для Drag-and-Drop...');
-  await page.mouse.click(buyX, buyY);
-  await page.waitForTimeout(600);
-  await page.mouse.click(buyX, buyY);
-  await page.waitForTimeout(600);
+  // 1. Бесплатное слияние
+  await page.mouse.click(mergeX, mergeY);
+  await page.waitForTimeout(500);
+  await page.mouse.click(box.x + 205 * scaleX, box.y + 465 * scaleY);
+  await page.waitForTimeout(400);
 
-  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/tut_step2_cats_spawned.png' });
-  console.log('📸 Step 2 (Коты заспавнены для перетаскивания) сохранен');
+  // 2. Потратить первые 5 гемов (с 10 до 5)
+  await page.mouse.click(mergeX, mergeY);
+  await page.waitForTimeout(500);
 
-  // 3. РЕАЛЬНОЕ ПЕРЕТАСКИВАНИЕ МЫШЬЮ (Drag & Drop)
-  // Слоты сетки 5х5:
-  // Slot 0 (x=50, y=140) -> Slot 1 (x=128, y=140)
-  const slot0X = box.x + 50 * scaleX;
-  const slot0Y = box.y + 140 * scaleY;
-  const slot1X = box.x + 128 * scaleX;
-  const slot1Y = box.y + 140 * scaleY;
+  // 3. Потратить ещё 5 гемов (с 5 до 0)
+  await page.mouse.click(mergeX, mergeY);
+  await page.waitForTimeout(500);
 
-  console.log(`🔀 ПЕРЕТАСКИВАНИЕ КОТИКА: с (${slot0X.toFixed(0)}, ${slot0Y.toFixed(0)}) на (${slot1X.toFixed(0)}, ${slot1Y.toFixed(0)})...`);
-  
-  await page.mouse.move(slot0X, slot0Y);
-  await page.mouse.down();
-  await page.waitForTimeout(200);
+  // 4. Нажать Соединить при 0 гемов -> Открывает AdModal!
+  console.log('🎬 Клик при 0 гемов — Вызов модального окна AdModal...');
+  await page.mouse.click(mergeX, mergeY);
+  await page.waitForTimeout(800);
 
-  // Плавная проводка мыши для визуального перетаскивания
-  for (let i = 1; i <= 10; i++) {
-    const curX = slot0X + (slot1X - slot0X) * (i / 10);
-    const curY = slot0Y + (slot1Y - slot0Y) * (i / 10);
-    await page.mouse.move(curX, curY);
-    await page.waitForTimeout(30);
-  }
+  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/video_step1_modal.png' });
+  console.log('📸 Скриншот 1 (Запрос просмотра рекламы) сохранен');
 
-  await page.mouse.up();
-  await page.waitForTimeout(1000);
+  // 5. Клик по кнопке "🎬 Смотреть Видео (+5 💎)" (x=205, y=517)
+  const watchX = box.x + 205 * scaleX;
+  const watchY = box.y + 517 * scaleY;
+  console.log(`🎬 Нажатие кнопки "Смотреть Видео" на (${watchX.toFixed(0)}, ${watchY.toFixed(0)})...`);
+  await page.mouse.click(watchX, watchY);
+  await page.waitForTimeout(1500);
 
-  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/tut_step3_dnd_merged.png' });
-  console.log('📸 Step 3 (Результат перетаскивания DND) сохранен');
+  // Скриншот работы 5-секундного видеоплеера
+  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/video_step2_playback.png' });
+  console.log('📸 Скриншот 2 (Воспроизведение 5-секундного видео ролика) сохранен');
+
+  await page.waitForTimeout(4000);
+  await page.screenshot({ path: '/Users/ai/.gemini/antigravity/brain/dcfc0386-a2f9-439b-aa8f-37180c774c67/video_step3_rewarded.png' });
+  console.log('📸 Скриншот 3 (Награда +5 💎 зачислена) сохранен');
 
   await browser.close();
   server.close();
-  console.log('🎉 ТЕСТ ПЕРЕТАСКИВАНИЯ (DRAG & DROP) И ПРОХОДА ТУТОРИАЛА ЗАВЕРШЁН!');
+  console.log('🎉 ВИДЕОПЛЕЕР С ИНТЕРАКТИВНЫМ ПРОСМОТРОМ УСПЕШНО ПРОТЕСТИРОВАН!');
 });

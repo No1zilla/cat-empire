@@ -186,12 +186,12 @@ export class AutoMergeButton extends Container {
     } else {
       const GEM_COST = 5;
       if (this.economy && this.economy.gems < GEM_COST) {
-        // Вызываем явное модальное окно просмотра рекламы за гетов
-        if (this.app && this.app.stage) {
-          const adModal = new AdModal(this.app, this.economy, async () => {
+        const stage = this.stage || (this.parent ? (this.parent.stage || this.parent.parent?.stage) : null);
+        if (stage) {
+          const adModal = new AdModal(null, this.economy, async () => {
             await this.onTriggerAutoMerge();
           });
-          this.app.stage.addChild(adModal);
+          stage.addChild(adModal);
         } else {
           this._showWarning('Мало 💎 гемов!');
         }
