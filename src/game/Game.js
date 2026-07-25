@@ -11,6 +11,7 @@ import { OfflineModal } from '../ui/OfflineModal.js';
 import { Tutorial } from '../ui/Tutorial.js';
 import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
+import { CatDetailModal } from '../ui/CatDetailModal.js';
 import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
@@ -217,7 +218,8 @@ export class Game {
     // 7. Панель «📖 Котопедия» прямо на главном экране под кнопками управления
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
       if (isUnlocked) {
-        openCollection();
+        const detailModal = new CatDetailModal(this.app, level);
+        this.app.stage.addChild(detailModal);
       }
     });
     this.catDeck.y = buttonRowY + 58;
