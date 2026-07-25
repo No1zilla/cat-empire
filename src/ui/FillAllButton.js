@@ -2,7 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 
 /**
- * Объёмная кнопка «📦 Всё» (Массовый выкуп свободных ячеек за 1 клик)
+ * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
  */
 export class FillAllButton extends Container {
   constructor(app, grid, economy, onTriggerFillAll) {
@@ -26,10 +26,10 @@ export class FillAllButton extends Container {
 
   // Расчёт стоимости и количества доступных котиков для массовой покупки
   getFillData() {
-    if (!this.grid || !this.economy) return { count: 0, cost: 0 };
+    if (!this.grid || !this.economy) return { count: 0, cost: 0, freeSlotsCount: 0 };
 
     const freeSlotsCount = this.grid.slots.filter((slot) => slot === null).length;
-    if (freeSlotsCount === 0) return { count: 0, cost: 0 };
+    if (freeSlotsCount === 0) return { count: 0, cost: 0, freeSlotsCount: 0 };
 
     let totalCost = 0;
     let count = 0;
@@ -53,14 +53,14 @@ export class FillAllButton extends Container {
     if (this._subText) {
       if (freeSlotsCount === 0) {
         this._subText.text = 'ПОЛНО';
-        this._subText.style.fill = '#9ca3af';
+        this._subText.style.fill = '#e5e7eb';
       } else if (count === 0) {
         const nextCost = 10 + (this.economy ? this.economy.totalCatsBought : 0);
         this._subText.text = `${nextCost} 🪙`;
-        this._subText.style.fill = '#ff4757';
+        this._subText.style.fill = '#fff3a0';
       } else {
         this._subText.text = `${count} шт (${cost} 🪙)`;
-        this._subText.style.fill = '#ffd700';
+        this._subText.style.fill = '#ffffff';
       }
     }
   }
@@ -68,50 +68,51 @@ export class FillAllButton extends Container {
   _draw() {
     this.removeChildren();
 
-    const btnWidth = 95;
+    const btnWidth = 105;
     const btnHeight = 50;
 
-    // 1. Нижняя объёмная тень
+    // 1. Сочная 3D тень (Янтарно-оранжевый тёмный подтон)
     this._shadowBg = new Graphics();
     this._shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
-    this._shadowBg.fill(0x273c75);
+    this._shadowBg.fill(0xb35400);
     this.addChild(this._shadowBg);
 
-    // 2. Основная градиентная карточка (Синий/Индиго)
+    // 2. Основная яркая янтарно-золотая карточка
     this._btnBg = new Graphics();
     this._btnBg.roundRect(0, 0, btnWidth, btnHeight, 14);
-    this._btnBg.fill(0x487eb0);
-    this._btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 2 });
+    this._btnBg.fill(0xff9f43);
+    this._btnBg.stroke({ color: '#ffffff', alpha: 0.6, width: 2.0 });
     this.addChild(this._btnBg);
 
-    // 3. Блик
+    // 3. Блик сверху
     const shine = new Graphics();
     shine.roundRect(2, 2, btnWidth - 4, 18, 10);
-    shine.fill({ color: 0xffffff, alpha: 0.22 });
+    shine.fill({ color: 0xffffff, alpha: 0.28 });
     this.addChild(shine);
 
-    // 4. Текст кнопки "📦 Всё"
+    // 4. Текст кнопки "📦 Заполнить"
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
       dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
 
-    this._btnText = new Text({ text: '📦 Всё', style: titleStyle });
+    this._btnText = new Text({ text: '📦 Заполнить', style: titleStyle });
     this._btnText.anchor.set(0.5, 0);
     this._btnText.position.set(btnWidth / 2, 6);
     this.addChild(this._btnText);
 
-    // 5. Подтекст статуса/стоимости
+    // 5. Подтекст количества и стоимости
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 10,
       fontWeight: 'bold',
-      fill: '#ffd700',
-      align: 'center'
+      fill: '#ffffff',
+      align: 'center',
+      dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
     });
 
     this._subText = new Text({ text: '0 шт', style: subStyle });
@@ -150,13 +151,14 @@ export class FillAllButton extends Container {
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 11,
       fontWeight: 'bold',
-      fill: '#ff4757',
-      align: 'center'
+      fill: '#ffffff',
+      align: 'center',
+      dropShadow: { color: '#e74c3c', alpha: 0.9, blur: 3 }
     });
 
     this._warningText = new Text({ text, style: warnStyle });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(47, -15);
+    this._warningText.position.set(52, -15);
     this.addChild(this._warningText);
 
     setTimeout(() => {

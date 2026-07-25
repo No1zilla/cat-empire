@@ -1,9 +1,10 @@
 import { Assets } from 'pixi.js';
 
 let textures = null;
+let uiTextures = {};
 
 /**
- * Загрузка 15 индивидуальных прозрачных 256x256 PNG спрайтов котиков.
+ * Загрузка 15 индивидуальных прозрачных 256x256 PNG спрайтов котиков + 3D UI артов.
  * Вызывать один раз перед game.init().
  */
 export async function loadCatTextures() {
@@ -14,6 +15,10 @@ export async function loadCatTextures() {
     promises.push(Assets.load(`${base}assets/cats/cat_${level}.png`));
   }
 
+  // Загружаем 3D активы из промо-артов
+  promises.push(Assets.load(`${base}assets/ui/pedestal_gold.jpg`));
+  promises.push(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`));
+
   const loaded = await Promise.all(promises);
   textures = {};
 
@@ -21,7 +26,10 @@ export async function loadCatTextures() {
     textures[level] = loaded[level - 1];
   }
 
-  console.log('🎨 Все 15 прозрачных спрайтов котиков загружены!');
+  uiTextures['pedestal_gold'] = loaded[15];
+  uiTextures['logo'] = loaded[16];
+
+  console.log('🎨 Все 15 спрайтов и 3D UI-активы загружены!');
   return textures;
 }
 
@@ -31,4 +39,11 @@ export async function loadCatTextures() {
 export function getCatTexture(level) {
   if (!textures) return null;
   return textures[Math.min(Math.max(level, 1), 15)] || null;
+}
+
+/**
+ * Получить 3D UI текстуры (пьедестал, логотип)
+ */
+export function getUITexture(key) {
+  return uiTextures[key] || null;
 }

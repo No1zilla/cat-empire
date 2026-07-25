@@ -1,6 +1,6 @@
 import { Container, Sprite, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { getCatTexture } from '../utils/catTextures.js';
+import { getCatTexture, getUITexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
 // Класс котика (TASK-015B: Rarity Visual System — Ауры 5+ уровней)
@@ -32,12 +32,21 @@ export class Cat extends Container {
     // Главный контейнер котика
     const mainContainer = new Container();
 
-    // 1. Сочная карточка котика
+    // 1. Сочная карточка котика и 3D Пьедестал
     const bg = new Graphics();
     bg.roundRect(0, 0, cardWidth, cardHeight, 12);
     bg.fill(catData.color);
     bg.stroke({ color: '#ffffff', alpha: 0.6, width: 2.0 });
     mainContainer.addChild(bg);
+
+    const pedestalTex = getUITexture('pedestal_gold');
+    if (pedestalTex) {
+      const pedestalSprite = new Sprite(pedestalTex);
+      pedestalSprite.width = cardWidth;
+      pedestalSprite.height = cardHeight;
+      pedestalSprite.alpha = 0.5;
+      mainContainer.addChild(pedestalSprite);
+    }
 
     const texture = getCatTexture(this.level);
 
