@@ -2,7 +2,7 @@ import { Graphics, Container } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { VKService } from '../vk/VKBridge.js';
 
-// Система управления перетаскиванием (Drag-and-Drop) и Тапом (Tap & Move / Tap & Merge)
+// Система управления перетаскиванием (Drag-and-Drop) и Тапом (Tap to Move / Tap to Merge)
 export class DragSystem {
   constructor(app, grid, mergeEngine, onStateChange) {
     this.app = app;
@@ -10,7 +10,7 @@ export class DragSystem {
     this.mergeEngine = mergeEngine;
     this.onStateChange = onStateChange || (() => {});
     this.dragging = null; // { cat, originalSlot, offset }
-    this.selectedSlot = null; // Выбранный с помощью Тапа котик
+    this.selectedSlot = null; // Выбранная тапом ячейка
     this._selectionRing = null;
     this.vkService = new VKService();
 
@@ -21,7 +21,7 @@ export class DragSystem {
     this._setupGridTapListener();
   }
 
-  // Создание рамки выделения выбранного тапом котика
+  // Создание окантовки выделения для тапов
   _createSelectionRing() {
     if (!this._selectionRing) {
       this._selectionRing = new Graphics();
@@ -32,7 +32,10 @@ export class DragSystem {
   selectSlot(slotIndex) {
     if (slotIndex < 0 || slotIndex >= 25) return;
     const cat = this.grid.getCatAtSlot(slotIndex);
-    if (!cat) return;
+    if (!cat) {
+      this.clearSelection();
+      return;
+    }
 
     this.clearSelection();
     this.selectedSlot = slotIndex;
@@ -41,10 +44,12 @@ export class DragSystem {
     this._selectionRing.clear();
 
     const cellSize = CONFIG.CELL_SIZE;
-    this._selectionRing.roundRect(-4, -4, cellSize + 8, cellSize + 8, 18);
+    const pos = this.grid.getSlotPosition(slotIndex);
+
+    this._selectionRing.roundRect(pos.x - 3, pos.y - 3, cellSize + 4, cellSize + 4, 18);
     this._selectionRing.stroke({ color: 0x00ff88, width: 3.5, alpha: 0.95 });
 
-    cat.addChild(this._selectionRing);
+    this.grid.addChild(this._selectionRing);
     this.vkService.triggerHaptic('light');
   }
 
@@ -56,13 +61,12 @@ export class DragSystem {
     this.selectedSlot = null;
   }
 
-  // Настройка слушателя тапов по пустой сетке для перемещения
+  // Настройка слушателя тапов по пустой сетке
   _setupGridTapListener() {
     this.grid.eventMode = 'static';
     this.grid.on('pointerdown', (event) => {
       if (this.selectedSlot === null) return;
 
-      // Рассчитываем, по какому слоту кликнули
       const gridGlobal = this.grid.toGlobal({ x: 0, y: 0 });
       const localX = event.global.x - gridGlobal.x;
       const localY = event.global.y - gridGlobal.y;
@@ -74,7 +78,7 @@ export class DragSystem {
       if (col >= 0 && col < 5 && row >= 0 && row < 5) {
         const targetSlot = row * 5 + col;
         if (targetSlot !== this.selectedSlot && this.grid.slots[targetSlot] === null) {
-          // Перемещение выбранного тапом котика в пустой слот!
+          // Перемещение выделенного котика в пустую ячейку
           const cat = this.grid.slots[this.selectedSlot];
           if (cat) {
             this.grid.slots[this.selectedSlot] = null;
@@ -90,19 +94,28 @@ export class DragSystem {
     });
   }
 
-  // Настройка глобальных слушателей событий мыши / касаний
+  // Настройка глобальных слушателей событий
   _setupGlobalListeners() {
     this.app.stage.eventMode = 'static';
     this.app.stage.hitArea = this.app.screen;
 
-    // Движение пальца/мыши по сцене
     this.app.stage.on('pointermove', (event) => {
       if (this.dragging && this.dragging.cat) {
         const dx = event.global.x - this._pointerStart.x;
         const dy = event.global.y - this._pointerStart.y;
-        if (dx * dx + dy * dy > 36) {
+
+        // Переходим в режим Drag только если смещение больше 10px
+        if (!this._hasMoved && dx * dx + dy * dy > 100) {
           this._hasMoved = true;
-          this.clearSelection(); // При сдвиге снимаем выделение
+          this.clearSelection();
+
+          // Подготовка котика к перетаскиванию
+          const cat = this.dragging.cat;
+          this.grid.addChild(cat);
+          this.grid.slots[this.dragging.originalSlot] = null;
+          cat.alpha = 0.88;
+          cat.cursor = 'grabbing';
+          this.grid.updateBoardGlow(cat);
         }
 
         if (this._hasMoved) {
@@ -116,12 +129,12 @@ export class DragSystem {
       }
     });
 
-    // Отпускание пальца/мыши
-    this.app.stage.on('pointerup', () => this._drop());
-    this.app.stage.on('pointerupoutside', () => this._drop());
+    const endDragHandler = () => this._drop();
+    this.app.stage.on('pointerup', endDragHandler);
+    this.app.stage.on('pointerupoutside', endDragHandler);
   }
 
-  // Сделать котика перетаскиваемым и кликабельным
+  // Сделать котика интерактивным
   makeDraggable(cat) {
     if (!cat) return;
 
@@ -148,18 +161,10 @@ export class DragSystem {
         originalSlot,
         offset: { x: offsetX, y: offsetY }
       };
-
-      this.grid.addChild(cat);
-      this.grid.slots[originalSlot] = null;
-
-      cat.alpha = 0.88;
-      cat.cursor = 'grabbing';
-
-      this.grid.updateBoardGlow(cat);
     });
   }
 
-  // Логика броска (Drop) или Тапа (Tap)
+  // Завершение взаимодействия (Drop при перетаскивании или Tap при тапе)
   _drop() {
     if (!this.dragging) return;
 
@@ -167,7 +172,7 @@ export class DragSystem {
     cat.alpha = 1.0;
     cat.cursor = 'pointer';
 
-    // 1. Если это был чистый ТАП (палец не сдвигался)
+    // 1. Если это был чистый ТАП (клиент не двигал палец)
     if (!this._hasMoved) {
       this._returnCatToSlot(cat, originalSlot);
       this.dragging = null;
@@ -230,19 +235,18 @@ export class DragSystem {
   // Обработка Тапа по слоту с котиком (Tap to Select / Tap to Merge)
   _handleTapOnSlot(slotIndex) {
     if (this.selectedSlot === null) {
-      // Клик по первому котику -> выделить
+      // Тап 1: выкупить/выделить котика
       this.selectSlot(slotIndex);
     } else if (this.selectedSlot === slotIndex) {
-      // Повторный клик по тому же котику -> снять выделение
+      // Повторный тап по тому же котику -> снять выделение
       this.clearSelection();
     } else {
-      // Клик по второму котику при активном выделении
-      const prevCat = this.grid.getCatAtSlot(this.selectedSlot);
+      // Тап 2: попытаться объединить с ранее выбранным котиком
+      const prevSlot = this.selectedSlot;
+      const prevCat = this.grid.getCatAtSlot(prevSlot);
       const targetCat = this.grid.getCatAtSlot(slotIndex);
 
       if (prevCat && targetCat && prevCat.level === targetCat.level && prevCat.level < CONFIG.MAX_CAT_LEVEL) {
-        // Объединить котиков с помощью Тапа!
-        const prevSlot = this.selectedSlot;
         this.clearSelection();
 
         const newCat = this.mergeEngine.merge(prevSlot, slotIndex);
@@ -254,9 +258,11 @@ export class DragSystem {
             this.onStateChange();
           }
         }
-      } else {
-        // Уровни разные -> переключить выделение на новый слот
+      } else if (targetCat) {
+        // Уровни разные -> переключить выбор на нового котика
         this.selectSlot(slotIndex);
+      } else {
+        this.clearSelection();
       }
     }
   }
