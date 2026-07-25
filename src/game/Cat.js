@@ -73,7 +73,7 @@ export class Cat extends Container {
     const badgeW = this.level >= 10 ? 36 : 30;
     const badgeH = 13;
     const badgeBg = new Graphics();
-    badgeBg.roundRect(cardWidth - badgeW - 3, 6, badgeW, badgeH, 5);
+    badgeBg.roundRect(cardWidth - badgeW - 6, 8, badgeW, badgeH, 5);
     badgeBg.fill({ color: 0x000000, alpha: 0.85 });
     badgeBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1 });
     mainContainer.addChild(badgeBg);
@@ -87,8 +87,8 @@ export class Cat extends Container {
     });
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
-    levelText.x = cardWidth - badgeW / 2 - 3;
-    levelText.y = 12.5;
+    levelText.x = cardWidth - badgeW / 2 - 6;
+    levelText.y = 14.5;
     mainContainer.addChild(levelText);
 
     this.addChild(mainContainer);

@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * TASK-018B: Идеальная 3-капсульная шапка HUD (как на промо-скриншоте №1)
@@ -39,16 +40,9 @@ export class HUD extends Container {
     this.addChild(coinBg);
 
     // Золотая 3D иконка монеты
-    const goldCoin = new Graphics();
-    goldCoin.circle(28, 30, 11);
-    goldCoin.fill(0xffd700);
-    goldCoin.stroke({ color: 0xffa500, width: 2.0 });
+    const goldCoin = UIUtils.createCoinIcon(10);
+    goldCoin.position.set(26, 30);
     this.addChild(goldCoin);
-
-    const coinSparkle = new Graphics();
-    coinSparkle.circle(25, 26, 3);
-    coinSparkle.fill(0xffffff);
-    this.addChild(coinSparkle);
 
     const coinsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
@@ -58,7 +52,7 @@ export class HUD extends Container {
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._coinsText = new Text({ text: '0', style: coinsStyle });
-    this._coinsText.position.set(45, 21);
+    this._coinsText.position.set(42, 21);
     this.addChild(this._coinsText);
 
     // --- БАББЛ 2: ГЕМЫ 💎 (Ширина 85px) ---
