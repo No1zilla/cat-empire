@@ -2,17 +2,92 @@ import { Graphics, Container } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { VKService } from '../vk/VKBridge.js';
 
-// Система управления перетаскиванием (Drag-and-Drop) котиков (TASK-015B: Particle Burst & Haptics)
+// Система управления перетаскиванием (Drag-and-Drop) и Тапом (Tap & Move / Tap & Merge)
 export class DragSystem {
   constructor(app, grid, mergeEngine, onStateChange) {
     this.app = app;
     this.grid = grid;
     this.mergeEngine = mergeEngine;
     this.onStateChange = onStateChange || (() => {});
-    this.dragging = null; // { cat, originalSlot, dragStartGlobal, dragOffset }
+    this.dragging = null; // { cat, originalSlot, offset }
+    this.selectedSlot = null; // Выбранный с помощью Тапа котик
+    this._selectionRing = null;
     this.vkService = new VKService();
 
+    this._pointerStart = { x: 0, y: 0 };
+    this._hasMoved = false;
+
     this._setupGlobalListeners();
+    this._setupGridTapListener();
+  }
+
+  // Создание рамки выделения выбранного тапом котика
+  _createSelectionRing() {
+    if (!this._selectionRing) {
+      this._selectionRing = new Graphics();
+    }
+  }
+
+  // Выделить слот с помощью тапа
+  selectSlot(slotIndex) {
+    if (slotIndex < 0 || slotIndex >= 25) return;
+    const cat = this.grid.getCatAtSlot(slotIndex);
+    if (!cat) return;
+
+    this.clearSelection();
+    this.selectedSlot = slotIndex;
+
+    this._createSelectionRing();
+    this._selectionRing.clear();
+
+    const cellSize = CONFIG.CELL_SIZE;
+    this._selectionRing.roundRect(-4, -4, cellSize + 8, cellSize + 8, 18);
+    this._selectionRing.stroke({ color: 0x00ff88, width: 3.5, alpha: 0.95 });
+
+    cat.addChild(this._selectionRing);
+    this.vkService.triggerHaptic('light');
+  }
+
+  // Снять выделение
+  clearSelection() {
+    if (this._selectionRing && this._selectionRing.parent) {
+      this._selectionRing.parent.removeChild(this._selectionRing);
+    }
+    this.selectedSlot = null;
+  }
+
+  // Настройка слушателя тапов по пустой сетке для перемещения
+  _setupGridTapListener() {
+    this.grid.eventMode = 'static';
+    this.grid.on('pointerdown', (event) => {
+      if (this.selectedSlot === null) return;
+
+      // Рассчитываем, по какому слоту кликнули
+      const gridGlobal = this.grid.toGlobal({ x: 0, y: 0 });
+      const localX = event.global.x - gridGlobal.x;
+      const localY = event.global.y - gridGlobal.y;
+
+      const cellStep = CONFIG.CELL_SIZE + CONFIG.GRID_PADDING;
+      const col = Math.floor((localX - CONFIG.GRID_PADDING / 2) / cellStep);
+      const row = Math.floor((localY - CONFIG.GRID_PADDING / 2) / cellStep);
+
+      if (col >= 0 && col < 5 && row >= 0 && row < 5) {
+        const targetSlot = row * 5 + col;
+        if (targetSlot !== this.selectedSlot && this.grid.slots[targetSlot] === null) {
+          // Перемещение выбранного тапом котика в пустой слот!
+          const cat = this.grid.slots[this.selectedSlot];
+          if (cat) {
+            this.grid.slots[this.selectedSlot] = null;
+            this.grid.addCat(cat, targetSlot);
+            this.makeDraggable(cat);
+            this.clearSelection();
+            if (typeof this.onStateChange === 'function') {
+              this.onStateChange();
+            }
+          }
+        }
+      }
+    });
   }
 
   // Настройка глобальных слушателей событий мыши / касаний
@@ -23,13 +98,21 @@ export class DragSystem {
     // Движение пальца/мыши по сцене
     this.app.stage.on('pointermove', (event) => {
       if (this.dragging && this.dragging.cat) {
-        const cat = this.dragging.cat;
-        // Перевод глобальных координат в локальные относительно Grid
-        const gridGlobal = this.grid.toGlobal({ x: 0, y: 0 });
-        const localX = event.global.x - gridGlobal.x - this.dragging.offset.x;
-        const localY = event.global.y - gridGlobal.y - this.dragging.offset.y;
+        const dx = event.global.x - this._pointerStart.x;
+        const dy = event.global.y - this._pointerStart.y;
+        if (dx * dx + dy * dy > 36) {
+          this._hasMoved = true;
+          this.clearSelection(); // При сдвиге снимаем выделение
+        }
 
-        cat.position.set(localX, localY);
+        if (this._hasMoved) {
+          const cat = this.dragging.cat;
+          const gridGlobal = this.grid.toGlobal({ x: 0, y: 0 });
+          const localX = event.global.x - gridGlobal.x - this.dragging.offset.x;
+          const localY = event.global.y - gridGlobal.y - this.dragging.offset.y;
+
+          cat.position.set(localX, localY);
+        }
       }
     });
 
@@ -38,18 +121,17 @@ export class DragSystem {
     this.app.stage.on('pointerupoutside', () => this._drop());
   }
 
-  // Сделать котика перетаскиваемым
+  // Сделать котика перетаскиваемым и кликабельным
   makeDraggable(cat) {
     if (!cat) return;
 
     cat.eventMode = 'static';
-    cat.cursor = 'grab';
+    cat.cursor = 'pointer';
 
-    // Удаляем предыдущие подписки, если были
     cat.removeAllListeners('pointerdown');
 
     cat.on('pointerdown', (event) => {
-      if (this.dragging) return; // Игнорировать, если уже идет перетаскивание
+      if (this.dragging) return;
 
       event.stopPropagation();
 
@@ -58,41 +140,49 @@ export class DragSystem {
       const offsetX = event.global.x - catGlobal.x;
       const offsetY = event.global.y - catGlobal.y;
 
+      this._pointerStart = { x: event.global.x, y: event.global.y };
+      this._hasMoved = false;
+
       this.dragging = {
         cat,
         originalSlot,
         offset: { x: offsetX, y: offsetY }
       };
 
-      // Переносим котика на самый верхний слой отрисовки в Grid
       this.grid.addChild(cat);
-
-      // Временно очищаем слот на сетке (котик перетаскивается)
       this.grid.slots[originalSlot] = null;
 
-      cat.alpha = 0.85;
+      cat.alpha = 0.88;
       cat.cursor = 'grabbing';
 
-      // TASK-011: Изумрудная подсветка (0x00ff88) всех совпадений при перетаскивании
       this.grid.updateBoardGlow(cat);
     });
   }
 
-  // Логика броска котика (Drop)
+  // Логика броска (Drop) или Тапа (Tap)
   _drop() {
     if (!this.dragging) return;
 
     const { cat, originalSlot } = this.dragging;
     cat.alpha = 1.0;
-    cat.cursor = 'grab';
+    cat.cursor = 'pointer';
 
-    // Вычисляем центральные координаты карточки котика для точного определения слота
+    // 1. Если это был чистый ТАП (палец не сдвигался)
+    if (!this._hasMoved) {
+      this._returnCatToSlot(cat, originalSlot);
+      this.dragging = null;
+      this.grid.updateBoardGlow();
+
+      this._handleTapOnSlot(originalSlot);
+      return;
+    }
+
+    // 2. Если это было ДВИЖЕНИЕ (Drag-and-Drop)
     const cardWidth = CONFIG.CELL_SIZE - 10;
     const cardHeight = CONFIG.CELL_SIZE - 10;
     const centerX = cat.x + cardWidth / 2;
     const centerY = cat.y + cardHeight / 2;
 
-    // Формула определения столбца и строки слота
     const cellStep = CONFIG.CELL_SIZE + CONFIG.GRID_PADDING;
     const col = Math.floor((centerX - CONFIG.GRID_PADDING / 2) / cellStep);
     const row = Math.floor((centerY - CONFIG.GRID_PADDING / 2) / cellStep);
@@ -104,53 +194,70 @@ export class DragSystem {
 
     let stateChanged = false;
 
-    // Сценарий A: Целевой слот за пределами сетки
-    if (targetSlot === -1) {
+    if (targetSlot === -1 || targetSlot === originalSlot) {
       this._returnCatToSlot(cat, originalSlot);
-    }
-    // Сценарий C: Бросок в тот же самый исходный слот
-    else if (targetSlot === originalSlot) {
-      this._returnCatToSlot(cat, originalSlot);
-    }
-    // Сценарий B: Целевой слот свободен
-    else if (this.grid.slots[targetSlot] === null) {
+    } else if (this.grid.slots[targetSlot] === null) {
       this.grid.addCat(cat, targetSlot);
       stateChanged = true;
-    }
-    // Сценарий D/E: Целевой слот занят другим котиком
-    else {
+    } else {
       const targetCat = this.grid.slots[targetSlot];
 
-      // Проверяем возможность объединения (Merge)
       if (targetCat.level === cat.level && cat.level < CONFIG.MAX_CAT_LEVEL) {
-        // Возвращаем исходного котика в слот перед merge для корректного удаления в MergeEngine
         this.grid.slots[originalSlot] = cat;
 
-        // Выполняем объединение
         const newCat = this.mergeEngine.merge(originalSlot, targetSlot);
-
         if (newCat) {
           this.makeDraggable(newCat);
           this._playMergeEffect(targetSlot, newCat);
           stateChanged = true;
-          // TASK-015B: Тактильная отдача при мердже
           this.vkService.triggerHaptic('medium');
         } else {
           this._returnCatToSlot(cat, originalSlot);
         }
       } else {
-        // Сценарий E: Уровни разные — возвращаем на исходный слот
         this._returnCatToSlot(cat, originalSlot);
       }
     }
 
     this.dragging = null;
-
-    // TASK-011: Возврат подсветки в режим покоя
     this.grid.updateBoardGlow();
 
     if (stateChanged && typeof this.onStateChange === 'function') {
       this.onStateChange();
+    }
+  }
+
+  // Обработка Тапа по слоту с котиком (Tap to Select / Tap to Merge)
+  _handleTapOnSlot(slotIndex) {
+    if (this.selectedSlot === null) {
+      // Клик по первому котику -> выделить
+      this.selectSlot(slotIndex);
+    } else if (this.selectedSlot === slotIndex) {
+      // Повторный клик по тому же котику -> снять выделение
+      this.clearSelection();
+    } else {
+      // Клик по второму котику при активном выделении
+      const prevCat = this.grid.getCatAtSlot(this.selectedSlot);
+      const targetCat = this.grid.getCatAtSlot(slotIndex);
+
+      if (prevCat && targetCat && prevCat.level === targetCat.level && prevCat.level < CONFIG.MAX_CAT_LEVEL) {
+        // Объединить котиков с помощью Тапа!
+        const prevSlot = this.selectedSlot;
+        this.clearSelection();
+
+        const newCat = this.mergeEngine.merge(prevSlot, slotIndex);
+        if (newCat) {
+          this.makeDraggable(newCat);
+          this._playMergeEffect(slotIndex, newCat);
+          this.vkService.triggerHaptic('medium');
+          if (typeof this.onStateChange === 'function') {
+            this.onStateChange();
+          }
+        }
+      } else {
+        // Уровни разные -> переключить выделение на новый слот
+        this.selectSlot(slotIndex);
+      }
     }
   }
 
@@ -159,14 +266,13 @@ export class DragSystem {
     this.grid.addCat(cat, slotIndex);
   }
 
-  // TASK-015B: Вспышка, Particle Burst (всплеск искр) и анимация увелечения при merge
+  // Вспышка, Particle Burst (всплеск искр) и анимация при merge
   _playMergeEffect(slotIndex, newCat) {
     const pos = this.grid.getSlotPosition(slotIndex);
     const cardSize = CONFIG.CELL_SIZE - 2;
     const centerX = pos.x + cardSize / 2;
     const centerY = pos.y + cardSize / 2;
 
-    // 1. Белый расширяющийся круг-вспышка
     const flash = new Graphics();
     flash.circle(centerX, centerY, cardSize / 2 + 10);
     flash.fill({ color: 0xffffff, alpha: 0.9 });
@@ -187,7 +293,6 @@ export class DragSystem {
     };
     requestAnimationFrame(animateFlash);
 
-    // 2. Particle Burst: Разлетающиеся золотые/бриллиантовые звездочки
     const particleContainer = new Container();
     this.grid.addChild(particleContainer);
 
@@ -242,7 +347,6 @@ export class DragSystem {
     };
     requestAnimationFrame(animateParticles);
 
-    // 3. Анимация масштаба нового котика (bounce)
     if (newCat) {
       newCat.scale.set(0.8);
       const startScaleTime = Date.now();
@@ -250,11 +354,11 @@ export class DragSystem {
         const elapsed = Date.now() - startScaleTime;
         if (elapsed < 150) {
           const progress = elapsed / 150;
-          newCat.scale.set(0.8 + progress * 0.4); // 0.8 -> 1.2
+          newCat.scale.set(0.8 + progress * 0.4);
           requestAnimationFrame(animateScale);
         } else if (elapsed < 250) {
           const progress = (elapsed - 150) / 100;
-          newCat.scale.set(1.2 - progress * 0.2); // 1.2 -> 1.0
+          newCat.scale.set(1.2 - progress * 0.2);
           requestAnimationFrame(animateScale);
         } else {
           newCat.scale.set(1.0);
