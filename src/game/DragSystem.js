@@ -279,6 +279,33 @@ export class DragSystem {
     const centerX = pos.x + cardSize / 2;
     const centerY = pos.y + cardSize / 2;
 
+    // 1. Тактильная отдача VK Haptics
+    try {
+      if (window.vkBridge) {
+        window.vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'medium' }).catch(() => {});
+      }
+    } catch (e) {}
+
+    // 2. Золотая кольцевая ударная волна (Golden Shockwave Ring)
+    const shockwave = new Graphics();
+    this.grid.addChild(shockwave);
+    const swStart = Date.now();
+    const animShockwave = () => {
+      const elapsed = Date.now() - swStart;
+      if (elapsed < 350) {
+        const pct = elapsed / 350;
+        shockwave.clear();
+        shockwave.circle(centerX, centerY, 20 + pct * 50);
+        shockwave.stroke({ color: 0xffd700, width: Math.max(1.0, 3.5 * (1 - pct)), alpha: 0.95 * (1 - pct) });
+        requestAnimationFrame(animShockwave);
+      } else {
+        if (shockwave.parent) shockwave.parent.removeChild(shockwave);
+        shockwave.destroy();
+      }
+    };
+    requestAnimationFrame(animShockwave);
+
+    // 3. Белая вспышка
     const flash = new Graphics();
     flash.circle(centerX, centerY, cardSize / 2 + 10);
     flash.fill({ color: 0xffffff, alpha: 0.9 });

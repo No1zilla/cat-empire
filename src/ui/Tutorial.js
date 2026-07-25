@@ -115,7 +115,26 @@ export class Tutorial extends Container {
     descText.y = cardY + 48;
     this.addChild(descText);
 
-    // 4. Кнопка «Понятно!»
+    // 4. Кнопка «Пропустить ✕»
+    const skipStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 12,
+      fontWeight: 'bold',
+      fill: '#aaaaaa',
+      align: 'right'
+    });
+    const skipText = new Text({ text: 'Пропустить ✕', style: skipStyle });
+    skipText.anchor.set(1, 0);
+    skipText.position.set(355, cardY + 12);
+    skipText.eventMode = 'static';
+    skipText.cursor = 'pointer';
+    skipText.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this._complete();
+    });
+    this.addChild(skipText);
+
+    // 5. Кнопка «Понятно!»
     const btnY = cardY + cardH - 46;
     const btnBg = new Graphics();
     btnBg.roundRect(110, btnY, 180, 36, 10);

@@ -156,6 +156,7 @@ export class Grid extends Container {
     }
 
     this.updateBoardGlow();
+    this.updateMatchingPairHighlights();
   }
 
   // Удалить котика из слота
@@ -169,6 +170,7 @@ export class Grid extends Container {
       this.slots[slotIndex] = null;
     }
     this.updateBoardGlow();
+    this.updateMatchingPairHighlights();
   }
 
   // Экспорт состояния слотов
@@ -212,6 +214,48 @@ export class Grid extends Container {
     }
 
     this.updateBoardGlow();
+    this.updateMatchingPairHighlights();
+  }
+
+  // TASK-025: Пульсирующая подсветка парных котиков одинакового уровня
+  updateMatchingPairHighlights() {
+    if (!this._pairGlowContainer) {
+      this._pairGlowContainer = new Container();
+      this.addChildAt(this._pairGlowContainer, 3);
+    }
+    this._pairGlowContainer.removeChildren();
+
+    const levelCounts = {};
+    for (let i = 0; i < 25; i++) {
+      const cat = this.slots[i];
+      if (cat && cat.level < CONFIG.MAX_CAT_LEVEL) {
+        levelCounts[cat.level] = (levelCounts[cat.level] || 0) + 1;
+      }
+    }
+
+    const pairLevels = new Set(
+      Object.keys(levelCounts)
+        .filter((lvl) => levelCounts[lvl] >= 2)
+        .map((lvl) => parseInt(lvl, 10))
+    );
+
+    if (pairLevels.size === 0) return;
+
+    for (let i = 0; i < 25; i++) {
+      const cat = this.slots[i];
+      if (cat && pairLevels.has(cat.level)) {
+        const col = i % 5;
+        const row = Math.floor(i / 5);
+        const cellX = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
+        const cellY = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
+
+        const pairGlow = new Graphics();
+        pairGlow.roundRect(cellX - 2, cellY - 2, CONFIG.CELL_SIZE + 4, CONFIG.CELL_SIZE + 4, 18);
+        pairGlow.stroke({ color: 0xffd700, alpha: 0.6, width: 2.0 });
+        pairGlow.fill({ color: 0xffd700, alpha: 0.12 });
+        this._pairGlowContainer.addChild(pairGlow);
+      }
+    }
   }
 }
 
