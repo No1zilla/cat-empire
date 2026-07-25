@@ -1,3 +1,4 @@
+import { Container, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { Grid } from './Grid.js';
 import { Cat } from './Cat.js';
@@ -15,7 +16,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры
+// Главный класс игры (TASK-015B: Floating Income Popups)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -30,6 +31,7 @@ export class Game {
     this.autoMergeButton = null;
     this.maxCatLevel = 1;
     this._autoSaveInterval = null;
+    this._floatingInterval = null;
   }
 
   // Асинхронный метод инициализации игровой сцены
@@ -208,6 +210,9 @@ export class Game {
       if (cat !== null) this.dragSystem.makeDraggable(cat);
     });
 
+    // TASK-015B: Всплывающие зелёные циферки дохода (+N) над котиками на доске
+    this._startFloatingIncomePopups();
+
     // 9. Последовательное отображение модальных окон (Сначала Оффлайн-доход -> По закрытию Туториал)
     const showTutorialIfNeeded = () => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
@@ -251,6 +256,52 @@ export class Game {
         console.error('Ошибка авто-сохранения:', e);
       }
     }, 30000);
+  }
+
+  // TASK-015B: Цикл всплывающего дохода над котиками
+  _startFloatingIncomePopups() {
+    if (this._floatingInterval) clearInterval(this._floatingInterval);
+
+    this._floatingInterval = setInterval(() => {
+      if (!this.grid || !this.grid.slots) return;
+
+      this.grid.slots.forEach((cat, slotIndex) => {
+        if (cat && cat.level) {
+          const income = Math.pow(2, cat.level - 1);
+          const pos = this.grid.getSlotPosition(slotIndex);
+
+          const popupStyle = new TextStyle({
+            fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+            fontSize: 12,
+            fontWeight: 'bold',
+            fill: '#2ecc71',
+            dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
+          });
+
+          const popup = new Text({ text: `+${income}`, style: popupStyle });
+          popup.anchor.set(0.5, 0.5);
+          popup.position.set(pos.x + 36, pos.y + 12);
+          this.grid.addChild(popup);
+
+          const start = performance.now();
+          const duration = 750;
+
+          const anim = () => {
+            const elapsed = performance.now() - start;
+            if (elapsed < duration) {
+              const p = elapsed / duration;
+              popup.y = (pos.y + 12) - p * 24;
+              popup.alpha = 1.0 - p;
+              requestAnimationFrame(anim);
+            } else {
+              if (popup.parent) popup.parent.removeChild(popup);
+              popup.destroy();
+            }
+          };
+          requestAnimationFrame(anim);
+        }
+      });
+    }, 1250);
   }
 }
 

@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков (TASK-015: Сочная объёмная кнопка с микро-анимацией)
+// Система спавна и покупки котиков (TASK-015B: Spring Dynamics "Breathing" CTA Button)
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -14,9 +14,11 @@ export class SpawnSystem extends Container {
     this.dragSystem = null;
     this._btnText = null;
     this._warningText = null;
+    this._breathRaf = null;
 
     this._createButton();
     this.updateButtonLabel();
+    this._startBreathingAnimation();
   }
 
   // Обновление ценника на кнопке покупки
@@ -27,12 +29,32 @@ export class SpawnSystem extends Container {
     }
   }
 
-  // Создание сочной объёмной кнопки покупки с бликом и микро-анимацией
+  // TASK-015B: Плавное медленное «дыхание» кнопки при наличии монет у игрока
+  _startBreathingAnimation() {
+    const start = performance.now();
+    const tick = () => {
+      if (this.destroyed) return;
+      const cost = this.economy ? this.economy.getCatCost() : 10;
+      const canAfford = this.economy ? this.economy.canAfford(cost) : false;
+
+      if (canAfford) {
+        const elapsed = performance.now() - start;
+        const pulse = 1.0 + Math.sin(elapsed * 0.0035) * 0.035; // 1.0 -> 1.035 -> 1.0
+        this.scale.set(pulse);
+      } else {
+        this.scale.set(1.0);
+      }
+      this._breathRaf = requestAnimationFrame(tick);
+    };
+    this._breathRaf = requestAnimationFrame(tick);
+  }
+
+  // Создание сочной объёмной кнопки покупки с бликом
   _createButton() {
     const btnWidth = 230;
     const btnHeight = 50;
 
-    // 1. Нижняя тень (эффект выдавленной кнопки)
+    // 1. Нижняя тень
     const shadowBg = new Graphics();
     shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
     shadowBg.fill(0x9e2a3b);
@@ -71,7 +93,7 @@ export class SpawnSystem extends Container {
     this._btnText.y = btnHeight / 2 - 1;
     this.addChild(this._btnText);
 
-    // 5. Настройка интерактивности и микро-анимации (scale 0.94 -> 1.0)
+    // 5. Настройка интерактивности
     this.eventMode = 'static';
     this.cursor = 'pointer';
 
@@ -203,6 +225,14 @@ export class SpawnSystem extends Container {
     };
 
     requestAnimationFrame(animate);
+  }
+
+  destroy(options) {
+    if (this._breathRaf) {
+      cancelAnimationFrame(this._breathRaf);
+      this._breathRaf = null;
+    }
+    super.destroy(options);
   }
 }
 

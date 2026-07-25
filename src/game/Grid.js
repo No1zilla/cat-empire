@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 
-// Класс игрового поля 5x5 (TASK-015: 16px radius, inset depth, glow)
+// Класс игрового поля 5x5 (TASK-015B: Monolithic Glassmorphism Frame)
 export class Grid extends Container {
   constructor(app) {
     super();
@@ -13,11 +13,25 @@ export class Grid extends Container {
     this._drawCells();
   }
 
-  // Отрисовка подложки сетки
+  // TASK-015B: Отрисовка подложки сетки с монолитной рамкой матового стекла (Glassmorphism)
   _drawBackground() {
     const gridWidth = CONFIG.GRID_SIZE * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     const gridHeight = gridWidth;
 
+    // 1. Внешняя падающая тень рамки
+    const shadowFrame = new Graphics();
+    shadowFrame.roundRect(-14, -10, gridWidth + 28, gridHeight + 28, 28);
+    shadowFrame.fill({ color: 0x000000, alpha: 0.45 });
+    this.addChild(shadowFrame);
+
+    // 2. Монолитная рамка матового стекла (Monolithic Glassmorphism Board Frame)
+    const glassFrame = new Graphics();
+    glassFrame.roundRect(-12, -12, gridWidth + 24, gridHeight + 24, 26);
+    glassFrame.fill({ color: 0x110d26, alpha: 0.65 });
+    glassFrame.stroke({ color: 0xffffff, alpha: 0.18, width: 2.0 });
+    this.addChild(glassFrame);
+
+    // 3. Основной уплотнённый тёмный контейнер сетки
     const bg = new Graphics();
     bg.roundRect(0, 0, gridWidth, gridHeight, 20);
     bg.fill(CONFIG.COLORS.GRID_BG || 0x15122c);

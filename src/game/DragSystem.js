@@ -1,7 +1,8 @@
-import { Graphics } from 'pixi.js';
+import { Graphics, Container } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { VKService } from '../vk/VKBridge.js';
 
-// Система управления перетаскиванием (Drag-and-Drop) котиков
+// Система управления перетаскиванием (Drag-and-Drop) котиков (TASK-015B: Particle Burst & Haptics)
 export class DragSystem {
   constructor(app, grid, mergeEngine, onStateChange) {
     this.app = app;
@@ -9,6 +10,7 @@ export class DragSystem {
     this.mergeEngine = mergeEngine;
     this.onStateChange = onStateChange || (() => {});
     this.dragging = null; // { cat, originalSlot, dragStartGlobal, dragOffset }
+    this.vkService = new VKService();
 
     this._setupGlobalListeners();
   }
@@ -131,6 +133,8 @@ export class DragSystem {
           this.makeDraggable(newCat);
           this._playMergeEffect(targetSlot, newCat);
           stateChanged = true;
+          // TASK-015B: Тактильная отдача при мердже
+          this.vkService.triggerHaptic('medium');
         } else {
           this._returnCatToSlot(cat, originalSlot);
         }
@@ -155,34 +159,90 @@ export class DragSystem {
     this.grid.addCat(cat, slotIndex);
   }
 
-  // Вспышка и анимация увеличения при успешном merge
+  // TASK-015B: Вспышка, Particle Burst (всплеск искр) и анимация увелечения при merge
   _playMergeEffect(slotIndex, newCat) {
     const pos = this.grid.getSlotPosition(slotIndex);
-    const cardSize = CONFIG.CELL_SIZE - 10;
+    const cardSize = CONFIG.CELL_SIZE - 2;
+    const centerX = pos.x + cardSize / 2;
+    const centerY = pos.y + cardSize / 2;
 
-    // Белый круг-вспышка
+    // 1. Белый расширяющийся круг-вспышка
     const flash = new Graphics();
-    flash.circle(pos.x + cardSize / 2, pos.y + cardSize / 2, cardSize / 2 + 5);
-    flash.fill({ color: 0xffffff, alpha: 0.8 });
+    flash.circle(centerX, centerY, cardSize / 2 + 10);
+    flash.fill({ color: 0xffffff, alpha: 0.9 });
     this.grid.addChild(flash);
 
-    // Анимация затухания вспышки (300ms)
     const startTime = Date.now();
-    const duration = 300;
+    const flashDuration = 250;
 
     const animateFlash = () => {
       const elapsed = Date.now() - startTime;
-      if (elapsed < duration) {
-        flash.alpha = 0.8 * (1 - elapsed / duration);
+      if (elapsed < flashDuration) {
+        flash.alpha = 0.9 * (1 - elapsed / flashDuration);
         requestAnimationFrame(animateFlash);
       } else {
-        this.grid.removeChild(flash);
+        if (flash.parent) flash.parent.removeChild(flash);
         flash.destroy();
       }
     };
     requestAnimationFrame(animateFlash);
 
-    // Анимация масштаба нового котика (bounce)
+    // 2. Particle Burst: Разлетающиеся золотые/бриллиантовые звездочки
+    const particleContainer = new Container();
+    this.grid.addChild(particleContainer);
+
+    const particleCount = 18;
+    const particles = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      const p = new Graphics();
+      const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.4;
+      const speed = Math.random() * 3.5 + 2.0;
+
+      if (i % 2 === 0) {
+        p.star(0, 0, 4, 6, 3);
+        p.fill({ color: 0xffd700, alpha: 0.9 });
+      } else {
+        p.circle(0, 0, 3);
+        p.fill({ color: 0x00f2fe, alpha: 0.9 });
+      }
+
+      p.position.set(centerX, centerY);
+
+      particles.push({
+        graphic: p,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1.0,
+        scale: 1.0
+      });
+
+      particleContainer.addChild(p);
+    }
+
+    const pStartTime = performance.now();
+    const pDuration = 450;
+
+    const animateParticles = () => {
+      const pElapsed = performance.now() - pStartTime;
+      const progress = pElapsed / pDuration;
+
+      if (progress < 1.0) {
+        particles.forEach((pd) => {
+          pd.graphic.x += pd.vx;
+          pd.graphic.y += pd.vy;
+          pd.graphic.alpha = 1.0 - progress;
+          pd.graphic.scale.set(1.0 - progress * 0.5);
+        });
+        requestAnimationFrame(animateParticles);
+      } else {
+        if (particleContainer.parent) particleContainer.parent.removeChild(particleContainer);
+        particleContainer.destroy({ children: true });
+      }
+    };
+    requestAnimationFrame(animateParticles);
+
+    // 3. Анимация масштаба нового котика (bounce)
     if (newCat) {
       newCat.scale.set(0.8);
       const startScaleTime = Date.now();

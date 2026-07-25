@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
-// Класс котика: ГИГАНТСКАЯ карточка 72x72px + МАКСИМАЛЬНЫЙ спрайт 70x70px + подсветка setGlow
+// Класс котика (TASK-015B: Rarity Visual System — Ауры 5+ уровней)
 export class Cat extends Container {
   constructor(level = 1, slotIndex = 0) {
     super();
@@ -11,25 +11,28 @@ export class Cat extends Container {
     this.slotIndex = slotIndex;
     this._ticker = null;
     this._glowTicker = null;
+    this._rarityTicker = null;
     this._animatedContainer = null;
     this._glowGraphic = null;
+    this._rarityAura = null;
     this._glowColor = null;
 
     this._draw();
     this._startIdleAnimation();
+    this._setupRarityAura();
   }
 
   _draw() {
     this.removeChildren();
 
-    const cardWidth = CONFIG.CELL_SIZE - 2;  // 72px при CELL_SIZE=74 (ГИГАНТСКИЙ РАЗМЕР!)
+    const cardWidth = CONFIG.CELL_SIZE - 2;  // 72px при CELL_SIZE=74
     const cardHeight = CONFIG.CELL_SIZE - 2; // 72px
     const catData = getCatData(this.level);
 
-    // Главный контейнер котика (анимируется целиком)
+    // Главный контейнер котика
     const mainContainer = new Container();
 
-    // 1. Сочная карточка котика с двойным контуром и ярким фоном
+    // 1. Сочная карточка котика
     const bg = new Graphics();
     bg.roundRect(0, 0, cardWidth, cardHeight, 12);
     bg.fill(catData.color);
@@ -39,16 +42,14 @@ export class Cat extends Container {
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      // 2. ГИГАНТСКИЙ СПРАЙТ КОТИКА (70x70px — занимает 98% карточки!)
       const sprite = new Sprite(texture);
-      const catSize = cardWidth - 2; // 70px!
+      const catSize = cardWidth - 2;
       sprite.width = catSize;
       sprite.height = catSize;
       sprite.x = (cardWidth - catSize) / 2;
       sprite.y = (cardHeight - catSize) / 2;
       mainContainer.addChild(sprite);
     } else {
-      // Fallback на эмодзи
       const emojiStyle = new TextStyle({ fontSize: 40, align: 'center' });
       const emojiText = new Text({ text: catData.emoji, style: emojiStyle });
       emojiText.anchor.set(0.5, 0.5);
@@ -57,7 +58,7 @@ export class Cat extends Container {
       mainContainer.addChild(emojiText);
     }
 
-    // 3. Компактный стильный бейджик уровня в ПРАВОМ ВЕРХНЕМ УГЛУ
+    // 2. Компактный бейджик уровня (Fredoka font)
     const badgeW = 32;
     const badgeH = 14;
     const badgeBg = new Graphics();
@@ -67,6 +68,7 @@ export class Cat extends Container {
     mainContainer.addChild(badgeBg);
 
     const levelStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 9,
       fill: '#ffffff',
       fontWeight: 'bold',
@@ -81,13 +83,65 @@ export class Cat extends Container {
     this.addChild(mainContainer);
     this._animatedContainer = mainContainer;
 
-    // Если подсветка уже была включена до _draw, восстанавливаем её
     if (this._glowColor) {
       this._createGlowGraphic(this._glowColor);
     }
   }
 
-  // TASK-011: Управление подсвечивающей пульсирующей аурой (0xffd700 золотая / 0x00ff88 изумрудная)
+  // TASK-015B: Rarity Visual System — Аура под котиками 5+ уровня
+  _setupRarityAura() {
+    this._stopRarityAnimation();
+    if (this._rarityAura) {
+      if (this._rarityAura.parent) this._rarityAura.parent.removeChild(this._rarityAura);
+      this._rarityAura.destroy();
+      this._rarityAura = null;
+    }
+
+    if (this.level < 5) return;
+
+    let auraColor = 0x9b59b6; // Lvl 5-8: Фиолетовый (Редкий)
+    let strokeColor = 0xc084fc;
+
+    if (this.level >= 9 && this.level <= 12) {
+      auraColor = 0xffd700; // Lvl 9-12: Золотой (Эпический)
+      strokeColor = 0xfbbf24;
+    } else if (this.level >= 13) {
+      auraColor = 0x00f2fe; // Lvl 13-15: Легендарный (Бриллиантовый)
+      strokeColor = 0x38bdf8;
+    }
+
+    const cardWidth = CONFIG.CELL_SIZE - 2;
+    const cardHeight = CONFIG.CELL_SIZE - 2;
+
+    this._rarityAura = new Graphics();
+    this._rarityAura.roundRect(-4, -4, cardWidth + 8, cardHeight + 8, 14);
+    this._rarityAura.fill({ color: auraColor, alpha: 0.35 });
+    this._rarityAura.stroke({ color: strokeColor, width: 2.5, alpha: 0.85 });
+
+    this.addChildAt(this._rarityAura, 0);
+
+    const start = performance.now();
+    const speed = 0.0035;
+
+    const tickRarity = () => {
+      if (!this._rarityAura || this.destroyed) return;
+      const now = performance.now() - start;
+      const pulse = 0.4 + Math.sin(now * speed) * 0.35;
+      this._rarityAura.alpha = pulse;
+      this._rarityTicker = requestAnimationFrame(tickRarity);
+    };
+
+    this._rarityTicker = requestAnimationFrame(tickRarity);
+  }
+
+  _stopRarityAnimation() {
+    if (this._rarityTicker) {
+      cancelAnimationFrame(this._rarityTicker);
+      this._rarityTicker = null;
+    }
+  }
+
+  // TASK-011: Управление подсвечивающей пульсирующей аурой
   setGlow(enabled, color = 0xffd700) {
     if (!enabled) {
       this._stopGlowAnimation();
@@ -102,7 +156,6 @@ export class Cat extends Container {
       return;
     }
 
-    // Если цвет изродился или подсветка переключается
     if (this._glowGraphic && this._glowColor === color) return;
 
     this._stopGlowAnimation();
@@ -123,11 +176,10 @@ export class Cat extends Container {
     const cardHeight = CONFIG.CELL_SIZE - 2;
 
     this._glowGraphic = new Graphics();
-    this._glowGraphic.roundRect(-5, -5, cardWidth + 10, cardHeight + 10, 16);
+    this._glowGraphic.roundRect(-6, -6, cardWidth + 12, cardHeight + 12, 16);
     this._glowGraphic.fill({ color: color, alpha: 0.35 });
     this._glowGraphic.stroke({ color: color, width: 3.0, alpha: 0.9 });
 
-    // Помещаем график ауры под карточку
     this.addChildAt(this._glowGraphic, 0);
   }
 
@@ -138,7 +190,7 @@ export class Cat extends Container {
     const tick = () => {
       if (!this._glowGraphic || this.destroyed) return;
       const elapsed = Date.now() - startTime;
-      const pulse = 0.55 + Math.sin(elapsed * speed) * 0.4; // 0.15 .. 0.95
+      const pulse = 0.55 + Math.sin(elapsed * speed) * 0.4;
       this._glowGraphic.alpha = pulse;
       this._glowTicker = requestAnimationFrame(tick);
     };
@@ -176,7 +228,7 @@ export class Cat extends Container {
     }
   }
 
-  // Анимация прыжка (при спавне и merge)
+  // Анимация прыжка
   playJumpAnimation() {
     this._stopIdleAnimation();
     const startTime = Date.now();
@@ -204,11 +256,13 @@ export class Cat extends Container {
     this.level = newLevel;
     this._draw();
     this._startIdleAnimation();
+    this._setupRarityAura();
   }
 
   destroy(options) {
     this._stopIdleAnimation();
     this._stopGlowAnimation();
+    this._stopRarityAnimation();
     super.destroy(options);
   }
 }

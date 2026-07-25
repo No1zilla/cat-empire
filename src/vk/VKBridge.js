@@ -40,6 +40,15 @@ export class VKService {
       };
     }
   }
+
+  // TASK-015B: Тактильная отдача (вибрация VK Haptics)
+  triggerHaptic(style = 'medium') {
+    try {
+      this.bridge.send('VKWebAppTapticImpactOccurred', { style });
+    } catch (e) {
+      // Игнорируем в веб-версии
+    }
+  }
 }
 
 export default VKService;
