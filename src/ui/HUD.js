@@ -63,40 +63,15 @@ export class HUD extends Container {
     // 4. Текст пассивного дохода в секунду (+N/сек)
     const ipsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 14,
+      fontSize: 16,
       fontWeight: 'bold',
       fill: '#2ecc71',
       dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
     });
     this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });
     this._ipsText.anchor.set(1, 0.5);
-    this._ipsText.position.set(hudWidth - 65, 58);
+    this._ipsText.position.set(hudWidth - 20, 46);
     this.addChild(this._ipsText);
-
-    // 5. Кнопка 📖 (Котопедия) в верхнем правом углу
-    const bookBtn = new Graphics();
-    bookBtn.roundRect(hudWidth - 55, 12, 40, 36, 10);
-    bookBtn.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
-    bookBtn.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
-    bookBtn.eventMode = 'static';
-    bookBtn.cursor = 'pointer';
-
-    bookBtn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      if (typeof this.onOpenCollection === 'function') {
-        this.onOpenCollection();
-      }
-    });
-    bookBtn.on('pointerover', () => { bookBtn.alpha = 0.88; });
-    bookBtn.on('pointerout',  () => { bookBtn.alpha = 1.0; });
-    this.addChild(bookBtn);
-
-    const bookTextStyle = new TextStyle({ fontSize: 20 });
-    const bookIcon = new Text({ text: '📖', style: bookTextStyle });
-    bookIcon.anchor.set(0.5, 0.5);
-    bookIcon.position.set(hudWidth - 35, 30);
-    bookIcon.eventMode = 'none';
-    this.addChild(bookIcon);
   }
 
   // Метод обновления значений на панели HUD
