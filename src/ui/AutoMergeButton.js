@@ -1,6 +1,7 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { saveProgress, showRewardedAd } from '../api/client.js';
+import { AdModal } from './AdModal.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -185,19 +186,12 @@ export class AutoMergeButton extends Container {
     } else {
       const GEM_COST = 5;
       if (this.economy && this.economy.gems < GEM_COST) {
-        // Показ VK Rewarded Ads для получения +5 гемов и запуска слияния!
-        this._showWarning('🎬 Смотрим видео...');
-        const adResult = await showRewardedAd();
-        if (adResult && adResult.success) {
-          if (this.economy) {
-            this.economy.addGems(5);
-            this._showWarning('+5 💎 получено! 🎉');
-            try {
-              await saveProgress({ gems: this.economy.gems });
-            } catch (e) {}
-          }
-          // Запускаем слияние котиков сразу после успешного просмотра рекламы!
-          await this.onTriggerAutoMerge();
+        // Вызываем явное модальное окно просмотра рекламы за гетов
+        if (this.app && this.app.stage) {
+          const adModal = new AdModal(this.app, this.economy, async () => {
+            await this.onTriggerAutoMerge();
+          });
+          this.app.stage.addChild(adModal);
         } else {
           this._showWarning('Мало 💎 гемов!');
         }
