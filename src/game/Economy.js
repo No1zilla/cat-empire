@@ -19,13 +19,27 @@ export class Economy {
     return 10 + (this.totalCatsBought || 0);
   }
 
-  // Установить начальный баланс и счётчики статистики
+  // Установить начальный баланс и счётчики статистики с умной авто-регенерацией
   setBalance(coins, gems, totalCatsBought = 0, totalCatsCreated = 0, totalMerges = 0) {
     this.coins = Number(coins) || 0;
     this.gems = Number(gems) || 0;
-    this.totalCatsBought = Number(totalCatsBought) || 0;
-    this.totalCatsCreated = Number(totalCatsCreated) || Number(totalCatsBought) || 0;
+    let bought = Number(totalCatsBought) || 0;
+
+    // УМНЫЙ ФОЛЛБЭК: Пересчитываем минимальное количество купленных котиков по котам на сетке
+    let minBoughtFromGrid = 0;
+    if (this.grid && Array.isArray(this.grid.slots)) {
+      this.grid.slots.forEach((cat) => {
+        if (cat && cat.level) {
+          minBoughtFromGrid += Math.pow(2, cat.level - 1);
+        }
+      });
+    }
+
+    // Если счётчик сбросился в 0, восстанавливаем значение по состоянию игрового поля!
+    this.totalCatsBought = Math.max(bought, minBoughtFromGrid);
+    this.totalCatsCreated = Math.max(Number(totalCatsCreated) || 0, this.totalCatsBought);
     this.totalMerges = Number(totalMerges) || 0;
+
     this._recalcIncome();
     this._notify();
   }
