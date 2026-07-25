@@ -29,7 +29,7 @@ export class CatDeck extends Container {
     this._setupEvents();
     this._startSmoothLoop();
 
-    this.scrollToLevel(this.maxUnlockedLevel);
+    this.scrollToLevel(1);
   }
 
   _draw() {

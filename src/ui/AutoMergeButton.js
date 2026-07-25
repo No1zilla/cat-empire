@@ -70,7 +70,7 @@ export class AutoMergeButton extends Container {
       dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
 
-    this._btnText = new Text({ text: '⚡ Соединить все', style: titleStyle });
+    this._btnText = new Text({ text: '⚡ Соединить', style: titleStyle });
     this._btnText.anchor.set(0.5, 0);
     this._btnText.position.set(btnWidth / 2, 6);
     this.addChild(this._btnText);
