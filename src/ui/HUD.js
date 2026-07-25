@@ -36,56 +36,60 @@ export class HUD extends Container {
     this.addChild(bg);
 
     // 2. Иконка и значение монет
-    const coinIcon = UIUtils.createCoinIcon(14, true);
-    coinIcon.position.set(28, 28);
+    const coinIcon = UIUtils.createCoinIcon(18);
+    coinIcon.position.set(28, 30);
     this.addChild(coinIcon);
 
     const coinsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 28,
+      fontSize: 30,
       fontWeight: '900',
-      fill: '#ffd700',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 3, distance: 2 }
+      fill: '#ffde00',
+      stroke: { color: '#a66a00', width: 5, join: 'round' },
+      dropShadow: { color: '#000000', alpha: 0.3, blur: 0, distance: 3 }
     });
     this._coinsText = new Text({ text: '0', style: coinsStyle });
-    this._coinsText.position.set(56, 14);
+    this._coinsText.position.set(56, 12);
     this.addChild(this._coinsText);
 
     // 3. Иконка и значение гемов 💎 (Под монетами)
-    const gemIconStyle = new TextStyle({ fontSize: 18, dropShadow: { color: '#000000', alpha: 0.5, blur: 2, distance: 1 } });
+    const gemIconStyle = new TextStyle({ fontSize: 20 });
     const gemIcon = new Text({ text: '💎', style: gemIconStyle });
-    gemIcon.position.set(22, 54);
+    gemIcon.anchor.set(0.5, 0.5);
+    gemIcon.position.set(28, 64);
     this.addChild(gemIcon);
 
     const gemsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 18,
-      fontWeight: 'bold',
+      fontSize: 20,
+      fontWeight: '900',
       fill: '#ffffff',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
+      stroke: { color: '#2b4c7e', width: 4, join: 'round' },
+      dropShadow: { color: '#000000', alpha: 0.3, blur: 0, distance: 2 }
     });
     this._gemsText = new Text({ text: '0', style: gemsStyle });
-    this._gemsText.position.set(56, 54);
+    this._gemsText.position.set(56, 52);
     this.addChild(this._gemsText);
 
     // 4. Доход в секунду (Справа по центру высоты монет)
     const ipsStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '900',
-      fill: '#2ecc71',
-      dropShadow: { color: '#000000', alpha: 0.6, blur: 3, distance: 1 }
+      fill: '#45f57c',
+      stroke: { color: '#0d6b2c', width: 4, join: 'round' },
+      dropShadow: { color: '#000000', alpha: 0.3, blur: 0, distance: 2 }
     });
     this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });
     this._ipsText.anchor.set(1, 0.5); // Выравнивание по правому краю
-    this._ipsText.position.set(hudWidth - 20, 30);
+    this._ipsText.position.set(hudWidth - 20, 32);
     this.addChild(this._ipsText);
   }
 
   // Обновление значений на панели HUD
   update(coins, gems, incomePerSecond) {
     if (this._coinsText) {
-      this._coinsText.text = Math.floor(coins || 0).toLocaleString('ru-RU').replace(/,/g, ' ');
+      this._coinsText.text = Math.floor(coins || 0).toLocaleString('ru-RU');
     }
     if (this._gemsText) {
       this._gemsText.text = String(gems || 0);
