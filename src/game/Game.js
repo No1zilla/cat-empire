@@ -11,12 +11,13 @@ import { OfflineModal } from '../ui/OfflineModal.js';
 import { Tutorial } from '../ui/Tutorial.js';
 import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
+import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
-// Главный класс игры (3 яркие сочные кнопки + Котопедия в HUD)
+// Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -27,6 +28,7 @@ export class Game {
     this.fillAllButton = null;
     this.mergeEngine = null;
     this.dragSystem = null;
+    this.catDeck = null;
     this.autoMergeSystem = null;
     this.autoMergeButton = null;
     this.maxCatLevel = 1;
@@ -78,7 +80,7 @@ export class Game {
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING; // 400px
     this.grid.x = 0;
-    this.grid.y = 110;
+    this.grid.y = 95;
     this.app.stage.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке
@@ -108,11 +110,10 @@ export class Game {
     this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalCatsCreated, startTotalMerges);
     this.economy.startTicker();
 
-    // 6. Красивый сочный ряд из 3-х кнопок управления:
+    // 6. Ряд из 3-х кнопок управления:
+    const buttonRowY = this.grid.y + gridWidth + 12;
 
-    const buttonRowY = this.grid.y + gridWidth + 24;
-
-    // A) 🐱 Купить (135px, Кораллово-красный) — клик + Hold-to-buy
+    // A) 🐱 Купить (135px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
@@ -122,7 +123,7 @@ export class Game {
     this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
 
-    // B) 📦 Заполнить (105px, Янтарно-золотой) — выкуп всех свободных слотов за 1 клик
+    // B) 📦 Заполнить (105px) — выкуп всех свободных слотов за 1 клик
     this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
       const freeSlots = [];
       for (let i = 0; i < 25; i++) {
@@ -201,7 +202,7 @@ export class Game {
     this.fillAllButton.y = buttonRowY;
     this.app.stage.addChild(this.fillAllButton);
 
-    // C) ⚡ Соединить все (135px, Королевский фиолетовый)
+    // C) ⚡ Соединить все (135px)
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
       if (this.autoMergeSystem) {
         await this.autoMergeSystem.runAutoMerge();
@@ -213,7 +214,16 @@ export class Game {
     this.autoMergeButton.y = buttonRowY;
     this.app.stage.addChild(this.autoMergeButton);
 
-    // 7. Движок Merge и Drag
+    // 7. Панель «📖 Котопедия» прямо на главном экране под кнопками управления
+    this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
+      if (isUnlocked) {
+        openCollection();
+      }
+    });
+    this.catDeck.y = buttonRowY + 58;
+    this.app.stage.addChild(this.catDeck);
+
+    // 8. Движок Merge и Drag
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
       if (this.economy) {
@@ -223,6 +233,7 @@ export class Game {
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
+        if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
 
         const rewardGems = 5;
         if (this.economy) this.economy.addGems(rewardGems);
@@ -307,7 +318,7 @@ export class Game {
 
     this._startFloatingIncomePopups();
 
-    // 8. Модальные окна
+    // 9. Модальные окна
     const showTutorialIfNeeded = () => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
       if (!tutorialDone) {
@@ -333,7 +344,7 @@ export class Game {
 
     this._saveToLocalStorage();
 
-    // 9. Авто-сохранение каждые 30 секунд
+    // 10. Авто-сохранение каждые 30 секунд
     if (this._autoSaveInterval) clearInterval(this._autoSaveInterval);
     this._autoSaveInterval = setInterval(async () => {
       try {

@@ -45,7 +45,7 @@ export class CatDeck extends Container {
     bg.stroke({ color: 0xffffff, alpha: 0.18, width: 1.5 });
     this.addChild(bg);
 
-    // 2. Заголовок "🃏 Колода котиков (Открыто N/15)"
+    // 2. Заголовок "📖 Котопедия (Открыто N/15)"
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,
@@ -53,7 +53,7 @@ export class CatDeck extends Container {
       fill: CONFIG.COLORS.GOLD || '#ffd700',
     });
     const titleText = new Text({
-      text: `🃏 Колода котиков (${this.maxUnlockedLevel}/15)`,
+      text: `📖 Котопедия (${this.maxUnlockedLevel}/15)`,
       style: titleStyle
     });
     titleText.position.set(22, 8);
