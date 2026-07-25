@@ -70,12 +70,12 @@ export class Cat extends Container {
     }
 
     // 2. Компактный бейджик уровня (Fredoka font)
-    const badgeW = 32;
-    const badgeH = 14;
+    const badgeW = this.level >= 10 ? 36 : 30;
+    const badgeH = 13;
     const badgeBg = new Graphics();
-    badgeBg.roundRect(cardWidth - badgeW - 2, 2, badgeW, badgeH, 5);
-    badgeBg.fill({ color: 0x000000, alpha: 0.8 });
-    badgeBg.stroke({ color: '#ffffff', alpha: 0.4, width: 1 });
+    badgeBg.roundRect(cardWidth - badgeW - 3, 6, badgeW, badgeH, 5);
+    badgeBg.fill({ color: 0x000000, alpha: 0.85 });
+    badgeBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1 });
     mainContainer.addChild(badgeBg);
 
     const levelStyle = new TextStyle({
@@ -87,8 +87,8 @@ export class Cat extends Container {
     });
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
-    levelText.x = cardWidth - badgeW / 2 - 2;
-    levelText.y = 8.5;
+    levelText.x = cardWidth - badgeW / 2 - 3;
+    levelText.y = 12.5;
     mainContainer.addChild(levelText);
 
     this.addChild(mainContainer);

@@ -1,21 +1,27 @@
-import { Container, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 
 export const UIUtils = {
   /**
-   * Возвращает стандартизированную иконку монеты (эмодзи 🪙)
-   * @param {number} radius - размер монеты
+   * Возвращает стандартизированную 3D золотую монету (без серых системных эмодзи)
+   * @param {number} radius - радиус монеты
    * @returns {Container}
    */
-  createCoinIcon: (radius = 12) => {
+  createCoinIcon: (radius = 10) => {
     const container = new Container();
-    const style = new TextStyle({
-      fontSize: radius * 2,
-      dropShadow: { color: '#000000', alpha: 0.3, blur: 2, distance: 1 }
-    });
-    const coinText = new Text({ text: '🪙', style });
-    // Центрируем иконку для совместимости со старым кодом
-    coinText.anchor.set(0.5, 0.5);
-    container.addChild(coinText);
+
+    // 1. Основной золотой круг
+    const goldCircle = new Graphics();
+    goldCircle.circle(0, 0, radius);
+    goldCircle.fill(0xffd700);
+    goldCircle.stroke({ color: 0xff8c00, width: Math.max(1.5, radius * 0.18) });
+    container.addChild(goldCircle);
+
+    // 2. Внутренний блик
+    const sparkle = new Graphics();
+    sparkle.circle(-radius * 0.3, -radius * 0.3, radius * 0.28);
+    sparkle.fill({ color: 0xffffff, alpha: 0.85 });
+    container.addChild(sparkle);
+
     return container;
   }
 };

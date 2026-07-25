@@ -70,9 +70,9 @@ export class CatDeck extends Container {
     hintText.position.set(W - 40, 9);
     this.addChild(hintText);
 
-    // 3. Зона маскирования (ширина 320px по центру)
-    const maskX = 40;
-    const maskW = W - 80;
+    // 3. Зона маскирования (ширина между стрелками без наслоения)
+    const maskX = 48;
+    const maskW = W - 96;
     const mask = new Graphics();
     mask.rect(maskX, 26, maskW, 92);
     mask.fill(0xffffff);
@@ -204,8 +204,8 @@ export class CatDeck extends Container {
     const btnSize = 28;
 
     const leftBtn = new Graphics();
-    leftBtn.roundRect(14, 58, btnSize, btnSize, 8);
-    leftBtn.fill({ color: 0x1a1638, alpha: 0.9 });
+    leftBtn.roundRect(12, 58, btnSize, btnSize, 8);
+    leftBtn.fill({ color: 0x1a1638, alpha: 0.95 });
     leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     leftBtn.eventMode = 'static';
     leftBtn.cursor = 'pointer';
@@ -223,13 +223,13 @@ export class CatDeck extends Container {
     });
     const leftIcon = new Text({ text: '◀', style: leftTextStyle });
     leftIcon.anchor.set(0.5, 0.5);
-    leftIcon.position.set(14 + btnSize / 2, 58 + btnSize / 2);
+    leftIcon.position.set(12 + btnSize / 2, 58 + btnSize / 2);
     leftIcon.eventMode = 'none';
     this.addChild(leftIcon);
 
     const rightBtn = new Graphics();
-    rightBtn.roundRect(W - 42, 58, btnSize, btnSize, 8);
-    rightBtn.fill({ color: 0x1a1638, alpha: 0.9 });
+    rightBtn.roundRect(W - 40, 58, btnSize, btnSize, 8);
+    rightBtn.fill({ color: 0x1a1638, alpha: 0.95 });
     rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     rightBtn.eventMode = 'static';
     rightBtn.cursor = 'pointer';
@@ -247,7 +247,7 @@ export class CatDeck extends Container {
     });
     const rightIcon = new Text({ text: '▶', style: rightTextStyle });
     rightIcon.anchor.set(0.5, 0.5);
-    rightIcon.position.set(W - 42 + btnSize / 2, 58 + btnSize / 2);
+    rightIcon.position.set(W - 40 + btnSize / 2, 58 + btnSize / 2);
     rightIcon.eventMode = 'none';
     this.addChild(rightIcon);
   }

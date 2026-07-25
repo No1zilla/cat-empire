@@ -400,7 +400,7 @@ export class Game {
 
           const popup = new Text({ text: `+${income}`, style: popupStyle });
           popup.anchor.set(0.5, 0.5);
-          popup.position.set(pos.x + 36, pos.y + 12);
+          popup.position.set(pos.x + 36, pos.y - 2);
           this.grid.addChild(popup);
 
           const start = performance.now();
@@ -410,7 +410,7 @@ export class Game {
             const elapsed = performance.now() - start;
             if (elapsed < duration) {
               const p = elapsed / duration;
-              popup.y = (pos.y + 12) - p * 24;
+              popup.y = (pos.y - 2) - p * 24;
               popup.alpha = 1.0 - p;
               requestAnimationFrame(anim);
             } else {
