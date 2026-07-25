@@ -4,7 +4,7 @@ import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
 /**
- * TASK-010: Модальное окно открытия нового котика (Wow-экран со вспышкой и лучами)
+ * TASK-015: Модальное окно открытия нового котика (вспышка, лучи и пружинящая анимация)
  */
 export class NewCatModal extends Container {
   constructor(app, level, rewardGems = 5, onClose) {
@@ -16,9 +16,35 @@ export class NewCatModal extends Container {
     this._raysContainer = null;
     this._rafId = null;
 
-    this.eventMode = 'static'; // блокирует клики сквозь оверлей
+    this.eventMode = 'static';
     this._draw();
     this._startRayRotation();
+    this._playPopInAnimation();
+  }
+
+  _playPopInAnimation() {
+    this.scale.set(0.75);
+    this.alpha = 0.5;
+    const startAnim = performance.now();
+    const popIn = () => {
+      if (this.destroyed) return;
+      const elapsed = performance.now() - startAnim;
+      if (elapsed < 180) {
+        const p = elapsed / 180;
+        this.scale.set(0.75 + p * 0.3);
+        this.alpha = 0.5 + p * 0.5;
+      } else if (elapsed < 300) {
+        const p = (elapsed - 180) / 120;
+        this.scale.set(1.05 - p * 0.05);
+        this.alpha = 1.0;
+      } else {
+        this.scale.set(1.0);
+        this.alpha = 1.0;
+        return;
+      }
+      requestAnimationFrame(popIn);
+    };
+    requestAnimationFrame(popIn);
   }
 
   _draw() {
@@ -26,19 +52,19 @@ export class NewCatModal extends Container {
     const H = CONFIG.GAME_HEIGHT;
     const catData = getCatData(this.level);
 
-    // 1. Полупрозрачный оверлей
+    // 1. Оверлей
     const overlay = new Graphics();
     overlay.rect(0, 0, W, H);
-    overlay.fill({ color: 0x000000, alpha: 0.82 });
+    overlay.fill({ color: 0x07040d, alpha: 0.86 });
     overlay.eventMode = 'static';
     this.addChild(overlay);
 
-    // 2. Вращающиеся лучи (Sunburst) в центре
+    // 2. Вращающиеся лучи (Sunburst)
     this._raysContainer = new Container();
     this._raysContainer.position.set(W / 2, H / 2 - 40);
 
     const rayCount = 12;
-    const rayLength = 220;
+    const rayLength = 230;
     const rayAngle = (Math.PI * 2) / rayCount;
 
     for (let i = 0; i < rayCount; i++) {
@@ -50,7 +76,7 @@ export class NewCatModal extends Container {
       ray.lineTo(Math.cos(a1) * rayLength, Math.sin(a1) * rayLength);
       ray.lineTo(Math.cos(a2) * rayLength, Math.sin(a2) * rayLength);
       ray.closePath();
-      ray.fill({ color: 0xffd700, alpha: i % 2 === 0 ? 0.25 : 0.12 });
+      ray.fill({ color: 0xffd700, alpha: i % 2 === 0 ? 0.28 : 0.12 });
       this._raysContainer.addChild(ray);
     }
     this.addChild(this._raysContainer);
@@ -63,12 +89,13 @@ export class NewCatModal extends Container {
 
     const card = new Graphics();
     card.roundRect(cardX, cardY, cardW, cardH, 20);
-    card.fill(CONFIG.COLORS.GRID_BG || 0x16213e);
+    card.fill(0x181433);
     card.stroke({ color: CONFIG.COLORS.GOLD || 0xffd700, width: 3 });
     this.addChild(card);
 
     // 4. Заголовок "🎉 НОВЫЙ КОТИК!"
     const titleStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 22,
       fontWeight: 'bold',
       fill: CONFIG.COLORS.GOLD || '#ffd700',
@@ -80,7 +107,7 @@ export class NewCatModal extends Container {
     title.position.set(W / 2, cardY + 20);
     this.addChild(title);
 
-    // 5. Изображение открытого котика
+    // 5. Изображение котика
     const texture = getCatTexture(this.level);
     if (texture) {
       const sprite = new Sprite(texture);
@@ -98,8 +125,9 @@ export class NewCatModal extends Container {
       this.addChild(emoji);
     }
 
-    // 6. Имя котика и Уровень
+    // 6. Имя котика
     const nameStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 18,
       fontWeight: 'bold',
       fill: '#ffffff',
@@ -110,8 +138,9 @@ export class NewCatModal extends Container {
     catNameText.position.set(W / 2, cardY + 180);
     this.addChild(catNameText);
 
-    // 7. Доходность (+N/сек)
+    // 7. Доходность
     const statsStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 15,
       fontWeight: 'bold',
       fill: '#2ecc71',
@@ -122,8 +151,9 @@ export class NewCatModal extends Container {
     statsText.position.set(W / 2, cardY + 210);
     this.addChild(statsText);
 
-    // 8. Плашка Награды (+5 гемов)
+    // 8. Награда
     const rewardStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 16,
       fontWeight: 'bold',
       fill: '#a8d8ff',
@@ -142,8 +172,8 @@ export class NewCatModal extends Container {
 
     const btnBg = new Graphics();
     btnBg.roundRect(btnX, btnY, btnW, btnH, 12);
-    btnBg.fill(CONFIG.COLORS.ACCENT || 0xe94560);
-    btnBg.stroke({ color: '#ffffff', alpha: 0.4, width: 1.5 });
+    btnBg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
+    btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 2 });
     btnBg.eventMode = 'static';
     btnBg.cursor = 'pointer';
 
@@ -151,11 +181,12 @@ export class NewCatModal extends Container {
       e.stopPropagation();
       this._close();
     });
-    btnBg.on('pointerover', () => { btnBg.alpha = 0.85; });
+    btnBg.on('pointerover', () => { btnBg.alpha = 0.88; });
     btnBg.on('pointerout',  () => { btnBg.alpha = 1.0; });
     this.addChild(btnBg);
 
     const btnStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 17,
       fontWeight: 'bold',
       fill: '#ffffff',

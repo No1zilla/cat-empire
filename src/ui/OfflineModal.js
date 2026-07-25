@@ -1,7 +1,7 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 
-// Модальное окно начисления оффлайн-дохода "Пока тебя не было..."
+// TASK-015: Модальное окно оффлайн-дохода с пружинящей анимацией появления
 export class OfflineModal extends Container {
   constructor(app, earnedCoins, onClose) {
     super();
@@ -9,16 +9,43 @@ export class OfflineModal extends Container {
     this.earnedCoins = earnedCoins || 0;
     this.onClose = onClose || (() => {});
 
+    this.eventMode = 'static';
     this._draw();
+    this._playPopInAnimation();
+  }
+
+  _playPopInAnimation() {
+    this.scale.set(0.75);
+    this.alpha = 0.5;
+    const startAnim = performance.now();
+    const popIn = () => {
+      if (this.destroyed) return;
+      const elapsed = performance.now() - startAnim;
+      if (elapsed < 180) {
+        const p = elapsed / 180;
+        this.scale.set(0.75 + p * 0.3);
+        this.alpha = 0.5 + p * 0.5;
+      } else if (elapsed < 300) {
+        const p = (elapsed - 180) / 120;
+        this.scale.set(1.05 - p * 0.05);
+        this.alpha = 1.0;
+      } else {
+        this.scale.set(1.0);
+        this.alpha = 1.0;
+        return;
+      }
+      requestAnimationFrame(popIn);
+    };
+    requestAnimationFrame(popIn);
   }
 
   // Отрисовка элементов модального окна
   _draw() {
-    // 1. Полупрозрачный затемняющий оверлей на весь экран
+    // 1. Полупрозрачный оверлей
     const overlay = new Graphics();
     overlay.rect(0, 0, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT);
-    overlay.fill({ color: 0x000000, alpha: 0.7 });
-    overlay.eventMode = 'static'; // блокирует клики сквозь оверлей
+    overlay.fill({ color: 0x07040d, alpha: 0.85 });
+    overlay.eventMode = 'static';
     this.addChild(overlay);
 
     // 2. Карточка модального окна по центру
@@ -29,12 +56,13 @@ export class OfflineModal extends Container {
 
     const card = new Graphics();
     card.roundRect(cardX, cardY, cardWidth, cardHeight, 20);
-    card.fill(CONFIG.COLORS.GRID_BG);
-    card.stroke({ color: CONFIG.COLORS.ACCENT, width: 2 });
+    card.fill(0x181433);
+    card.stroke({ color: CONFIG.COLORS.ACCENT || 0xff5e62, width: 2.5 });
     this.addChild(card);
 
     // 3. Заголовок
     const titleStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 17,
       fontWeight: 'bold',
       fill: '#ffffff',
@@ -60,9 +88,10 @@ export class OfflineModal extends Container {
 
     // 5. Текст суммы заработка
     const earnedStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 22,
       fontWeight: 'bold',
-      fill: CONFIG.COLORS.GOLD,
+      fill: CONFIG.COLORS.GOLD || '#ffd700',
       align: 'center'
     });
     const earnedText = new Text({
@@ -84,10 +113,12 @@ export class OfflineModal extends Container {
 
     const btnBg = new Graphics();
     btnBg.roundRect(0, 0, btnWidth, btnHeight, 12);
-    btnBg.fill(CONFIG.COLORS.ACCENT);
+    btnBg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
+    btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
     buttonGroup.addChild(btnBg);
 
     const btnStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 16,
       fontWeight: 'bold',
       fill: '#ffffff',
@@ -106,17 +137,14 @@ export class OfflineModal extends Container {
     buttonGroup.cursor = 'pointer';
 
     buttonGroup.on('pointerdown', () => {
-      buttonGroup.alpha = 0.8;
-      this._close();
+      buttonGroup.scale.set(0.94);
+      setTimeout(() => {
+        this._close();
+      }, 100);
     });
 
-    buttonGroup.on('pointerover', () => {
-      buttonGroup.alpha = 0.85;
-    });
-
-    buttonGroup.on('pointerout', () => {
-      buttonGroup.alpha = 1.0;
-    });
+    buttonGroup.on('pointerover', () => { buttonGroup.alpha = 0.88; });
+    buttonGroup.on('pointerout',  () => { buttonGroup.alpha = 1.0; });
 
     this.addChild(buttonGroup);
   }

@@ -4,7 +4,7 @@ import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 
 /**
- * Современная плавная карусель «Колода карт» с инерционным скроллом, стрелками ◀ ▶ и колесом мыши
+ * TASK-015: Переработанная панель «Колода карт» в стиле Glassmorphism со стильными замочками 🔒
  */
 export class CatDeck extends Container {
   constructor(app, maxUnlockedLevel = 1, onCardClick) {
@@ -29,7 +29,6 @@ export class CatDeck extends Container {
     this._setupEvents();
     this._startSmoothLoop();
 
-    // Авто-скролл к высшему открытому котику при старте
     this.scrollToLevel(this.maxUnlockedLevel);
   }
 
@@ -39,15 +38,16 @@ export class CatDeck extends Container {
     const W = CONFIG.GAME_WIDTH;
     const deckH = 125;
 
-    // 1. Прозрачный фон секции колоды
+    // 1. Панель матового стекла (Glassmorphism): полупрозрачная тёмная подложка + белая окантовка alpha 0.18
     const bg = new Graphics();
-    bg.roundRect(10, 0, W - 20, deckH, 14);
-    bg.fill({ color: 0x16213e, alpha: 0.9 });
-    bg.stroke({ color: CONFIG.COLORS.CELL_BORDER || '#533483', width: 1.5 });
+    bg.roundRect(10, 0, W - 20, deckH, 16);
+    bg.fill({ color: 0x110d26, alpha: 0.7 });
+    bg.stroke({ color: 0xffffff, alpha: 0.18, width: 1.5 });
     this.addChild(bg);
 
     // 2. Заголовок "🃏 Колода котиков (Открыто N/15)"
     const titleStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,
       fontWeight: 'bold',
       fill: CONFIG.COLORS.GOLD || '#ffd700',
@@ -60,7 +60,11 @@ export class CatDeck extends Container {
     this.addChild(titleText);
 
     // Подсказка
-    const hintStyle = new TextStyle({ fontSize: 10, fill: '#8899aa' });
+    const hintStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 10,
+      fill: CONFIG.COLORS.TEXT_DIM || '#9ca3af'
+    });
     const hintText = new Text({ text: 'Листай ◄ ►', style: hintStyle });
     hintText.anchor.set(1, 0);
     hintText.position.set(W - 40, 9);
@@ -93,18 +97,19 @@ export class CatDeck extends Container {
       cardGroup.position.set(x, y);
 
       const cardBg = new Graphics();
-      cardBg.roundRect(0, 0, cardW, cardH, 8);
+      cardBg.roundRect(0, 0, cardW, cardH, 10);
 
       if (isUnlocked) {
         cardBg.fill(catData.color);
         if (level === this.maxUnlockedLevel) {
           cardBg.stroke({ color: '#ffd700', width: 2.5 });
         } else {
-          cardBg.stroke({ color: '#ffffff', alpha: 0.4, width: 1.5 });
+          cardBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
         }
       } else {
-        cardBg.fill(0x0f172a);
-        cardBg.stroke({ color: 0x334155, width: 1 });
+        // Тёмный утонченный слот заблокированного котика
+        cardBg.fill(0x18152e);
+        cardBg.stroke({ color: 0x332c52, width: 1.5 });
       }
       cardGroup.addChild(cardBg);
 
@@ -126,25 +131,41 @@ export class CatDeck extends Container {
           cardGroup.addChild(emoji);
         }
 
-        const lvlStyle = new TextStyle({ fontSize: 9, fontWeight: 'bold', fill: '#ffffff' });
+        const lvlStyle = new TextStyle({
+          fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+          fontSize: 9,
+          fontWeight: 'bold',
+          fill: '#ffffff'
+        });
         const lvlText = new Text({ text: `Lvl ${level}`, style: lvlStyle });
         lvlText.anchor.set(0.5, 0);
         lvlText.position.set(cardW / 2, 52);
         cardGroup.addChild(lvlText);
 
-        const incStyle = new TextStyle({ fontSize: 8, fontWeight: 'bold', fill: '#2ecc71' });
+        const incStyle = new TextStyle({
+          fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+          fontSize: 8,
+          fontWeight: 'bold',
+          fill: '#2ecc71'
+        });
         const incText = new Text({ text: `+${catData.income}`, style: incStyle });
         incText.anchor.set(0.5, 0);
         incText.position.set(cardW / 2, 64);
         cardGroup.addChild(incText);
       } else {
-        const lockStyle = new TextStyle({ fontSize: 22 });
-        const lockText = new Text({ text: '❓', style: lockStyle });
+        // TASK-015: Замена пугающих красных вопросов на стильную иконку замочка 🔒
+        const lockStyle = new TextStyle({ fontSize: 20 });
+        const lockText = new Text({ text: '🔒', style: lockStyle });
         lockText.anchor.set(0.5, 0.5);
         lockText.position.set(cardW / 2, 32);
         cardGroup.addChild(lockText);
 
-        const secretStyle = new TextStyle({ fontSize: 8, fill: '#64748b' });
+        const secretStyle = new TextStyle({
+          fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+          fontSize: 8,
+          fontWeight: 'bold',
+          fill: '#6b7280'
+        });
         const secretText = new Text({ text: `Lvl ${level}`, style: secretStyle });
         secretText.anchor.set(0.5, 0);
         secretText.position.set(cardW / 2, 58);
@@ -154,43 +175,51 @@ export class CatDeck extends Container {
       this._cardsContainer.addChild(cardGroup);
     }
 
-    // 4. Интерактивные неоновые стрелки влево ◀ и вправо ▶
+    // 4. Интерактивные стрелки ◀ ▶
     const btnSize = 28;
 
-    // Стрелка влево ◀
     const leftBtn = new Graphics();
     leftBtn.roundRect(14, 58, btnSize, btnSize, 8);
-    leftBtn.fill({ color: 0x0f172a, alpha: 0.9 });
-    leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#e94560', width: 1.5 });
+    leftBtn.fill({ color: 0x1a1638, alpha: 0.9 });
+    leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     leftBtn.eventMode = 'static';
     leftBtn.cursor = 'pointer';
     leftBtn.on('pointerdown', (e) => {
       e.stopPropagation();
-      this.scrollBy(180); // Прокрутка влево на ~3 карточки
+      this.scrollBy(180);
     });
     this.addChild(leftBtn);
 
-    const leftTextStyle = new TextStyle({ fontSize: 13, fill: '#ffffff', fontWeight: 'bold' });
+    const leftTextStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 12,
+      fill: '#ffffff',
+      fontWeight: 'bold'
+    });
     const leftIcon = new Text({ text: '◀', style: leftTextStyle });
     leftIcon.anchor.set(0.5, 0.5);
     leftIcon.position.set(14 + btnSize / 2, 58 + btnSize / 2);
     leftIcon.eventMode = 'none';
     this.addChild(leftIcon);
 
-    // Стрелка вправо ▶
     const rightBtn = new Graphics();
     rightBtn.roundRect(W - 42, 58, btnSize, btnSize, 8);
-    rightBtn.fill({ color: 0x0f172a, alpha: 0.9 });
-    rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#e94560', width: 1.5 });
+    rightBtn.fill({ color: 0x1a1638, alpha: 0.9 });
+    rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     rightBtn.eventMode = 'static';
     rightBtn.cursor = 'pointer';
     rightBtn.on('pointerdown', (e) => {
       e.stopPropagation();
-      this.scrollBy(-180); // Прокрутка вправо на ~3 карточки
+      this.scrollBy(-180);
     });
     this.addChild(rightBtn);
 
-    const rightTextStyle = new TextStyle({ fontSize: 13, fill: '#ffffff', fontWeight: 'bold' });
+    const rightTextStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 12,
+      fill: '#ffffff',
+      fontWeight: 'bold'
+    });
     const rightIcon = new Text({ text: '▶', style: rightTextStyle });
     rightIcon.anchor.set(0.5, 0.5);
     rightIcon.position.set(W - 42 + btnSize / 2, 58 + btnSize / 2);
@@ -198,7 +227,6 @@ export class CatDeck extends Container {
     this.addChild(rightIcon);
   }
 
-  // Настройка gesture слушателей для жест-драга и тапа по карточкам
   _setupEvents() {
     this.eventMode = 'static';
     this.cursor = 'grab';
@@ -236,7 +264,6 @@ export class CatDeck extends Container {
       }
 
       let newX = this._dragStartTargetX + dx;
-      // Сопротивление на границах
       if (newX > 0) newX *= 0.3;
       if (newX < minX) newX = minX + (newX - minX) * 0.3;
 
@@ -248,15 +275,12 @@ export class CatDeck extends Container {
       this._isDragging = false;
       this.cursor = 'grab';
 
-      // Применяем инерцию
       if (Math.abs(this._velocity) > 1) {
         this._targetX += this._velocity * 8;
       }
 
-      // Клампим к границам
       this._targetX = Math.max(minX, Math.min(0, this._targetX));
 
-      // Если клик без таскания -> проверяем попадание по карточке
       if (!this._isMoved && e) {
         const local = this._cardsContainer.toLocal(e.global);
         for (let i = 0; i < 15; i++) {
@@ -274,7 +298,6 @@ export class CatDeck extends Container {
     this.on('pointerup', onUp);
     this.on('pointerupoutside', onUp);
 
-    // Поддержка колесика мыши (Wheel)
     if (typeof window !== 'undefined') {
       window.addEventListener('wheel', (e) => {
         if (!this.destroyed && this.worldVisible) {
@@ -287,7 +310,6 @@ export class CatDeck extends Container {
     }
   }
 
-  // Плавный запуск LERP-петли анимации
   _startSmoothLoop() {
     const cardW = 54;
     const padX = 8;
@@ -298,13 +320,11 @@ export class CatDeck extends Container {
     const update = () => {
       if (this.destroyed) return;
 
-      // Лерп сглаживание движения
       this._currentX += (this._targetX - this._currentX) * 0.22;
       if (this._cardsContainer) {
         this._cardsContainer.x = this._currentX;
       }
 
-      // Затухание инерции
       if (!this._isDragging && Math.abs(this._velocity) > 0.1) {
         this._velocity *= 0.88;
       } else {

@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
-// Система спавна и покупки котиков (Крупная кнопка)
+// Система спавна и покупки котиков (TASK-015: Сочная объёмная кнопка с микро-анимацией)
 export class SpawnSystem extends Container {
   constructor(app, grid, economy, onCoinSpend) {
     super();
@@ -27,23 +27,38 @@ export class SpawnSystem extends Container {
     }
   }
 
-  // Создание интерактивной крупной кнопки покупки
+  // Создание сочной объёмной кнопки покупки с бликом и микро-анимацией
   _createButton() {
     const btnWidth = 230;
     const btnHeight = 50;
 
+    // 1. Нижняя тень (эффект выдавленной кнопки)
+    const shadowBg = new Graphics();
+    shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
+    shadowBg.fill(0x9e2a3b);
+    this.addChild(shadowBg);
+
+    // 2. Основная градиентная карточка кнопки
     const bg = new Graphics();
     bg.roundRect(0, 0, btnWidth, btnHeight, 14);
-    bg.fill(CONFIG.COLORS.ACCENT);
-    bg.stroke({ color: '#ffffff', alpha: 0.4, width: 2 });
+    bg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
+    bg.stroke({ color: '#ffffff', alpha: 0.5, width: 2.0 });
     this.addChild(bg);
 
+    // 3. Блик сверху на кнопке
+    const shine = new Graphics();
+    shine.roundRect(2, 2, btnWidth - 4, 18, 10);
+    shine.fill({ color: 0xffffff, alpha: 0.22 });
+    this.addChild(shine);
+
+    // 4. Текст на кнопке (Fredoka font)
     const style = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 15,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
-      dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1.5 }
     });
 
     const cost = this.economy ? this.economy.getCatCost() : 10;
@@ -53,24 +68,32 @@ export class SpawnSystem extends Container {
     });
     this._btnText.anchor.set(0.5, 0.5);
     this._btnText.x = btnWidth / 2;
-    this._btnText.y = btnHeight / 2;
+    this._btnText.y = btnHeight / 2 - 1;
     this.addChild(this._btnText);
 
-    // Настройка интерактивности кнопки
+    // 5. Настройка интерактивности и микро-анимации (scale 0.94 -> 1.0)
     this.eventMode = 'static';
     this.cursor = 'pointer';
 
     this.on('pointerdown', () => {
+      this._playClickAnim();
       this._spawnCat();
     });
 
     this.on('pointerover', () => {
-      this.alpha = 0.85;
+      this.alpha = 0.92;
     });
 
     this.on('pointerout', () => {
       this.alpha = 1.0;
     });
+  }
+
+  _playClickAnim() {
+    this.scale.set(0.94);
+    setTimeout(() => {
+      if (!this.destroyed) this.scale.set(1.0);
+    }, 100);
   }
 
   _showNotEnoughCoins() {
@@ -81,9 +104,10 @@ export class SpawnSystem extends Container {
     }
 
     const warningStyle = new TextStyle({
-      fontSize: 15,
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 14,
       fontWeight: 'bold',
-      fill: '#e94560',
+      fill: '#ff4757',
       align: 'center'
     });
 

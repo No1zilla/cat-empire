@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 
-// Класс игрового поля 5x5 (25 слотов)
+// Класс игрового поля 5x5 (TASK-015: 16px radius, inset depth, glow)
 export class Grid extends Container {
   constructor(app) {
     super();
@@ -19,12 +19,13 @@ export class Grid extends Container {
     const gridHeight = gridWidth;
 
     const bg = new Graphics();
-    bg.roundRect(0, 0, gridWidth, gridHeight, 16);
-    bg.fill(CONFIG.COLORS.GRID_BG);
+    bg.roundRect(0, 0, gridWidth, gridHeight, 20);
+    bg.fill(CONFIG.COLORS.GRID_BG || 0x15122c);
+    bg.stroke({ color: CONFIG.COLORS.CELL_BORDER || 0x3d356c, width: 2.0 });
     this.addChild(bg);
   }
 
-  // Отрисовка 25 ячеек 5х5
+  // Отрисовка 25 ячеек 5х5 с эффектом углубления и радиусом 16px
   _drawCells() {
     for (let i = 0; i < 25; i++) {
       const col = i % 5;
@@ -34,8 +35,18 @@ export class Grid extends Container {
       const y = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 
       const cell = new Graphics();
-      cell.roundRect(x, y, CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, 10);
-      cell.fill(CONFIG.COLORS.CELL_BG);
+      // Основной уплотнённый тёмный фон ячейки
+      cell.roundRect(x, y, CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, 16);
+      cell.fill(CONFIG.COLORS.CELL_BG || 0x1d193d);
+
+      // Внутренняя стягивающая тень (эффект углубления)
+      cell.roundRect(x + 1, y + 1, CONFIG.CELL_SIZE - 2, CONFIG.CELL_SIZE - 2, 15);
+      cell.stroke({ color: 0x090616, alpha: 0.7, width: 1.5 });
+
+      // Верхний светлый блик окантовки
+      cell.roundRect(x, y, CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, 16);
+      cell.stroke({ color: 0xffffff, alpha: 0.12, width: 1.5 });
+
       this.addChild(cell);
     }
   }
@@ -60,7 +71,7 @@ export class Grid extends Container {
     };
   }
 
-  // TASK-011: Проверяет, есть ли у котика в смежных ячейках (по кресту: влево, вправо, вверх, вниз) котик ТОГО ЖЕ уровня
+  // TASK-011: Проверяет, есть ли у котика в смежных ячейках котик ТОГО ЖЕ уровня
   hasAdjacentMatchingCat(slotIndex) {
     const cat = this.getCatAtSlot(slotIndex);
     if (!cat) return false;
@@ -79,8 +90,6 @@ export class Grid extends Container {
   }
 
   // TASK-011: Управление умной подсветкой котиков
-  // - draggingCat === null (Покой): мягкий золотой свет (0xffd700) ТОЛЬКО у смежных пар
-  // - draggingCat !== null (Drag): яркий изумрудный свет (0x00ff88) у ВСЕХ совпадений на поле
   updateBoardGlow(draggingCat = null) {
     for (let i = 0; i < 25; i++) {
       const cat = this.slots[i];
