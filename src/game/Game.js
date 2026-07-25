@@ -11,6 +11,8 @@ import { Tutorial } from '../ui/Tutorial.js';
 import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
 import { CatDeck } from '../ui/CatDeck.js';
+import { AutoMergeSystem } from './AutoMergeSystem.js';
+import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { fetchProfile, saveProgress } from '../api/client.js';
 
 // Главный класс игры
@@ -24,6 +26,8 @@ export class Game {
     this.mergeEngine = null;
     this.dragSystem = null;
     this.catDeck = null;
+    this.autoMergeSystem = null;
+    this.autoMergeButton = null;
     this.maxCatLevel = 1;
     this._autoSaveInterval = null;
   }
@@ -95,15 +99,23 @@ export class Game {
     this.economy.setBalance(startCoins, startGems);
     this.economy.startTicker();
 
-    // 6. Создание системы спавна и кнопки покупки
+    // 6. Создание системы спавна и кнопки покупки (230px)
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       console.log('Потрачено:', cost);
     });
-
-    const buttonWidth = 300;
-    this.spawnSystem.x = (CONFIG.GAME_WIDTH - buttonWidth) / 2;
+    this.spawnSystem.x = 10;
     this.spawnSystem.y = this.grid.y + gridWidth + 12;
     this.app.stage.addChild(this.spawnSystem);
+
+    // TASK-012: Система каскадного авто-слияния и кнопка бустера (140px)
+    this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
+      if (this.autoMergeSystem) {
+        await this.autoMergeSystem.runAutoMerge();
+      }
+    });
+    this.autoMergeButton.x = 250;
+    this.autoMergeButton.y = this.spawnSystem.y;
+    this.app.stage.addChild(this.autoMergeButton);
 
     // 7. Интерактивная колода карт (CatDeck) прямо на главном экране под кнопкой покупки
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
@@ -161,6 +173,29 @@ export class Game {
 
     this.dragSystem = new DragSystem(this.app, this.grid, this.mergeEngine, onStateChange);
     this.spawnSystem.dragSystem = this.dragSystem;
+
+    // Подключаем DragSystem к AutoMergeSystem для анимаций
+    this.autoMergeSystem = new AutoMergeSystem(
+      this.app,
+      this.grid,
+      this.mergeEngine,
+      this.dragSystem,
+      async (mergesCount) => {
+        console.log(`⚡ Авто-Merge выполнил ${mergesCount} слияний!`);
+        this.economy.recalcAfterMerge();
+        localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
+        try {
+          await saveProgress({
+            coins: this.economy.coins,
+            gems: this.economy.gems,
+            maxCatLevel: this.maxCatLevel,
+            gridState: this.grid.exportState()
+          });
+        } catch (e) {
+          console.error('Ошибка сохранения после авто-мерджа:', e);
+        }
+      }
+    );
 
     // Сделать все существующие котики на сетке перетаскиваемыми
     this.grid.slots.forEach((cat) => {

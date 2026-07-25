@@ -19,8 +19,8 @@ export class SpawnSystem extends Container {
 
   // Создание интерактивной крупной кнопки покупки
   _createButton() {
-    const btnWidth = 280;
-    const btnHeight = 54;
+    const btnWidth = 230;
+    const btnHeight = 50;
 
     const bg = new Graphics();
     bg.roundRect(0, 0, btnWidth, btnHeight, 14);
@@ -29,7 +29,7 @@ export class SpawnSystem extends Container {
     this.addChild(bg);
 
     const style = new TextStyle({
-      fontSize: 17,
+      fontSize: 15,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
@@ -37,7 +37,7 @@ export class SpawnSystem extends Container {
     });
 
     const btnText = new Text({
-      text: '🐱 Купить котика (10 монет)',
+      text: '🐱 Купить (10 🪙)',
       style: style
     });
     btnText.anchor.set(0.5, 0.5);
