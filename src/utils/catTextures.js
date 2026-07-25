@@ -18,6 +18,7 @@ export async function loadCatTextures() {
   // Загружаем 3D активы из промо-артов
   promises.push(Assets.load(`${base}assets/ui/pedestal_gold.jpg`));
   promises.push(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`));
+  promises.push(Assets.load(`${base}assets/ui/btn_buy_pink.jpg`));
 
   const loaded = await Promise.all(promises);
   textures = {};
@@ -28,6 +29,7 @@ export async function loadCatTextures() {
 
   uiTextures['pedestal_gold'] = loaded[15];
   uiTextures['logo'] = loaded[16];
+  uiTextures['btn_buy_pink'] = loaded[17];
 
   console.log('🎨 Все 15 спрайтов и 3D UI-активы загружены!');
   return textures;

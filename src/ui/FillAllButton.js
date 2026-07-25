@@ -71,24 +71,29 @@ export class FillAllButton extends Container {
     const btnWidth = 105;
     const btnHeight = 50;
 
+    this._innerContainer = new Container();
+    this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
+    this._innerContainer.position.set(btnWidth / 2, btnHeight / 2);
+    this.addChild(this._innerContainer);
+
     // 1. Сочная 3D тень (Янтарно-оранжевый тёмный подтон)
     this._shadowBg = new Graphics();
     this._shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
     this._shadowBg.fill(0xb35400);
-    this.addChild(this._shadowBg);
+    this._innerContainer.addChild(this._shadowBg);
 
     // 2. Основная яркая янтарно-золотая карточка
     this._btnBg = new Graphics();
     this._btnBg.roundRect(0, 0, btnWidth, btnHeight, 14);
     this._btnBg.fill(0xff9f43);
     this._btnBg.stroke({ color: '#ffffff', alpha: 0.6, width: 2.0 });
-    this.addChild(this._btnBg);
+    this._innerContainer.addChild(this._btnBg);
 
     // 3. Блик сверху
     const shine = new Graphics();
     shine.roundRect(2, 2, btnWidth - 4, 18, 10);
     shine.fill({ color: 0xffffff, alpha: 0.28 });
-    this.addChild(shine);
+    this._innerContainer.addChild(shine);
 
     // 4. Текст кнопки "📦 Заполнить"
     const titleStyle = new TextStyle({
@@ -103,7 +108,7 @@ export class FillAllButton extends Container {
     this._btnText = new Text({ text: '📦 Заполнить', style: titleStyle });
     this._btnText.anchor.set(0.5, 0);
     this._btnText.position.set(btnWidth / 2, 6);
-    this.addChild(this._btnText);
+    this._innerContainer.addChild(this._btnText);
 
     // 5. Подтекст количества и стоимости
     const subStyle = new TextStyle({
@@ -118,7 +123,7 @@ export class FillAllButton extends Container {
     this._subText = new Text({ text: '0 шт', style: subStyle });
     this._subText.anchor.set(0.5, 0);
     this._subText.position.set(btnWidth / 2, 26);
-    this.addChild(this._subText);
+    this._innerContainer.addChild(this._subText);
 
     // Интерактивность
     this.on('pointerdown', (e) => {
@@ -134,9 +139,9 @@ export class FillAllButton extends Container {
   }
 
   _playClickAnim() {
-    this.scale.set(0.94);
+    if (this._innerContainer) this._innerContainer.scale.set(0.90);
     setTimeout(() => {
-      if (!this.destroyed) this.scale.set(1.0);
+      if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
     }, 100);
   }
 

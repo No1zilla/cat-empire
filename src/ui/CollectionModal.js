@@ -176,11 +176,35 @@ export class CollectionModal extends Container {
       slotContainer.addChild(slotBg);
 
       if (isUnlocked) {
+        // 1. Аура редкости (для 5+ уровней)
+        if (level >= 5) {
+          let auraColor = 0x9b59b6;
+          let strokeColor = 0xc084fc;
+          if (level >= 9 && level <= 12) {
+            auraColor = 0xffd700;
+            strokeColor = 0xfbbf24;
+          } else if (level >= 13) {
+            auraColor = 0x00f2fe;
+            strokeColor = 0x38bdf8;
+          }
+          const rarityAura = new Graphics();
+          rarityAura.ellipse(slotW / 2, slotH - 45, 24, 8);
+          rarityAura.fill({ color: auraColor, alpha: 0.4 });
+          rarityAura.stroke({ color: strokeColor, width: 1, alpha: 0.8 });
+          slotContainer.addChild(rarityAura);
+        }
+
+        // 2. Овальный подставка-glow
+        const baseGlow = new Graphics();
+        baseGlow.ellipse(slotW / 2, slotH - 45, 22, 8);
+        baseGlow.fill({ color: catData.color || 0xffd700, alpha: 0.7 });
+        slotContainer.addChild(baseGlow);
+
         // Спрайт котика
         const texture = getCatTexture(level);
         if (texture) {
           const sprite = new Sprite(texture);
-          const spriteSize = 46;
+          const spriteSize = 52;
           sprite.width = spriteSize;
           sprite.height = spriteSize;
           sprite.x = (slotW - spriteSize) / 2;

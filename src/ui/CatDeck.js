@@ -100,11 +100,12 @@ export class CatDeck extends Container {
       cardBg.roundRect(0, 0, cardW, cardH, 10);
 
       if (isUnlocked) {
-        cardBg.fill(catData.color);
+        // Тёмный фон карточки, чтобы пьедестал выделялся
+        cardBg.fill(0x18152e);
         if (level === this.maxUnlockedLevel) {
           cardBg.stroke({ color: '#ffd700', width: 2.5 });
         } else {
-          cardBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
+          cardBg.stroke({ color: '#ffffff', alpha: 0.15, width: 1.5 });
         }
       } else {
         // Тёмный утонченный слот заблокированного котика
@@ -114,6 +115,30 @@ export class CatDeck extends Container {
       cardGroup.addChild(cardBg);
 
       if (isUnlocked) {
+        // 1. Аура редкости (для 5+ уровней)
+        if (level >= 5) {
+          let auraColor = 0x9b59b6;
+          let strokeColor = 0xc084fc;
+          if (level >= 9 && level <= 12) {
+            auraColor = 0xffd700;
+            strokeColor = 0xfbbf24;
+          } else if (level >= 13) {
+            auraColor = 0x00f2fe;
+            strokeColor = 0x38bdf8;
+          }
+          const rarityAura = new Graphics();
+          rarityAura.ellipse(cardW / 2, cardH - 34, 20, 7);
+          rarityAura.fill({ color: auraColor, alpha: 0.4 });
+          rarityAura.stroke({ color: strokeColor, width: 1, alpha: 0.8 });
+          cardGroup.addChild(rarityAura);
+        }
+
+        // 2. Овальный подставка-glow
+        const baseGlow = new Graphics();
+        baseGlow.ellipse(cardW / 2, cardH - 34, 18, 6);
+        baseGlow.fill({ color: catData.color || 0xffd700, alpha: 0.7 });
+        cardGroup.addChild(baseGlow);
+
         const texture = getCatTexture(level);
         if (texture) {
           const sprite = new Sprite(texture);

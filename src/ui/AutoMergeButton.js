@@ -41,26 +41,31 @@ export class AutoMergeButton extends Container {
     const btnWidth = 140;
     const btnHeight = 50;
 
+    this._innerContainer = new Container();
+    this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
+    this._innerContainer.position.set(btnWidth / 2, btnHeight / 2);
+    this.addChild(this._innerContainer);
+
     // 1. Нижняя объёмная тень
     this._shadowBg = new Graphics();
     this._shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
     this._shadowBg.fill(0x1e8449);
-    this.addChild(this._shadowBg);
+    this._innerContainer.addChild(this._shadowBg);
 
     // 2. Фон кнопки
     this._btnBg = new Graphics();
     this._btnBg.roundRect(0, 0, btnWidth, btnHeight, 14);
     this._btnBg.fill(0x2ecc71);
     this._btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 2 });
-    this.addChild(this._btnBg);
+    this._innerContainer.addChild(this._btnBg);
 
     // 3. Блик
     const shine = new Graphics();
     shine.roundRect(2, 2, btnWidth - 4, 18, 10);
     shine.fill({ color: 0xffffff, alpha: 0.22 });
-    this.addChild(shine);
+    this._innerContainer.addChild(shine);
 
-    // 4. Текст кнопки "⚡ Соединить все"
+    // 4. Текст кнопки "⚡ Соединить"
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,
@@ -73,7 +78,7 @@ export class AutoMergeButton extends Container {
     this._btnText = new Text({ text: '⚡ Соединить', style: titleStyle });
     this._btnText.anchor.set(0.5, 0);
     this._btnText.position.set(btnWidth / 2, 6);
-    this.addChild(this._btnText);
+    this._innerContainer.addChild(this._btnText);
 
     // 5. Подтекст статуса
     const subStyle = new TextStyle({
@@ -87,7 +92,7 @@ export class AutoMergeButton extends Container {
     this._subText = new Text({ text: 'БЕСПЛАТНО', style: subStyle });
     this._subText.anchor.set(0.5, 0);
     this._subText.position.set(btnWidth / 2, 26);
-    this.addChild(this._subText);
+    this._innerContainer.addChild(this._subText);
 
     // Настройка кликов и микро-анимации
     this.on('pointerdown', (e) => {
@@ -103,9 +108,9 @@ export class AutoMergeButton extends Container {
   }
 
   _playClickAnim() {
-    this.scale.set(0.94);
+    if (this._innerContainer) this._innerContainer.scale.set(0.90);
     setTimeout(() => {
-      if (!this.destroyed) this.scale.set(1.0);
+      if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
     }, 100);
   }
 

@@ -1,5 +1,6 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { getUITexture } from '../utils/catTextures.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 
@@ -28,7 +29,7 @@ export class SpawnSystem extends Container {
   updateButtonLabel() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
     if (this._btnText) {
-      this._btnText.text = `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`;
+      this._btnText.text = `Купить (${cost.toLocaleString('ru-RU')} 🪙)`;
     }
   }
 
@@ -45,44 +46,50 @@ export class SpawnSystem extends Container {
     const btnWidth = 145;
     const btnHeight = 50;
 
+    this._innerContainer = new Container();
+    this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
+    this._innerContainer.position.set(btnWidth / 2, btnHeight / 2);
+    this.addChild(this._innerContainer);
+
     // 1. Нижняя тень
     const shadowBg = new Graphics();
     shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
     shadowBg.fill(0x9e2a3b);
-    this.addChild(shadowBg);
+    this._innerContainer.addChild(shadowBg);
 
     // 2. Основная градиентная карточка кнопки
-    const bg = new Graphics();
-    bg.roundRect(0, 0, btnWidth, btnHeight, 14);
-    bg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
-    bg.stroke({ color: '#ffffff', alpha: 0.5, width: 2.0 });
-    this.addChild(bg);
+    const btnTex = getUITexture('btn_buy_pink');
+    if (btnTex) {
+      const btnSprite = new Sprite(btnTex);
+      btnSprite.width = btnWidth;
+      btnSprite.height = btnHeight;
+      this._innerContainer.addChild(btnSprite);
+    } else {
+      const bg = new Graphics();
+      bg.roundRect(0, 0, btnWidth, btnHeight, 14);
+      bg.fill(0xff3b6e);
+      bg.stroke({ color: '#ffffff', alpha: 0.7, width: 2.0 });
+      this._innerContainer.addChild(bg);
+    }
 
-    // 3. Блик сверху на кнопке
-    const shine = new Graphics();
-    shine.roundRect(2, 2, btnWidth - 4, 18, 10);
-    shine.fill({ color: 0xffffff, alpha: 0.22 });
-    this.addChild(shine);
-
-    // 4. Текст на кнопке (Fredoka font)
     const style = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
-      dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1.5 }
+      dropShadow: { color: '#000000', alpha: 0.6, blur: 3, distance: 1 }
     });
 
     const cost = this.economy ? this.economy.getCatCost() : 10;
     this._btnText = new Text({
-      text: `🐱 Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
+      text: `Купить (${cost.toLocaleString('ru-RU')} 🪙)`,
       style: style
     });
     this._btnText.anchor.set(0.5, 0.5);
-    this._btnText.x = btnWidth / 2;
-    this._btnText.y = btnHeight / 2 - 1;
-    this.addChild(this._btnText);
+    this._btnText.x = btnWidth / 2 + 10;
+    this._btnText.y = btnHeight / 2;
+    this._innerContainer.addChild(this._btnText);
 
     // 5. Настройка интерактивности и Hold-to-Buy (авто-спавн при зажатии)
     this.eventMode = 'static';
@@ -94,7 +101,10 @@ export class SpawnSystem extends Container {
       this._startHold();
     });
 
-    const stopHandler = () => this._stopHold();
+    const stopHandler = () => {
+      this._stopHold();
+      if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
+    };
     this.on('pointerup', stopHandler);
     this.on('pointerupoutside', stopHandler);
     this.on('pointerout', stopHandler);
@@ -112,6 +122,7 @@ export class SpawnSystem extends Container {
         const freeSlot = this.grid ? this.grid.getFreeSlotIndex() : -1;
         const cost = this.economy ? this.economy.getCatCost() : 10;
         if (freeSlot !== -1 && this.economy && this.economy.canAfford(cost)) {
+          this._playClickAnim();
           this._spawnCat();
         } else {
           this._stopHold();
@@ -132,10 +143,12 @@ export class SpawnSystem extends Container {
   }
 
   _playClickAnim() {
-    this.scale.set(0.94);
+    if (this._innerContainer) this._innerContainer.scale.set(0.90);
     setTimeout(() => {
-      if (!this.destroyed) this.scale.set(1.0);
-    }, 100);
+      if (!this.destroyed && this._innerContainer && !this._holdInterval) {
+        this._innerContainer.scale.set(1.0);
+      }
+    }, 80);
   }
 
   _showNotEnoughCoins() {
