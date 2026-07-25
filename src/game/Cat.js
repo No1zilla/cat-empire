@@ -110,39 +110,26 @@ export class Cat extends Container {
 
     if (this.level < 5) return;
 
-    let auraColor = 0x9b59b6; // Lvl 5-8: Фиолетовый (Редкий)
+    let auraColor = 0x9b59b6; // Lvl 5-8: Фиолетовый
     let strokeColor = 0xc084fc;
 
     if (this.level >= 9 && this.level <= 12) {
-      auraColor = 0xffd700; // Lvl 9-12: Золотой (Эпический)
+      auraColor = 0xffd700; // Lvl 9-12: Золотой
       strokeColor = 0xfbbf24;
     } else if (this.level >= 13) {
-      auraColor = 0x00f2fe; // Lvl 13-15: Легендарный (Бриллиантовый)
+      auraColor = 0x00f2fe; // Lvl 13-15: Легендарный
       strokeColor = 0x38bdf8;
     }
 
     const cardWidth = CONFIG.CELL_SIZE - 2;
-    const cardHeight = CONFIG.CELL_SIZE - 2;
 
+    // Статичное нежное свечение под пьедесталом котика без моргания
     this._rarityAura = new Graphics();
-    this._rarityAura.roundRect(-4, -4, cardWidth + 8, cardHeight + 8, 14);
-    this._rarityAura.fill({ color: auraColor, alpha: 0.35 });
-    this._rarityAura.stroke({ color: strokeColor, width: 2.5, alpha: 0.85 });
+    this._rarityAura.ellipse(cardWidth / 2, cardWidth - 8, 30, 11);
+    this._rarityAura.fill({ color: auraColor, alpha: 0.3 });
+    this._rarityAura.stroke({ color: strokeColor, width: 1.5, alpha: 0.6 });
 
     this.addChildAt(this._rarityAura, 0);
-
-    const start = performance.now();
-    const speed = 0.0035;
-
-    const tickRarity = () => {
-      if (!this._rarityAura || this.destroyed) return;
-      const now = performance.now() - start;
-      const pulse = 0.4 + Math.sin(now * speed) * 0.35;
-      this._rarityAura.alpha = pulse;
-      this._rarityTicker = requestAnimationFrame(tickRarity);
-    };
-
-    this._rarityTicker = requestAnimationFrame(tickRarity);
   }
 
   _stopRarityAnimation() {
