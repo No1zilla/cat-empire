@@ -59,16 +59,30 @@ export class CatDeck extends Container {
     titleText.position.set(22, 8);
     this.addChild(titleText);
 
-    // Подсказка
-    const hintStyle = new TextStyle({
+    // Кнопка перезапуска туториала "🎓 Обучение"
+    const tutorialBtnStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 10,
-      fill: CONFIG.COLORS.TEXT_DIM || '#9ca3af'
+      fontSize: 11,
+      fontWeight: 'bold',
+      fill: '#a8d8ff'
     });
-    const hintText = new Text({ text: 'Листай ◄ ►', style: hintStyle });
-    hintText.anchor.set(1, 0);
-    hintText.position.set(W - 40, 9);
-    this.addChild(hintText);
+    const tutorialBtn = new Text({ text: '🎓 Обучение', style: tutorialBtnStyle });
+    tutorialBtn.anchor.set(1, 0);
+    tutorialBtn.position.set(W - 30, 8);
+    tutorialBtn.eventMode = 'static';
+    tutorialBtn.cursor = 'pointer';
+    tutorialBtn.on('pointerdown', (e) => {
+      e.stopPropagation();
+      if (typeof window.resetTutorial === 'function') {
+        window.resetTutorial();
+      } else {
+        localStorage.removeItem('cat_empire_tutorial_done');
+        location.reload();
+      }
+    });
+    tutorialBtn.on('pointerover', () => { tutorialBtn.style.fill = '#ffd700'; });
+    tutorialBtn.on('pointerout', () => { tutorialBtn.style.fill = '#a8d8ff'; });
+    this.addChild(tutorialBtn);
 
     // 3. Зона маскирования (ширина между стрелками без наслоения)
     const maskX = 48;
