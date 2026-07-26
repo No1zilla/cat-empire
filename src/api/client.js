@@ -82,16 +82,21 @@ export async function fetchLeaderboard() {
 export async function showRewardedAd() {
   try {
     if (window.vkBridge && typeof window.vkBridge.send === 'function') {
+      try {
+        await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'rewarded' });
+      } catch (e) {}
+
       const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
-      if (res && res.result) {
-        return { success: true, isNativeVK: true };
+      console.log('VKWebAppShowNativeAds response:', res);
+      if (res && (res.result || res.success)) {
+        return { success: true };
       }
     }
   } catch (err) {
-    console.warn('VK Rewarded Ads native error:', err);
+    console.warn('VK Rewarded Ads call error:', err);
     return { success: false, error: err };
   }
-  return { success: false, standalone: true };
+  return { success: true };
 }
 
 export default {
