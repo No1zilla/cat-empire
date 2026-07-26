@@ -112,7 +112,7 @@ export class AdModal extends Container {
       fill: '#ffffff',
       align: 'center'
     });
-    const btnText = new Text({ text: `🎬 Смотреть Видео (+${this.rewardGems} 💎)`, style: btnTextStyle });
+    const btnText = new Text({ text: '🎬 Смотреть Видео (+5 💎)', style: btnTextStyle });
     btnText.anchor.set(0.5, 0.5);
     btnText.position.set(W / 2, btnY + btnH / 2);
     btnText.eventMode = 'none';
