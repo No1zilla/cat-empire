@@ -345,6 +345,7 @@ export class Game {
         console.log('Оффлайн-доход получен:', offlineEarned);
         showTutorialIfNeeded();
       });
+      modal.zIndex = 99999;
       this.app.stage.addChild(modal);
     } else {
       showTutorialIfNeeded();
