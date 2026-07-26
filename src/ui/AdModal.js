@@ -17,7 +17,7 @@ export class AdModal extends Container {
     this._videoTicker = null;
 
     this.eventMode = 'static';
-    this._drawConfirmState();
+    this._startVideoPlayer();
   }
 
   // 1. Экран запроса подтверждения просмотра
