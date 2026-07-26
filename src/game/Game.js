@@ -82,7 +82,7 @@ export class Game {
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     this.grid.x = 0;
-    this.grid.y = 48;
+    this.grid.y = 66;
     this.app.stage.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке

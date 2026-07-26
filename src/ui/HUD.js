@@ -20,7 +20,7 @@ export class HUD extends Container {
   _draw() {
     this.removeChildren();
     const hudWidth = CONFIG.GAME_WIDTH || 400;
-    const hudHeight = 46;
+    const hudHeight = 52;
 
     // 1. Тёмно-синий монолитный фон
     const bg = new Graphics();
@@ -29,7 +29,7 @@ export class HUD extends Container {
     this.addChild(bg);
 
     const capH = 34;
-    const capY = 6;
+    const capY = 9;
     const capRadius = 16;
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
 
@@ -113,7 +113,7 @@ export class HUD extends Container {
     if (!this._gemsText || !this._gemIcon) return;
     const cap2W = 94;
     const cap2X = 162;
-    const capY = 6;
+    const capY = 9;
     const capH = 34;
 
     const iconW = 16;
