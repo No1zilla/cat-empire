@@ -132,7 +132,32 @@ export class AutoMergeButton extends Container {
   }
 
   async _handleClick() {
-    // Нажатие на «⚡ Соединить» ВСЕГДА запускает просмотр рекламы (+5 💎) и авто-слияние!
+    const GEM_COST = 5;
+
+    // 1. Если у игрока ХВАТАЕТ гемов (gems >= 5) -> списываем 5 гемов и соединяем БЕЗ ВИДЕО!
+    if (this.economy && this.economy.gems >= GEM_COST) {
+      try {
+        this.economy.spendGems(GEM_COST);
+      } catch (e) {
+        this._showWarning('Мало 💎 гемов!');
+        return;
+      }
+
+      await this.onTriggerAutoMerge();
+
+      try {
+        await saveProgress({
+          coins: this.economy ? this.economy.coins : undefined,
+          gems: this.economy ? this.economy.gems : undefined,
+          totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
+        });
+      } catch (err) {
+        console.error('Ошибка автосохранения гемов:', err);
+      }
+      return;
+    }
+
+    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы за +5 💎!
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
