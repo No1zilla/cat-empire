@@ -26,7 +26,6 @@ export class HUD extends Container {
     const bg = new Graphics();
     bg.rect(0, 0, hudWidth, hudHeight);
     bg.fill(0x0a0d24);
-    bg.stroke({ color: 0x1f2754, width: 1.5 });
     this.addChild(bg);
 
     const capH = 34;
