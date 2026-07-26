@@ -88,15 +88,15 @@ export async function showRewardedAd() {
 
       const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
       console.log('VKWebAppShowNativeAds response:', res);
-      if (res && (res.result || res.success)) {
+      if (res && (res.result === true || res.success === true)) {
         return { success: true };
       }
     }
   } catch (err) {
-    console.warn('VK Rewarded Ads call error:', err);
+    console.error('VK Rewarded Ads error:', err);
     return { success: false, error: err };
   }
-  return { success: true };
+  return { success: false, error: 'Ads not shown' };
 }
 
 export default {
