@@ -70,16 +70,16 @@ export class AutoMergeButton extends Container {
     this._btnText.position.set(btnWidth / 2, 6);
     this._innerContainer.addChild(this._btnText);
 
-    // 5. Подтекст «+5 💎 ЗА VK ADS»
+    // 5. Красивый сочный центрированный подтекст "+5 💎"
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 11,
-      fontWeight: 'bold',
-      fill: '#ffd700',
-      align: 'center'
+      fontSize: 13,
+      fontWeight: '900',
+      fill: ['#ffffff', '#82efff'],
+      dropShadow: { color: '#000000', alpha: 0.7, blur: 3, distance: 1 }
     });
 
-    this._subText = new Text({ text: '+5 💎 ЗА РЕКЛАМУ', style: subStyle });
+    this._subText = new Text({ text: '+5 💎', style: subStyle });
     this._subText.anchor.set(0.5, 0);
     this._subText.position.set(btnWidth / 2, 26);
     this._innerContainer.addChild(this._subText);
