@@ -75,7 +75,7 @@ export class AutoMergeButton extends Container {
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,
       fontWeight: '900',
-      fill: ['#ffffff', '#82efff'],
+      fill: '#82efff',
       dropShadow: { color: '#000000', alpha: 0.7, blur: 3, distance: 1 }
     });
 
