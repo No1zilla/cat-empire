@@ -327,14 +327,21 @@ export class Game {
     this._startFloatingIncomePopups();
 
     // 9. Модальные окна
-    const showTutorialIfNeeded = () => {
+    const showTutorialIfNeeded = (force = false) => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
-      if (!tutorialDone) {
+      if (!tutorialDone || force) {
         const tutorial = new Tutorial(this.app, () => {
           console.log('✅ Туториал завершён!');
         });
+        tutorial.zIndex = 999999;
         this.app.stage.addChild(tutorial);
       }
+    };
+
+    window.resetTutorial = () => {
+      localStorage.removeItem('cat_empire_tutorial_done');
+      showTutorialIfNeeded(true);
+      console.log('🔄 Туториал перезапущен!');
     };
 
     const previousCoins = parseFloat(localStorage.getItem('cat_empire_last_coins') || '0');

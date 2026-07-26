@@ -214,16 +214,15 @@ export class AdModal extends Container {
     bannerText.position.set(W / 2, screenY + 180);
     videoScene.addChild(bannerText);
 
-    // Летающие монеты 🪙 в видеоклипе
-    const coins = [];
-    for (let i = 0; i < 5; i++) {
-      const coin = new Text({ text: '🪙', style: new TextStyle({ fontSize: 24 }) });
-      coin.anchor.set(0.5, 0.5);
-      coin.x = screenX + 30 + Math.random() * (screenW - 60);
-      coin.y = screenY + 40 + Math.random() * (screenH - 80);
-      coin.speedY = 1.5 + Math.random() * 2;
-      videoScene.addChild(coin);
-      coins.push(coin);
+    // Летающие сверкающие гемы 💎 в видеоклипе
+    const gems = [];
+    for (let i = 0; i < 6; i++) {
+      const gem = UIUtils.createGemIcon(12);
+      gem.x = screenX + 30 + Math.random() * (screenW - 60);
+      gem.y = screenY + 40 + Math.random() * (screenH - 80);
+      gem.speedY = 1.5 + Math.random() * 2;
+      videoScene.addChild(gem);
+      gems.push(gem);
     }
 
     // 60 FPS Рендер-анимация роликового видеоплеера
@@ -244,12 +243,12 @@ export class AdModal extends Container {
         catSprite.scale.set(1.0 + Math.sin(frame * 0.2) * 0.08);
       }
 
-      // Падение золотых монет
-      coins.forEach((coin) => {
-        coin.y += coin.speedY;
-        if (coin.y > screenY + screenH - 20) {
-          coin.y = screenY + 30;
-          coin.x = screenX + 30 + Math.random() * (screenW - 60);
+      // Падение сверкающих гемов
+      gems.forEach((gem) => {
+        gem.y += gem.speedY;
+        if (gem.y > screenY + screenH - 20) {
+          gem.y = screenY + 30;
+          gem.x = screenX + 30 + Math.random() * (screenW - 60);
         }
       });
     };

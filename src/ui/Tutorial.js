@@ -17,28 +17,28 @@ export class Tutorial extends Container {
         title: '🐱 Покупай котиков!',
         text: 'Нажми «Купить»,\nчтобы добавить котика.\n💡 Зажмите кнопку для\nбыстрой авто-покупки!',
         highlightTarget: 'button',
-        cardY: 280,
+        cardY: 240,
         cardH: 185,
-        handStartX: 85,  handStartY: 560,
-        handEndX:   85,  handEndY:   605,
+        handStartX: 73,  handStartY: 570,
+        handEndX:   73,  handEndY:   515,
       },
       {
         title: '🔀 Перетаскивай!',
         text: 'Возьми котика\nи перетащи его\nна другого такого\nже котика.',
-        highlightTarget: 'grid',
-        cardY: 505,
-        cardH: 160,
-        handStartX: 120, handStartY: 260,
-        handEndX:   220, handEndY:   260,
+        highlightTarget: 'slots',
+        cardY: 175,
+        cardH: 180,
+        handStartX: 42,  handStartY: 105,
+        handEndX:   124, handEndY:   105,
       },
       {
         title: '✨ Они объединились!',
-        text: 'Два одинаковых\nкотика сливаются\nв одного более\nсильного!',
-        highlightTarget: 'center',
-        cardY: 440,
-        cardH: 175,
-        handStartX: 200, handStartY: 350,
-        handEndX:   200, handEndY:   295,
+        text: 'Два одинаковых\nкотика сливаются\nв одного более\nсильного котика!',
+        highlightTarget: 'mergedSlot',
+        cardY: 175,
+        cardH: 180,
+        handStartX: 124, handStartY: 145,
+        handEndX:   124, handEndY:   105,
       }
     ];
 
@@ -70,12 +70,14 @@ export class Tutorial extends Container {
     overlay.eventMode = 'static';
     this.addChild(overlay);
 
-    // 2. Spotlight (подсвеченная зона)
+    // 2. Spotlight (подсвеченная зона под аккуратные координаты)
     const spotlight = new Graphics();
     if (step.highlightTarget === 'button') {
-      spotlight.roundRect(10, 605, 145, 52, 12);
-    } else if (step.highlightTarget === 'grid') {
-      spotlight.roundRect(10, 115, 380, 380, 16);
+      spotlight.roundRect(12, 483, 122, 50, 14);
+    } else if (step.highlightTarget === 'slots') {
+      spotlight.roundRect(2, 64, 162, 81, 14);
+    } else if (step.highlightTarget === 'mergedSlot') {
+      spotlight.roundRect(83, 64, 81, 81, 14);
     } else {
       spotlight.circle(200, 300, 80);
     }
