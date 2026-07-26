@@ -7,7 +7,7 @@ import { getCatTexture } from '../utils/catTextures.js';
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
  */
 export class AdModal extends Container {
-  constructor(app, economy, onRewardGranted, rewardGems = 20) {
+  constructor(app, economy, onRewardGranted, rewardGems = 5) {
     super();
     this.app = app;
     this.economy = economy;
