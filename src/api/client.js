@@ -84,14 +84,14 @@ export async function showRewardedAd() {
     if (window.vkBridge && typeof window.vkBridge.send === 'function') {
       const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
       if (res && res.result) {
-        return { success: true };
+        return { success: true, isNativeVK: true };
       }
     }
   } catch (err) {
-    console.warn('VK Rewarded Ads fallback / environment error:', err);
+    console.warn('VK Rewarded Ads native error:', err);
+    return { success: false, error: err };
   }
-  // Симуляция успешного просмотра для веб-версии / разработки
-  return { success: true };
+  return { success: false, standalone: true };
 }
 
 export default {

@@ -82,9 +82,25 @@ export class AdModal extends Container {
     watchBtn.eventMode = 'static';
     watchBtn.cursor = 'pointer';
 
-    watchBtn.on('pointerdown', (e) => {
+    watchBtn.on('pointerdown', async (e) => {
       e.stopPropagation();
-      this._startVideoPlayer();
+      watchBtn.scale.set(0.95);
+
+      // 1. Вызываем настоящую полноэкранную нативную рекламу VK
+      const adRes = await showRewardedAd();
+
+      if (adRes && adRes.success && adRes.isNativeVK) {
+        // Нативная реклама VK успешно просмотрена игроком!
+        if (this.economy && this.rewardGems > 0) {
+          this.economy.addGems(this.rewardGems);
+          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+        }
+        this._close();
+        this.onRewardGranted();
+      } else {
+        // Вне VK или в тестовой среде — запускаем резервную симуляцию
+        this._startVideoPlayer();
+      }
     });
 
     this.addChild(watchBtn);
