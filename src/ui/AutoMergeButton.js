@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { saveProgress, showRewardedAd } from '../api/client.js';
 import { AdModal } from './AdModal.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -70,19 +71,29 @@ export class AutoMergeButton extends Container {
     this._btnText.position.set(btnWidth / 2, 6);
     this._innerContainer.addChild(this._btnText);
 
-    // 5. Красивый сочный центрированный подтекст "+5 💎"
+    // 5. Красивый сочный центрированный подтекст "5 💎" с 3D рубиновым гемом
+    const subContainer = new Container();
+
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,
-      fontWeight: '900',
-      fill: '#82efff',
-      dropShadow: { color: '#000000', alpha: 0.7, blur: 3, distance: 1 }
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.7, blur: 2, distance: 1 }
     });
 
-    this._subText = new Text({ text: '+5 💎', style: subStyle });
-    this._subText.anchor.set(0.5, 0);
-    this._subText.position.set(btnWidth / 2, 26);
-    this._innerContainer.addChild(this._subText);
+    this._subText = new Text({ text: '5', style: subStyle });
+    this._subText.anchor.set(0, 0.5);
+
+    const gemIcon = UIUtils.createGemIcon(9);
+    gemIcon.position.set(this._subText.width + 10, 0);
+
+    subContainer.addChild(this._subText);
+    subContainer.addChild(gemIcon);
+
+    subContainer.pivot.set((this._subText.width + 18) / 2, 0);
+    subContainer.position.set(btnWidth / 2, 33);
+    this._innerContainer.addChild(subContainer);
 
     // Настройка кликов и микро-анимации
     this.on('pointerdown', (e) => {
