@@ -68,10 +68,8 @@ export class HUD extends Container {
     cap2.stroke({ color: 0x222b5e, width: 1.5 });
     this.addChild(cap2);
 
-    const gemStyle = new TextStyle({ fontSize: 13 });
-    const gemIcon = new Text({ text: '💎', style: gemStyle });
-    gemIcon.anchor.set(0.5, 0.5);
-    gemIcon.position.set(cap2X + 16, capY + capH / 2);
+    const gemIcon = UIUtils.createGemIcon(11);
+    gemIcon.position.set(cap2X + 18, capY + capH / 2);
     this.addChild(gemIcon);
 
     const gemsStyle = new TextStyle({
@@ -83,7 +81,7 @@ export class HUD extends Container {
     });
     this._gemsText = new Text({ text: '0', style: gemsStyle });
     this._gemsText.anchor.set(0, 0.5);
-    this._gemsText.position.set(cap2X + 32, capY + capH / 2);
+    this._gemsText.position.set(cap2X + 34, capY + capH / 2);
     this.addChild(this._gemsText);
 
     // 4. КАПСУЛА 3: Доход в секунду (Справа)
@@ -102,10 +100,14 @@ export class HUD extends Container {
       fill: '#2ecc71',
       dropShadow: { color: '#000000', alpha: 0.5, blur: 2, distance: 1 }
     });
-    this._ipsText = new Text({ text: '+0/сек ⬆️', style: ipsStyle });
-    this._ipsText.anchor.set(0.5, 0.5);
-    this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
+    this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });
+    this._ipsText.anchor.set(0, 0.5);
+    this._ipsText.position.set(cap3X + 16, capY + capH / 2);
     this.addChild(this._ipsText);
+
+    const upArrowIcon = UIUtils.createUpArrowIcon(8);
+    upArrowIcon.position.set(cap3X + cap3W - 20, capY + capH / 2);
+    this.addChild(upArrowIcon);
   }
 
   update(coins, gems, incomePerSecond) {
@@ -116,7 +118,7 @@ export class HUD extends Container {
       this._gemsText.text = String(gems || 0);
     }
     if (this._ipsText) {
-      this._ipsText.text = `+${Math.floor(incomePerSecond || 0).toLocaleString('ru-RU')}/сек ⬆️`;
+      this._ipsText.text = `+${Math.floor(incomePerSecond || 0).toLocaleString('ru-RU')}/сек`;
     }
   }
 }

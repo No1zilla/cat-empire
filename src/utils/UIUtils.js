@@ -60,5 +60,83 @@ export const UIUtils = {
     container.addChild(shine);
 
     return container;
+  },
+
+  /**
+   * Рисует объёмный 3D огранённый кристалл гема (Розово-рубиновый бриллиант)
+   * @param {number} size - размер
+   * @returns {Container}
+   */
+  createGemIcon: (size = 11) => {
+    const container = new Container();
+
+    // Тень от кристалла
+    const shadow = new Graphics();
+    shadow.ellipse(0, size + 2, size * 0.8, size * 0.3);
+    shadow.fill({ color: 0x000000, alpha: 0.4 });
+    container.addChild(shadow);
+
+    const g = new Graphics();
+
+    // 1. Нижняя пик-грань (основное конусное основание)
+    g.poly([-size, -size * 0.3, 0, size, size, -size * 0.3]);
+    g.fill(0xd81b60); // Насыщенный рубин
+
+    // 2. Верхняя корона трапеция
+    g.poly([-size, -size * 0.3, -size * 0.6, -size, size * 0.6, -size, size, -size * 0.3]);
+    g.fill(0xff4081); // Розовый неон
+
+    // 3. Центральная острая грань
+    g.poly([-size * 0.4, -size * 0.3, 0, size, size * 0.4, -size * 0.3, 0, -size]);
+    g.fill(0xff80ab); // Светлый блеск
+
+    // 4. Левая корона грань
+    g.poly([-size, -size * 0.3, -size * 0.6, -size, -size * 0.4, -size * 0.3]);
+    g.fill(0xc2185b);
+
+    // 5. Правая корона грань
+    g.poly([size, -size * 0.3, size * 0.6, -size, size * 0.4, -size * 0.3]);
+    g.fill(0xff80ab);
+
+    // 6. Блик белого света на главной грани
+    g.moveTo(-size * 0.3, -size * 0.7);
+    g.lineTo(0, -size * 0.9);
+    g.lineTo(size * 0.3, -size * 0.7);
+    g.stroke({ color: 0xffffff, width: 1.5, alpha: 0.9, cap: 'round' });
+
+    container.addChild(g);
+    return container;
+  },
+
+  /**
+   * Рисует сочную неоновую зелёную стрелку вверх ⬆️ (без серого смайлика)
+   * @param {number} size
+   * @returns {Container}
+   */
+  createUpArrowIcon: (size = 9) => {
+    const container = new Container();
+
+    // Тень стрелки
+    const shadow = new Graphics();
+    shadow.poly([0, -size + 2, -size * 0.7, 1, -size * 0.3, 1, -size * 0.3, size + 2, size * 0.3, size + 2, size * 0.3, 1, size * 0.7, 1]);
+    shadow.fill({ color: 0x000000, alpha: 0.4 });
+    container.addChild(shadow);
+
+    const arrow = new Graphics();
+    // Наконечник треугольник + хвостик
+    arrow.poly([
+      0, -size,
+      -size * 0.75, 0,
+      -size * 0.3, 0,
+      -size * 0.3, size,
+      size * 0.3, size,
+      size * 0.3, 0,
+      size * 0.75, 0
+    ]);
+    arrow.fill(0x2ecc71); // Изумрудно-зеленый неон
+    arrow.stroke({ color: 0xffffff, width: 1.2, alpha: 0.8 });
+    container.addChild(arrow);
+
+    return container;
   }
 };
