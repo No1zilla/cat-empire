@@ -155,6 +155,13 @@
       100% { opacity: 1.0; }
     }
   </style>
+  <script>
+    window.resetTutorial = function() {
+      localStorage.removeItem('cat_empire_tutorial_done');
+      console.log('🔄 Флаг туториала сброшен! Перезагружаем страницу...');
+      location.reload();
+    };
+  </script>
 </head>
 <body>
   <!-- 🔥 Роскошный Сплаш-Экран Загрузки -->

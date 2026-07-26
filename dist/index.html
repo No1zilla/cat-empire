@@ -155,7 +155,14 @@
       100% { opacity: 1.0; }
     }
   </style>
-  <script type="module" crossorigin src="./assets/index-n4D6zq1Q.js"></script>
+  <script>
+    window.resetTutorial = function() {
+      localStorage.removeItem('cat_empire_tutorial_done');
+      console.log('🔄 Флаг туториала сброшен! Перезагружаем страницу...');
+      location.reload();
+    };
+  </script>
+  <script type="module" crossorigin src="./assets/index-BdIdbAJY.js"></script>
 </head>
 <body>
   <!-- 🔥 Роскошный Сплаш-Экран Загрузки -->

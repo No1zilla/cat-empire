@@ -4,6 +4,13 @@ import { VKService } from './vk/VKBridge.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 
+// Глобальный метод для отладки и сброса туториала
+window.resetTutorial = () => {
+  localStorage.removeItem('cat_empire_tutorial_done');
+  console.log('🔄 Флаг туториала сброшен! Перезагрузка...');
+  location.reload();
+};
+
 // Обновление прогресс-бара на экране загрузки (Splash Screen)
 function updateSplashProgress(percent, statusText) {
   const bar = document.getElementById('splash-progress');
