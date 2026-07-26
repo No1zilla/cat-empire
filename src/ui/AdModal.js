@@ -316,7 +316,9 @@ export class AdModal extends Container {
 
         setTimeout(() => {
           this._close();
-          this.onRewardGranted();
+          if (typeof this.onRewardGranted === 'function') {
+            this.onRewardGranted();
+          }
         }, 500);
       }
     }, 1000 / 30);

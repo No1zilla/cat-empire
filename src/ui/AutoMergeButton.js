@@ -158,13 +158,11 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы за +5 💎!
+    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы для начисления +5 💎!
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
-      const adModal = new AdModal(this.app, this.economy, async () => {
-        await this.onTriggerAutoMerge();
-      }, 5);
+      const adModal = new AdModal(this.app, this.economy, null, 5);
       adModal.zIndex = 99999;
       stage.addChild(adModal);
     } else {
