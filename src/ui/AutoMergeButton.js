@@ -50,14 +50,14 @@ export class AutoMergeButton extends Container {
     // 1. Нижняя объёмная тень
     this._shadowBg = new Graphics();
     this._shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
-    this._shadowBg.fill(0x1e8449);
+    this._shadowBg.fill(0x6c3483);
     this._innerContainer.addChild(this._shadowBg);
 
-    // 2. Фон кнопки
+    // 2. Фон кнопки (Фиолетовый нативный градиент Рекламы VK)
     this._btnBg = new Graphics();
     this._btnBg.roundRect(0, 0, btnWidth, btnHeight, 14);
-    this._btnBg.fill(0x2ecc71);
-    this._btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 2 });
+    this._btnBg.fill(0x8e44ad);
+    this._btnBg.stroke({ color: '#ffffff', alpha: 0.6, width: 2 });
     this._innerContainer.addChild(this._btnBg);
 
     // 3. Блик
@@ -81,7 +81,7 @@ export class AutoMergeButton extends Container {
     this._btnText.position.set(btnWidth / 2, 6);
     this._innerContainer.addChild(this._btnText);
 
-    // 5. Подтекст статуса
+    // 5. Подтекст «+5 💎 ЗА VK ADS»
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 11,
@@ -90,7 +90,7 @@ export class AutoMergeButton extends Container {
       align: 'center'
     });
 
-    this._subText = new Text({ text: 'БЕСПЛАТНО', style: subStyle });
+    this._subText = new Text({ text: '+5 💎 ЗА РЕКЛАМУ', style: subStyle });
     this._subText.anchor.set(0.5, 0);
     this._subText.position.set(btnWidth / 2, 26);
     this._innerContainer.addChild(this._subText);
@@ -104,8 +104,6 @@ export class AutoMergeButton extends Container {
 
     this.on('pointerover', () => { this.alpha = 0.92; });
     this.on('pointerout',  () => { this.alpha = 1.0; });
-
-    this._updateUI();
   }
 
   _playClickAnim() {
@@ -113,44 +111,6 @@ export class AutoMergeButton extends Container {
     setTimeout(() => {
       if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
     }, 100);
-  }
-
-  _getInfiniteBoostRemaining() {
-    const until = parseInt(localStorage.getItem('cat_empire_infinite_automerge_until') || '0', 10);
-    const now = Math.floor(Date.now() / 1000);
-    return Math.max(0, until - now);
-  }
-
-  _updateUI() {
-    const remaining = this._getRemainingCooldown();
-
-    if (remaining === 0) {
-      if (this._shadowBg) this._shadowBg.fill(0x1e8449);
-      if (this._btnBg) this._btnBg.fill(0x2ecc71);
-      if (this._btnText) this._btnText.text = '⚡ Соединить';
-      if (this._subText) {
-        this._subText.text = 'БЕСПЛАТНО';
-        this._subText.style.fill = '#ffd700';
-      }
-    } else {
-      if (this._shadowBg) this._shadowBg.fill(0x6c3483);
-      if (this._btnBg) this._btnBg.fill(0x8e44ad);
-      if (this._btnText) this._btnText.text = '⚡ Соединить';
-      const mins = Math.floor(remaining / 60);
-      const secs = remaining % 60;
-      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-      if (this._subText) {
-        this._subText.text = `5 💎 ⏱️ ${timeStr}`;
-        this._subText.style.fill = '#a8d8ff';
-      }
-    }
-  }
-
-  _startTimerLoop() {
-    if (this._timerInterval) clearInterval(this._timerInterval);
-    this._timerInterval = setInterval(() => {
-      this._updateUI();
-    }, 1000);
   }
 
   _showWarning(text) {
@@ -183,52 +143,17 @@ export class AutoMergeButton extends Container {
   }
 
   async _handleClick() {
-    const remaining = this._getRemainingCooldown();
-
-    if (remaining === 0) {
-      const now = Math.floor(Date.now() / 1000);
-      localStorage.setItem('cat_empire_last_free_automerge', String(now));
-      this._updateUI();
-
-      await this.onTriggerAutoMerge();
+    // Нажатие на «⚡ Соединить» ВСЕГДА запускает просмотр рекламы (+5 💎) и авто-слияние!
+    const stage = this.app ? this.app.stage : (this.parent || this.stage);
+    if (stage) {
+      stage.sortableChildren = true;
+      const adModal = new AdModal(this.app, this.economy, async () => {
+        await this.onTriggerAutoMerge();
+      }, 5);
+      adModal.zIndex = 99999;
+      stage.addChild(adModal);
     } else {
-      const GEM_COST = 5;
-      if (this.economy && this.economy.gems < GEM_COST) {
-        const stage = this.app ? this.app.stage : (this.parent || this.stage);
-        if (stage) {
-          stage.sortableChildren = true;
-          const adModal = new AdModal(this.app, this.economy, async () => {
-            this._updateUI();
-            await this.onTriggerAutoMerge();
-          }, 5);
-          adModal.zIndex = 99999;
-          stage.addChild(adModal);
-        } else {
-          this._showWarning('Мало 💎 гемов!');
-        }
-        return;
-      }
-
-      if (this.economy) {
-        try {
-          this.economy.spendGems(GEM_COST);
-        } catch (e) {
-          this._showWarning('Мало 💎 гемов!');
-          return;
-        }
-      }
-
-      await this.onTriggerAutoMerge();
-
-      try {
-        await saveProgress({
-          coins: this.economy ? this.economy.coins : undefined,
-          gems: this.economy ? this.economy.gems : undefined,
-          totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
-        });
-      } catch (err) {
-        console.error('Ошибка автосохранения гемов:', err);
-      }
+      this._showWarning('Ошибка запуска 🚫');
     }
   }
 
