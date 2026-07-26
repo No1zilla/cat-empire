@@ -188,8 +188,8 @@ export class AdModal extends Container {
     liveBadge.position.set(screenX + 22, screenY + 16);
     videoScene.addChild(liveBadge);
 
-    // Главный персонаж рекламного видеоролика (Танцующий кот Lvl 3)
-    const catTex = getCatTexture(3) || getCatTexture(2) || getCatTexture(1);
+    // Главный персонаж рекламного видеоролика (Танцующий кот Lvl 2)
+    const catTex = getCatTexture(2) || getCatTexture(1);
     let catSprite = null;
     if (catTex) {
       catSprite = new Sprite(catTex);
