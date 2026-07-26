@@ -16,6 +16,7 @@ export class NewCatModal extends Container {
     this._raysContainer = null;
     this._rafId = null;
 
+    this.zIndex = 99999;
     this.eventMode = 'static';
     this._draw();
     this._startRayRotation();
@@ -57,6 +58,9 @@ export class NewCatModal extends Container {
     overlay.rect(0, 0, W, H);
     overlay.fill({ color: 0x07040d, alpha: 0.86 });
     overlay.eventMode = 'static';
+    overlay.on('pointerdown', (e) => e.stopPropagation());
+    overlay.on('pointerup', (e) => e.stopPropagation());
+    overlay.on('pointertap', (e) => e.stopPropagation());
     this.addChild(overlay);
 
     // 2. Вращающиеся лучи (Sunburst)

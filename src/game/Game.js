@@ -225,6 +225,7 @@ export class Game {
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
       if (isUnlocked) {
         const detailModal = new CatDetailModal(this.app, level);
+        detailModal.zIndex = 99999;
         this.app.stage.addChild(detailModal);
       }
     });
@@ -262,6 +263,7 @@ export class Game {
             console.error('Ошибка сохранения после открытия нового кота:', e);
           }
         });
+        newCatModal.zIndex = 99999;
         this.app.stage.addChild(newCatModal);
       }
     };

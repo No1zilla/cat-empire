@@ -14,6 +14,7 @@ export class CatDetailModal extends Container {
     this.level = Math.max(1, Math.min(15, level || 1));
     this.onClose = onClose || (() => {});
 
+    this.zIndex = 99999;
     this.eventMode = 'static';
     this._draw();
     this._playPopIn();
@@ -54,6 +55,9 @@ export class CatDetailModal extends Container {
     overlay.rect(0, 0, W, H);
     overlay.fill({ color: 0x07040d, alpha: 0.88 });
     overlay.eventMode = 'static';
+    overlay.on('pointerdown', (e) => e.stopPropagation());
+    overlay.on('pointerup', (e) => e.stopPropagation());
+    overlay.on('pointertap', (e) => e.stopPropagation());
     this.addChild(overlay);
 
     // 2. Карточка модалки (340x440)
