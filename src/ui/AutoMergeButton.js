@@ -13,8 +13,6 @@ export class AutoMergeButton extends Container {
     this.economy = economy;
     this.onTriggerAutoMerge = onTriggerAutoMerge || (async () => {});
 
-    this.cooldownSeconds = 300;
-    this._timerInterval = null;
     this._btnBg = null;
     this._shadowBg = null;
     this._btnText = null;
@@ -25,15 +23,6 @@ export class AutoMergeButton extends Container {
     this.cursor = 'pointer';
 
     this._draw();
-    this._startTimerLoop();
-  }
-
-  _getRemainingCooldown() {
-    const lastTime = parseInt(localStorage.getItem('cat_empire_last_free_automerge') || '0', 10);
-    if (!lastTime) return 0;
-    const now = Math.floor(Date.now() / 1000);
-    const elapsed = now - lastTime;
-    return Math.max(0, this.cooldownSeconds - elapsed);
   }
 
   _draw() {
