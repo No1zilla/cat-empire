@@ -1,6 +1,7 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { AdModal } from './AdModal.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -54,16 +55,18 @@ export class FillAllButton extends Container {
     if (this._subText) {
       this._subText.removeChildren();
       if (freeSlotsCount === 0) {
+        if (this._btnText) this._btnText.text = '📦 Заполнить';
         this._subText.text = 'ЗАПОЛНЕНО';
         this._subText.style.fill = '#e5e7eb';
+        if (this._btnBg) this._btnBg.fill(0xff9f43);
       } else if (count === 0) {
-        const nextCost = 10 + (this.economy ? this.economy.totalCatsBought : 0);
-        this._subText.text = `${nextCost} `;
-        const coinIcon = UIUtils.createCoinIcon(6, true);
-        coinIcon.position.set(this._subText.width / 2 + 8, 8);
-        this._subText.addChild(coinIcon);
-        this._subText.style.fill = '#fff3a0';
+        // TASK-007: Магическая кнопка «🎬 Заполнить за рекламу» при нехватке монет!
+        if (this._btnText) this._btnText.text = '🎬 Заполнить';
+        this._subText.text = 'ЗА РЕКЛАМУ 🎬';
+        this._subText.style.fill = '#ffd700';
+        if (this._btnBg) this._btnBg.fill(0x8e44ad);
       } else {
+        if (this._btnText) this._btnText.text = '📦 Заполнить';
         this._subText.text = `${count} шт (${cost} `;
         const coinIcon = UIUtils.createCoinIcon(6);
         coinIcon.position.set(this._subText.width / 2 + 8, 8);
@@ -72,6 +75,7 @@ export class FillAllButton extends Container {
         bracket.position.set(this._subText.width / 2 + 16, 0);
         this._subText.addChild(bracket);
         this._subText.style.fill = '#ffffff';
+        if (this._btnBg) this._btnBg.fill(0xff9f43);
       }
     }
   }
@@ -214,7 +218,19 @@ export class FillAllButton extends Container {
     }
 
     if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
-      this._showWarning('Мало монет! ', true);
+      // TASK-007: Открываем видеоплеер рекламы для бесплатного заполнения всей сетки!
+      const stage = this.app ? this.app.stage : (this.parent || this.stage);
+      if (stage) {
+        stage.sortableChildren = true;
+        const adModal = new AdModal(this.app, this.economy, async () => {
+          await this.onTriggerFillAll(freeSlotsCount, 0);
+          this.updateLabel();
+        });
+        adModal.zIndex = 99999;
+        stage.addChild(adModal);
+      } else {
+        this._showWarning('Мало монет! ', true);
+      }
       return;
     }
 

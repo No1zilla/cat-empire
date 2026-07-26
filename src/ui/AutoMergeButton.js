@@ -115,12 +115,31 @@ export class AutoMergeButton extends Container {
     }, 100);
   }
 
+  _getInfiniteBoostRemaining() {
+    const until = parseInt(localStorage.getItem('cat_empire_infinite_automerge_until') || '0', 10);
+    const now = Math.floor(Date.now() / 1000);
+    return Math.max(0, until - now);
+  }
+
   _updateUI() {
+    const infiniteRemaining = this._getInfiniteBoostRemaining();
     const remaining = this._getRemainingCooldown();
 
-    if (remaining === 0) {
+    if (infiniteRemaining > 0) {
+      if (this._shadowBg) this._shadowBg.fill(0xd35400);
+      if (this._btnBg) this._btnBg.fill(0xf39c12);
+      if (this._btnText) this._btnText.text = '⚡ БЕСКОНЕЧНО';
+      const mins = Math.floor(infiniteRemaining / 60);
+      const secs = infiniteRemaining % 60;
+      const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      if (this._subText) {
+        this._subText.text = `БЕСПЛАТНО ⏱️ ${timeStr}`;
+        this._subText.style.fill = '#ffffff';
+      }
+    } else if (remaining === 0) {
       if (this._shadowBg) this._shadowBg.fill(0x1e8449);
       if (this._btnBg) this._btnBg.fill(0x2ecc71);
+      if (this._btnText) this._btnText.text = '⚡ Соединить';
       if (this._subText) {
         this._subText.text = 'БЕСПЛАТНО';
         this._subText.style.fill = '#ffd700';
@@ -128,6 +147,7 @@ export class AutoMergeButton extends Container {
     } else {
       if (this._shadowBg) this._shadowBg.fill(0x6c3483);
       if (this._btnBg) this._btnBg.fill(0x8e44ad);
+      if (this._btnText) this._btnText.text = '⚡ Соединить';
       const mins = Math.floor(remaining / 60);
       const secs = remaining % 60;
       const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
@@ -175,6 +195,14 @@ export class AutoMergeButton extends Container {
   }
 
   async _handleClick() {
+    const infiniteRemaining = this._getInfiniteBoostRemaining();
+
+    // 1. Если активен 3-минутный Бесконечный Буст
+    if (infiniteRemaining > 0) {
+      await this.onTriggerAutoMerge();
+      return;
+    }
+
     const remaining = this._getRemainingCooldown();
 
     if (remaining === 0) {
@@ -189,9 +217,13 @@ export class AutoMergeButton extends Container {
         const stage = this.app ? this.app.stage : (this.parent || this.stage);
         if (stage) {
           stage.sortableChildren = true;
+          // TASK-007: Награда за рекламу — +20 💎 И 3 Минуты Бесконечного авто-слияния!
           const adModal = new AdModal(this.app, this.economy, async () => {
+            const now = Math.floor(Date.now() / 1000);
+            localStorage.setItem('cat_empire_infinite_automerge_until', String(now + 180)); // 3 минуты
+            this._updateUI();
             await this.onTriggerAutoMerge();
-          });
+          }, 20);
           adModal.zIndex = 99999;
           stage.addChild(adModal);
         } else {

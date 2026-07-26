@@ -7,11 +7,12 @@ import { getCatTexture } from '../utils/catTextures.js';
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
  */
 export class AdModal extends Container {
-  constructor(app, economy, onRewardGranted) {
+  constructor(app, economy, onRewardGranted, rewardGems = 20) {
     super();
     this.app = app;
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
+    this.rewardGems = rewardGems;
     this._interval = null;
     this._videoTicker = null;
 
@@ -95,7 +96,7 @@ export class AdModal extends Container {
       fill: '#ffffff',
       align: 'center'
     });
-    const btnText = new Text({ text: '🎬 Смотреть Видео (+5 💎)', style: btnTextStyle });
+    const btnText = new Text({ text: `🎬 Смотреть Видео (+${this.rewardGems} 💎)`, style: btnTextStyle });
     btnText.anchor.set(0.5, 0.5);
     btnText.position.set(W / 2, btnY + btnH / 2);
     btnText.eventMode = 'none';
@@ -292,8 +293,8 @@ export class AdModal extends Container {
         clearInterval(this._interval);
         this._interval = null;
 
-        if (this.economy) {
-          this.economy.addGems(5);
+        if (this.economy && this.rewardGems > 0) {
+          this.economy.addGems(this.rewardGems);
           try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
         }
 
