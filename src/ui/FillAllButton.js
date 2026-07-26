@@ -68,7 +68,8 @@ export class FillAllButton extends Container {
         this._subText.addChild(coinIcon);
         this._subText.style.fill = '#fff3a0';
       } else {
-        this._subText.text = `${count} шт (${cost} `;
+        const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
+        this._subText.text = `${count} шт (${formattedCost} `;
         const coinIcon = UIUtils.createCoinIcon(6);
         coinIcon.position.set(this._subText.width / 2 + 8, 8);
         this._subText.addChild(coinIcon);

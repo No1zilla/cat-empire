@@ -120,8 +120,11 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
+    this.app.stage.sortableChildren = true;
+
     this.spawnSystem.x = 12;
     this.spawnSystem.y = buttonRowY;
+    this.spawnSystem.zIndex = 10;
     this.spawnSystem.updateButtonLabel();
     this.app.stage.addChild(this.spawnSystem);
 
@@ -202,6 +205,7 @@ export class Game {
     });
     this.fillAllButton.x = 144;
     this.fillAllButton.y = buttonRowY;
+    this.fillAllButton.zIndex = 10;
     this.app.stage.addChild(this.fillAllButton);
 
     // C) ⚡ Соединить все (122px)
@@ -214,6 +218,7 @@ export class Game {
     });
     this.autoMergeButton.x = 276;
     this.autoMergeButton.y = buttonRowY;
+    this.autoMergeButton.zIndex = 10;
     this.app.stage.addChild(this.autoMergeButton);
 
     // 7. Панель «📖 Котопедия» прямо на главном экране под кнопками управления
