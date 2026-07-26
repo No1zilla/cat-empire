@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { showRewardedAd, saveProgress } from '../api/client.js';
 import { getCatTexture } from '../utils/catTextures.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
