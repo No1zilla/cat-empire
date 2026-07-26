@@ -50,7 +50,7 @@ export class AdModal extends Container {
       fill: '#ffd700',
       align: 'center'
     });
-    const title = new Text({ text: '🎬 Просмотр Рекламы VK', style: titleStyle });
+    const title = new Text({ text: '🎬 Просмотр Рекламы', style: titleStyle });
     title.anchor.set(0.5, 0);
     title.position.set(W / 2, cardY + 20);
     this.addChild(title);
@@ -209,7 +209,7 @@ export class AdModal extends Container {
       align: 'center',
       dropShadow: { color: '#000000', alpha: 0.8, blur: 4, distance: 2 }
     });
-    const bannerText = new Text({ text: '🔥 ВК КОТИКИ — ИГРАЙ В VK! 🔥', style: bannerStyle });
+    const bannerText = new Text({ text: '👑 ИМПЕРИЯ КОТИКОВ 👑', style: bannerStyle });
     bannerText.anchor.set(0.5, 0.5);
     bannerText.position.set(W / 2, screenY + 180);
     videoScene.addChild(bannerText);
