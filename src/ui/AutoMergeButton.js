@@ -194,16 +194,15 @@ export class AutoMergeButton extends Container {
     } else {
       const GEM_COST = 5;
       if (this.economy && this.economy.gems < GEM_COST) {
-        this._showWarning('🎬 Реклама VK...');
-        const adResult = await showRewardedAd();
-        if (adResult && adResult.success) {
-          if (this.economy) {
-            this.economy.addGems(5);
-            this._showWarning('+5 💎 получено! 🎉');
-            try { await saveProgress({ gems: this.economy.gems }); } catch (e) {}
-          }
-          this._updateUI();
-          await this.onTriggerAutoMerge();
+        const stage = this.app ? this.app.stage : (this.parent || this.stage);
+        if (stage) {
+          stage.sortableChildren = true;
+          const adModal = new AdModal(this.app, this.economy, async () => {
+            this._updateUI();
+            await this.onTriggerAutoMerge();
+          }, 5);
+          adModal.zIndex = 99999;
+          stage.addChild(adModal);
         } else {
           this._showWarning('Мало 💎 гемов!');
         }

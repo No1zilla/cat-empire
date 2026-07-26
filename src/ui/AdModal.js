@@ -89,7 +89,7 @@ export class AdModal extends Container {
       // 1. Вызываем настоящую полноэкранную нативную рекламу VK
       const adRes = await showRewardedAd();
 
-      if (adRes && adRes.success && adRes.isNativeVK) {
+      if (adRes && adRes.success) {
         // Нативная реклама VK успешно просмотрена игроком!
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
@@ -98,7 +98,7 @@ export class AdModal extends Container {
         this._close();
         this.onRewardGranted();
       } else {
-        // Вне VK или в тестовой среде — запускаем резервную симуляцию
+        // Запускаем видеоплеер рекламного ролика
         this._startVideoPlayer();
       }
     });
