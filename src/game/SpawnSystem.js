@@ -27,25 +27,22 @@ export class SpawnSystem extends Container {
 
   updateButtonLabel() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
+    const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
+
     if (this._subText) {
       this._subText.removeChildren();
-      const costStr = cost.toLocaleString('ru-RU');
-      this._subText.text = costStr;
+      this._subText.text = `${formattedCost} `;
 
-      const gap = 4;
-      const coinRadius = 6;
-      const coinDiameter = coinRadius * 2;
-      const textWidth = this._subText.width;
-      const totalWidth = textWidth + gap + coinDiameter;
-      const btnWidth = 122;
-      const startX = (btnWidth - totalWidth) / 2;
-
-      this._subText.anchor.set(0, 0);
-      this._subText.position.set(startX, 25);
-
-      const coinIcon = UIUtils.createCoinIcon(coinRadius);
-      coinIcon.position.set(textWidth + gap + coinRadius, 6);
+      const coinIcon = UIUtils.createCoinIcon(6);
       this._subText.addChild(coinIcon);
+
+      const textWidth = this._subText.width;
+      const coinWidth = 12;
+      const totalWidth = textWidth + coinWidth;
+
+      this._subText.anchor.set(0, 0.5);
+      this._subText.position.set(Math.floor((122 - totalWidth) / 2), 33);
+      coinIcon.position.set(textWidth + 6, 0);
     }
   }
 
@@ -206,7 +203,7 @@ export class SpawnSystem extends Container {
       return;
     }
 
-    const emptySlot = this.grid.getFirstEmptySlot();
+    const emptySlot = this.grid.getFreeSlotIndex ? this.grid.getFreeSlotIndex() : -1;
     if (emptySlot === -1) {
       this._showWarning('Поле полно!');
       return;

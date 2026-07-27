@@ -124,6 +124,10 @@ export class Grid extends Container {
     return this.slots.findIndex((slot) => slot === null);
   }
 
+  getFirstEmptySlot() {
+    return this.getFreeSlotIndex();
+  }
+
   // Добавить котика в слот
   addCat(cat, slotIndex) {
     if (slotIndex < 0 || slotIndex >= 25) return;
