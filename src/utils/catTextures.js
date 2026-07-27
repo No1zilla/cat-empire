@@ -12,7 +12,7 @@ export async function loadCatTextures() {
   textures = {};
   uiTextures = {};
 
-  const version = Date.now();
+  const version = Date.now() + '_cat3fix';
   for (let level = 1; level <= 15; level++) {
     try {
       textures[level] = await Assets.load(`${base}assets/cats/cat_${level}.png?v=${version}`);
