@@ -34,10 +34,11 @@ export class VkIdentity {
       foundId = hashParams.get('vk_user_id');
     }
 
-    // 3. Вызов VK Bridge на смартфонах
+    // 3. Вызов VK Bridge на смартфонах с надежным тайм-аутом 5 секунд
     if (!foundId && typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
       try {
-        const userInfo = await window.vkBridge.send('VKWebAppGetUserInfo');
+        const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+        const userInfo = await Promise.race([window.vkBridge.send('VKWebAppGetUserInfo'), timeout]);
         if (userInfo && userInfo.id) {
           foundId = String(userInfo.id);
         }

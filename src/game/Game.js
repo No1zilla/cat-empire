@@ -346,6 +346,10 @@ export class Game {
     // 9. Модальные окна
     const showTutorialIfNeeded = (force = false) => {
       const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
+      if (this.maxCatLevel > 1 || (this.economy && this.economy.totalCatsBought > 0)) {
+        localStorage.setItem('cat_empire_tutorial_done', '1');
+        return;
+      }
       if (!tutorialDone || force) {
         const tutorial = new Tutorial(this.app, () => {
           console.log('✅ Туториал завершён!');

@@ -9,7 +9,7 @@ export class VKService {
   // Инициализация VK Bridge
   async init() {
     try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 500));
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
       const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
       console.log('VKWebAppInit result:', result);
       return result;
@@ -19,12 +19,12 @@ export class VKService {
     }
   }
 
-  // Получение данных пользователя
+  // Получение данных пользователя (С надежным тайм-аутом 5 секунд для смартфона)
   async getUserInfo() {
     try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 500));
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
       const user = await Promise.race([this.bridge.send('VKWebAppGetUserInfo'), timeout]);
-      if (user) {
+      if (user && user.id) {
         return {
           id: user.id,
           firstName: user.first_name || '',
