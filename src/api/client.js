@@ -1,6 +1,8 @@
 // Модуль API клиента для взаимодействия с бэкенд-сервером через чистый HTTPS тоннель
 
-const BASE_URL = 'https://cat-empire-production.up.railway.app/api';
+const BASE_URL = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
+  ? '/api'
+  : 'https://cat-empire-production.up.railway.app/api';
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign
