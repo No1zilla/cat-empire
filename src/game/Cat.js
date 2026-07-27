@@ -58,13 +58,16 @@ export class Cat extends Container {
       mainContainer.addChild(emojiText);
     }
 
-    // 2. Компактный бейджик уровня (Fredoka font)
+    // 2. Компактный бейджик уровня под пьедесталом (Fredoka font)
     const badgeW = this.level >= 10 ? 36 : 30;
-    const badgeH = 13;
+    const badgeH = 14;
+    const badgeX = (cardWidth - badgeW) / 2;
+    const badgeY = cardHeight - 16; // y = 56px
+
     const badgeBg = new Graphics();
-    badgeBg.roundRect(cardWidth - badgeW - 6, 8, badgeW, badgeH, 5);
+    badgeBg.roundRect(badgeX, badgeY, badgeW, badgeH, badgeH / 2);
     badgeBg.fill({ color: 0x000000, alpha: 0.85 });
-    badgeBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1 });
+    badgeBg.stroke({ color: catData.color || 0xffd700, alpha: 0.85, width: 1 });
     mainContainer.addChild(badgeBg);
 
     const levelStyle = new TextStyle({
@@ -76,8 +79,8 @@ export class Cat extends Container {
     });
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
-    levelText.x = cardWidth - badgeW / 2 - 6;
-    levelText.y = 14.5;
+    levelText.x = cardWidth / 2;
+    levelText.y = badgeY + badgeH / 2;
     mainContainer.addChild(levelText);
 
     this.addChild(mainContainer);
