@@ -35,8 +35,12 @@ export class Economy {
       });
     }
 
-    // Если счётчик сбросился в 0, восстанавливаем значение по состоянию игрового поля!
-    this.totalCatsBought = Math.max(bought, minBoughtFromGrid);
+    // Точная калибровка: totalCatsBought должен строго соответствовать весу котиков на сетке
+    if (minBoughtFromGrid > 0) {
+      this.totalCatsBought = minBoughtFromGrid;
+    } else {
+      this.totalCatsBought = bought;
+    }
     this.totalMerges = Number(totalMerges) || 0;
 
     this._recalcIncome();
