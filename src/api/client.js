@@ -8,7 +8,14 @@ const BASE_URL = (typeof window !== 'undefined' && window.location.origin.includ
  * Извлечение параметров запуска VK для заголовка x-vk-sign
  */
 function getVkSignHeader() {
-  return window.location.search || '';
+  if (typeof window === 'undefined') return '';
+  const search = window.location.search || '';
+  const hash = window.location.hash || '';
+
+  if (search && search.includes('vk_user_id')) return search;
+  if (hash && hash.includes('vk_user_id')) return hash;
+
+  return search || hash || '';
 }
 
 /**
