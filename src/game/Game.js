@@ -14,6 +14,7 @@ import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
 import { CatDetailModal } from '../ui/CatDetailModal.js';
 import { storageService } from '../services/StorageService.js';
+import { syncManager } from '../services/SyncManager.js';
 import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
@@ -402,7 +403,7 @@ export class Game {
     }, 30000);
   }
 
-  // Сохранение полного локального и облачного состояния
+  // Умная событийно-ориентированная синхронизация (Защита БД от перегрузок)
   _saveToLocalStorage() {
     if (!this.economy) return;
     localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
@@ -414,19 +415,15 @@ export class Game {
       localStorage.setItem('cat_empire_grid_state', JSON.stringify(this.grid.exportState()));
     }
 
-    // Мгновенная синхронизация с облачным PostgreSQL без 30-секундных задержек
-    try {
-      saveProgress({
-        coins: this.economy.coins,
-        gems: this.economy.gems,
-        totalCatsBought: this.economy.totalCatsBought,
-        totalMerges: this.economy.totalMerges,
-        maxCatLevel: this.maxCatLevel,
-        gridState: this.grid ? this.grid.exportState() : []
-      });
-    } catch (e) {
-      // Игнорируем
-    }
+    // Защита базы данных: серия быстрах кликов сглаживается в 1 пакет через 800мс тишины
+    syncManager.scheduleSave({
+      coins: this.economy.coins,
+      gems: this.economy.gems,
+      totalCatsBought: this.economy.totalCatsBought,
+      totalMerges: this.economy.totalMerges,
+      maxCatLevel: this.maxCatLevel,
+      gridState: this.grid ? this.grid.exportState() : []
+    }, 800);
   }
 
   _startFloatingIncomePopups() {

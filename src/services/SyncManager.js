@@ -31,9 +31,10 @@ export class SyncManager {
   }
 
   /**
-   * Отложенная автоматическая синхронизация при изменении состояния
+   * Умная сглаженная синхронизация (Debounced Persistence):
+   * Накапливает серию быстрых покупок и отправляет один единый пакет через 800мс тишины
    */
-  scheduleSave(stateData, delayMs = 500) {
+  scheduleSave(stateData, delayMs = 800) {
     if (this.autoSaveDebounceTimer) {
       clearTimeout(this.autoSaveDebounceTimer);
     }
@@ -41,6 +42,18 @@ export class SyncManager {
       await storageService.saveProgress(stateData);
       eventBus.emit('STATE_SYNCED_TO_CLOUD', { vkId: this.currentVkId });
     }, delayMs);
+  }
+
+  /**
+   * Мгновенный сброс в PostgreSQL при контрольных событиях (Скрещивание, Новые коты, Сворачивание)
+   */
+  async flushImmediate(stateData) {
+    if (this.autoSaveDebounceTimer) {
+      clearTimeout(this.autoSaveDebounceTimer);
+      this.autoSaveDebounceTimer = null;
+    }
+    await storageService.saveProgress(stateData);
+    eventBus.emit('STATE_SYNCED_TO_CLOUD', { vkId: this.currentVkId });
   }
 }
 
