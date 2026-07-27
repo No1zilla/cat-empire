@@ -30,7 +30,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/user', userRouter);
 app.use('/api/leaderboard', leaderboardRouter);
 
-// Запуск сервера — слушаем на 0.0.0.0 для Railway (v1.0.2 - Universal VK Auth)
+// Запуск сервера — слушаем на 0.0.0.0 для Railway (v1.0.3 - Mobile Hash Fix)
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Сервер «Империя Котиков» v1.0.2 запущен на порту ${PORT}`);
+  console.log(`🚀 Сервер «Империя Котиков» v1.0.3 запущен на порту ${PORT}`);
 });

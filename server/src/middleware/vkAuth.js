@@ -5,18 +5,22 @@ import { verifyVkSign } from '../utils/vkCheckSign.js';
  */
 export function vkAuth(req, res, next) {
   const vkSignHeader = req.headers['x-vk-sign'] || req.headers['authorization'] || '';
-  const queryString = vkSignHeader || req.originalUrl.split('?')[1] || '';
+  let str = vkSignHeader || (req.originalUrl.includes('?') ? req.originalUrl.split('?')[1] : (req.originalUrl.includes('#') ? req.originalUrl.split('#')[1] : '')) || '';
+
+  while (str.startsWith('?') || str.startsWith('#')) {
+    str = str.slice(1);
+  }
 
   let rawId = null;
 
-  if (queryString && queryString.trim() !== '') {
-    const params = new URLSearchParams(queryString.startsWith('?') ? queryString.slice(1) : queryString);
+  if (str && str.trim() !== '') {
+    const params = new URLSearchParams(str);
     rawId = params.get('vk_user_id');
 
     // Если задан секрет приложения VK, проверяем подпись
     const clientSecret = process.env.VK_APP_SECRET || '';
     if (clientSecret) {
-      const isValid = verifyVkSign(queryString, clientSecret);
+      const isValid = verifyVkSign(str, clientSecret);
       if (!isValid) {
         console.warn('⚠️ Предупреждение: Подпись VK не прошла проверку, но разблокирована для сохранения');
       }
