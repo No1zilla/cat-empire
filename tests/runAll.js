@@ -1,14 +1,16 @@
 import { runBalanceTests } from './unit/balance.test.js';
 import { runEventBusTests } from './unit/eventBus.test.js';
 import { runGridTests } from './unit/grid.test.js';
+import { runMergeTests } from './unit/merge.test.js';
 
-console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ...');
+console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 2)...');
 console.log('----------------------------------------------------');
 
 try {
   runBalanceTests();
   runEventBusTests();
   runGridTests();
+  runMergeTests();
   console.log('----------------------------------------------------');
   console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
 } catch (error) {
