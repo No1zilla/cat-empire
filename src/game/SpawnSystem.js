@@ -29,15 +29,27 @@ export class SpawnSystem extends Container {
     const cost = this.economy ? this.economy.getCatCost() : 10;
     if (this._subText) {
       this._subText.removeChildren();
-      this._subText.text = `${cost.toLocaleString('ru-RU')} `;
-      const coinIcon = UIUtils.createCoinIcon(6);
-      // Anchor of subtext is 0.5, 0. We place coin to the right of text.
-      coinIcon.position.set(this._subText.width / 2 + 8, 8);
+      const costStr = cost.toLocaleString('ru-RU');
+      this._subText.text = costStr;
+
+      const gap = 4;
+      const coinRadius = 6;
+      const coinDiameter = coinRadius * 2;
+      const textWidth = this._subText.width;
+      const totalWidth = textWidth + gap + coinDiameter;
+      const btnWidth = 122;
+      const startX = (btnWidth - totalWidth) / 2;
+
+      this._subText.anchor.set(0, 0);
+      this._subText.position.set(startX, 25);
+
+      const coinIcon = UIUtils.createCoinIcon(coinRadius);
+      coinIcon.position.set(textWidth + gap + coinRadius, 6);
       this._subText.addChild(coinIcon);
     }
   }
 
-  // Создание кнопки покупки (фиксированная ширина 135px, без дублирующихся артов)
+  // Создание кнопки покупки (фиксированная ширина 122px, без дублирующихся артов)
   _createButton() {
     const btnWidth = 122;
     const btnHeight = 50;
@@ -93,15 +105,18 @@ export class SpawnSystem extends Container {
     });
 
     this._subText = new Text({ text: '0', style: subStyle });
-    this._subText.anchor.set(0.5, 0);
-    this._subText.position.set(btnWidth / 2, 24);
+    this._subText.anchor.set(0, 0);
+    this._subText.position.set(btnWidth / 2, 25);
     this._innerContainer.addChild(this._subText);
 
     // 5. Настройка интерактивности и Hold-to-Buy
     this.eventMode = 'static';
     this.cursor = 'pointer';
 
-    this.on('pointerdown', () => {
+    this.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') {
+        e.stopPropagation();
+      }
       this._playClickAnim();
       this._spawnCat();
       this._startHold();
@@ -110,7 +125,10 @@ export class SpawnSystem extends Container {
     const stopHandler = () => this._stopHold();
     this.on('pointerup', stopHandler);
     this.on('pointerupoutside', stopHandler);
-    this.on('pointerout', stopHandler);
+    this.on('pointerout', () => {
+      this.alpha = 1.0;
+      stopHandler();
+    });
     this.on('pointercancel', stopHandler);
 
     this.on('pointerover', () => {
@@ -136,6 +154,11 @@ export class SpawnSystem extends Container {
       clearInterval(this._holdInterval);
       this._holdInterval = null;
     }
+  }
+
+  destroy(options) {
+    this._stopHold();
+    super.destroy(options);
   }
 
   _playClickAnim() {
