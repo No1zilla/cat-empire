@@ -47,6 +47,13 @@ export class Game {
     let startTotalCatsBought  = parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10);
     let startTotalCatsCreated = parseInt(localStorage.getItem('cat_empire_last_total_created') || '0', 10);
     let startTotalMerges      = parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10);
+    let localGridState        = null;
+    try {
+      const rawGrid = localStorage.getItem('cat_empire_grid_state');
+      if (rawGrid) localGridState = JSON.parse(rawGrid);
+    } catch (e) {
+      console.warn('Ошибка чтения локальной сетки:', e);
+    }
     let userGridState = null;
 
     try {
@@ -58,7 +65,9 @@ export class Game {
         if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = Math.max(startTotalCatsBought, Number(profileData.user.totalCatsBought) || 0);
         if (profileData.user.totalCatsCreated !== undefined) startTotalCatsCreated = Math.max(startTotalCatsCreated, Number(profileData.user.totalCatsCreated) || 0);
         if (profileData.user.totalMerges      !== undefined) startTotalMerges = Math.max(startTotalMerges, Number(profileData.user.totalMerges) || 0);
-        if (profileData.user.gridState)       userGridState = profileData.user.gridState;
+        if (profileData.user.gridState && Array.isArray(profileData.user.gridState) && profileData.user.gridState.length > 0) {
+          userGridState = profileData.user.gridState;
+        }
       }
     } catch (error) {
       console.warn('Сервер не доступен или ошибка получения профиля, используются локальные данные:', error);
@@ -100,9 +109,10 @@ export class Game {
     this.grid.y = 58;
     this.gameContainer.addChild(this.grid);
 
-    // 4. Восстановление состояния котиков на сетке
-    if (userGridState) {
-      this.grid.importState(userGridState);
+    // 4. Восстановление состояния котиков на сетке (приоритет: профиль сервера -> локальное хранилище -> дефолт)
+    const gridToImport = userGridState || localGridState;
+    if (gridToImport && Array.isArray(gridToImport) && gridToImport.length > 0) {
+      this.grid.importState(gridToImport);
     } else {
       this.grid.importState([
         { slotIndex: 0, catLevel: 1 },
@@ -406,6 +416,9 @@ export class Game {
     localStorage.setItem('cat_empire_last_total_bought', String(this.economy.totalCatsBought));
     localStorage.setItem('cat_empire_last_total_created', String(this.economy.totalCatsCreated));
     localStorage.setItem('cat_empire_last_total_merges', String(this.economy.totalMerges));
+    if (this.grid) {
+      localStorage.setItem('cat_empire_grid_state', JSON.stringify(this.grid.exportState()));
+    }
   }
 
   _startFloatingIncomePopups() {
