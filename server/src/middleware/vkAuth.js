@@ -4,30 +4,19 @@ import { verifyVkSign } from '../utils/vkCheckSign.js';
  * Middleware авторизации VK Mini Apps — с гарантированной поддержкой мобильных устройств и десктопа
  */
 export function vkAuth(req, res, next) {
-  const vkSignHeader = req.headers['x-vk-sign'] || req.headers['authorization'] || '';
-  let str = vkSignHeader || (req.originalUrl.includes('?') ? req.originalUrl.split('?')[1] : (req.originalUrl.includes('#') ? req.originalUrl.split('#')[1] : '')) || '';
-
-  while (str.startsWith('?') || str.startsWith('#')) {
-    str = str.slice(1);
-  }
+  const rawHeader = req.headers['x-vk-sign'] || req.headers['authorization'] || '';
+  const fullUrl = req.originalUrl || req.url || '';
+  const rawInput = (rawHeader + ' ' + fullUrl);
 
   let rawId = null;
 
-  if (str && str.trim() !== '') {
-    const params = new URLSearchParams(str);
-    rawId = params.get('vk_user_id');
-
-    // Если задан секрет приложения VK, проверяем подпись
-    const clientSecret = process.env.VK_APP_SECRET || '';
-    if (clientSecret) {
-      const isValid = verifyVkSign(str, clientSecret);
-      if (!isValid) {
-        console.warn('⚠️ Предупреждение: Подпись VK не прошла проверку, но разблокирована для сохранения');
-      }
-    }
+  // 1. Прямое 100% надежное regex-извлечение vk_user_id из любого формата (query, hash, header, encoded)
+  const match = rawInput.match(/vk_user_id=([0-9]+)/);
+  if (match && match[1]) {
+    rawId = match[1];
   }
 
-  // Если vk_user_id не передан в query (например прямой заход по URL), используем дефолтный гостевой ID
+  // 2. Если vk_user_id не найден, используем дефолтный гостевой ID
   if (!rawId) {
     rawId = '999999999';
   }

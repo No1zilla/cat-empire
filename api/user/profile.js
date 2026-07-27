@@ -43,17 +43,14 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const vkSignHeader = req.headers['x-vk-sign'] || req.headers['authorization'] || '';
-  let str = vkSignHeader || (req.url ? (req.url.includes('?') ? req.url.split('?')[1] : req.url.split('#')[1]) : '') || '';
-  while (str.startsWith('?') || str.startsWith('#')) {
-    str = str.slice(1);
-  }
+  const rawHeader = req.headers['x-vk-sign'] || req.headers['authorization'] || '';
+  const fullUrl = req.url || '';
+  const rawInput = (rawHeader + ' ' + fullUrl);
 
   let vkUserId = '999999999';
-  if (str) {
-    const params = new URLSearchParams(str);
-    const rawId = params.get('vk_user_id');
-    if (rawId) vkUserId = rawId;
+  const match = rawInput.match(/vk_user_id=([0-9]+)/);
+  if (match && match[1]) {
+    vkUserId = match[1];
   }
 
   await ensureTable();
