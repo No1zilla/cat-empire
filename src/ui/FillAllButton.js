@@ -1,7 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { AdModal } from './AdModal.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -14,11 +13,6 @@ export class FillAllButton extends Container {
     this.economy = economy;
     this.onTriggerFillAll = onTriggerFillAll || (async () => {});
 
-    // Модель D: Прогрессивный налог гемов (0 💎 -> 1 💎 -> 2 💎)
-    this._fillCount = 0;
-    this._lastFillTime = Date.now();
-    this.RESET_COOLDOWN_MS = 5 * 60 * 1000; // 5 минут до бесплатного сброса
-
     this._btnBg = null;
     this._shadowBg = null;
     this._btnText = null;
@@ -29,17 +23,6 @@ export class FillAllButton extends Container {
     this.cursor = 'pointer';
 
     this._draw();
-  }
-
-  // Расчёт текущего налога гемов (0 💎 -> 1 💎 -> 2 💎)
-  getGemTax() {
-    // Сброс счетчика через 5 минут простоя
-    if (Date.now() - this._lastFillTime > this.RESET_COOLDOWN_MS) {
-      this._fillCount = 0;
-    }
-    if (this._fillCount === 0) return 0;
-    if (this._fillCount === 1) return 1;
-    return 2;
   }
 
   // Расчёт стоимости и количества доступных котиков для массовой покупки
@@ -68,12 +51,11 @@ export class FillAllButton extends Container {
 
   updateLabel() {
     const { count, cost, freeSlotsCount } = this.getFillData();
-    const gemTax = this.getGemTax();
 
     if (this._subText) {
       this._subText.removeChildren();
       if (this._btnText) this._btnText.text = '📦 Заполнить';
-      if (this._btnBg) this._btnBg.fill(gemTax > 0 ? 0xd35400 : 0xff9f43);
+      if (this._btnBg) this._btnBg.fill(0xff9f43);
 
       if (freeSlotsCount === 0) {
         this._subText.text = 'ЗАПОЛНЕНО';
@@ -87,14 +69,14 @@ export class FillAllButton extends Container {
         this._subText.style.fill = '#fff3a0';
       } else {
         const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
-        
-        if (gemTax > 0) {
-          this._subText.text = `${count} шт (${formattedCost} 🪙 +${gemTax} 💎)`;
-          this._subText.style.fill = '#ffd1a4';
-        } else {
-          this._subText.text = `${count} шт (${formattedCost} 🪙)`;
-          this._subText.style.fill = '#ffffff';
-        }
+        this._subText.text = `${count} шт (${formattedCost} `;
+        const coinIcon = UIUtils.createCoinIcon(6);
+        coinIcon.position.set(this._subText.width / 2 + 8, 8);
+        this._subText.addChild(coinIcon);
+        const bracket = new Text({ text: ')', style: this._subText.style });
+        bracket.position.set(this._subText.width / 2 + 16, 0);
+        this._subText.addChild(bracket);
+        this._subText.style.fill = '#ffffff';
       }
     }
   }
@@ -240,42 +222,6 @@ export class FillAllButton extends Container {
       this._showWarning('Мало монет! ', true);
       return;
     }
-
-    const gemTax = this.getGemTax();
-
-    // Проверка наличия гемов при наличии налога
-    if (gemTax > 0) {
-      if (this.economy && this.economy.gems < gemTax) {
-        // Не хватает гемов -> открываем просмотр рекламы для сброса налога обратно на 0 💎!
-        const stage = this.app ? this.app.stage : (this.parent || this.stage);
-        if (stage) {
-          stage.sortableChildren = true;
-          const adModal = new AdModal(this.app, this.economy, () => {
-            this._fillCount = 0; // Сброс налога до 0 💎!
-            this.updateLabel();
-            this._showWarning('Налог сброшен! ✨');
-          }, 1);
-          adModal.zIndex = 99999;
-          stage.addChild(adModal);
-        } else {
-          this._showWarning('Ошибка запуска 🚫');
-        }
-        return;
-      }
-
-      // Списываем налог гемов
-      try {
-        this.economy.spendGems(gemTax);
-        this._showWarning(`-${gemTax} 💎 списано!`);
-      } catch (e) {
-        this._showWarning('Мало 💎 гемов!');
-        return;
-      }
-    }
-
-    // Запускаем покупку
-    this._fillCount++;
-    this._lastFillTime = Date.now();
 
     await this.onTriggerFillAll(count, cost);
     this.updateLabel();
