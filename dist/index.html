@@ -57,28 +57,17 @@
       pointer-events: auto;
     }
 
-    /* Светящийся Аура-Ореол вокруг Иконки */
+    /* Чистое отображение Иконки без золотой рамки и свечения */
     .splash-icon-wrapper {
       position: relative;
       margin-bottom: 24px;
-    }
-    .splash-icon-wrapper::before {
-      content: '';
-      position: absolute;
-      top: -15px;
-      left: -15px;
-      right: -15px;
-      bottom: -15px;
-      border-radius: 36px;
-      background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, rgba(255, 94, 98, 0.2) 60%, transparent 80%);
-      animation: pulseGlow 2s infinite alternate;
     }
     .splash-icon {
       width: 110px;
       height: 110px;
       border-radius: 26px;
       object-fit: cover;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 215, 0, 0.8);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       position: relative;
       z-index: 2;
     }
