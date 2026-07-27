@@ -1,29 +1,10 @@
 import assert from 'node:assert';
-
-// Временный макет EventBus для проверок до подключения основного модуля
-class TestEventBus {
-  constructor() {
-    this.listeners = {};
-  }
-  on(event, fn) {
-    if (!this.listeners[event]) this.listeners[event] = [];
-    this.listeners[event].push(fn);
-  }
-  off(event, fn) {
-    if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(l => l !== fn);
-  }
-  emit(event, data) {
-    if (this.listeners[event]) {
-      this.listeners[event].forEach(fn => fn(data));
-    }
-  }
-}
+import { EventBus } from '../../src/utils/EventBus.js';
 
 export function runEventBusTests() {
-  console.log('🧪 Тестирование реактивной шины событий (EventBus)...');
+  console.log('🧪 Тестирование реактивной шины событий (src/utils/EventBus.js)...');
 
-  const bus = new TestEventBus();
+  const bus = new EventBus();
   let emittedValue = 0;
 
   const callback = (val) => { emittedValue += val; };
@@ -36,5 +17,8 @@ export function runEventBusTests() {
   bus.emit('CATS_MERGED', 5);
   assert.strictEqual(emittedValue, 5, 'Отписанный слушатель не должен реагировать на эмиттинг');
 
-  console.log('  ✅ Шина событий пройдена успешно!');
+  bus.clear();
+  assert.deepStrictEqual(bus.listeners, {}, 'clear() должен очищать все слушатели');
+
+  console.log('  ✅ Шина событий EventBus прошла все автоматические тесты!');
 }
