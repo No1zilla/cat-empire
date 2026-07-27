@@ -44,11 +44,14 @@ export default async function handler(req, res) {
   }
 
   const vkSignHeader = req.headers['x-vk-sign'] || req.headers['authorization'] || '';
-  const queryString = vkSignHeader || (req.url ? req.url.split('?')[1] : '') || '';
+  let str = vkSignHeader || (req.url ? (req.url.includes('?') ? req.url.split('?')[1] : req.url.split('#')[1]) : '') || '';
+  while (str.startsWith('?') || str.startsWith('#')) {
+    str = str.slice(1);
+  }
 
   let vkUserId = '999999999';
-  if (queryString) {
-    const params = new URLSearchParams(queryString.startsWith('?') ? queryString.slice(1) : queryString);
+  if (str) {
+    const params = new URLSearchParams(str);
     const rawId = params.get('vk_user_id');
     if (rawId) vkUserId = rawId;
   }
