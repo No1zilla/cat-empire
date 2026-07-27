@@ -9,13 +9,14 @@ const BASE_URL = (typeof window !== 'undefined' && window.location.origin.includ
  */
 function getVkSignHeader() {
   if (typeof window === 'undefined') return '';
-  const search = window.location.search || '';
-  const hash = window.location.hash || '';
+  let str = window.location.search || window.location.hash || '';
 
-  if (search && search.includes('vk_user_id')) return search;
-  if (hash && hash.includes('vk_user_id')) return hash;
+  // Вычищаем '#' и '?' для 100% гарантированной совместимости с HTTP-заголовками Nginx/Railway
+  while (str.startsWith('?') || str.startsWith('#')) {
+    str = str.slice(1);
+  }
 
-  return search || hash || '';
+  return str;
 }
 
 /**
