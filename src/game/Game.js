@@ -66,6 +66,21 @@ export class Game {
 
     this.maxCatLevel = startMaxCatLevel;
 
+    // 1. Единый центральный контейнер игры для 100% идеального центрирования на всех экранах (ПК VK, мобы, планшеты)
+    this.gameContainer = new Container();
+    this.gameContainer.sortableChildren = true;
+    this.app.stage.addChild(this.gameContainer);
+
+    const updateCentering = () => {
+      const screenW = this.app.renderer ? this.app.renderer.width : (this.app.screen ? this.app.screen.width : 400);
+      const gameW = 400;
+      this.gameContainer.x = Math.max(0, Math.floor((screenW - gameW) / 2));
+    };
+    updateCentering();
+    if (this.app.renderer) {
+      this.app.renderer.on('resize', updateCentering);
+    }
+
     // 2. Создание HUD интерфейса с кнопкой 📖 Котопедии
     const openCollection = () => {
       const modal = new CollectionModal(this.app, this.maxCatLevel, () => {
@@ -76,14 +91,14 @@ export class Game {
 
     this.hud = new HUD(this.app, openCollection);
     this.hud.position.set(0, 0);
-    this.app.stage.addChild(this.hud);
+    this.gameContainer.addChild(this.hud);
 
-    // 3. Увеличенное сочное игровое поле 5x5 (без лишнего логотипа)
+    // 3. Увеличенное сочное игровое поле 5x5 (всцентрировано ровно по 400px)
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
-    this.grid.x = 0;
+    this.grid.x = Math.floor((400 - gridWidth) / 2);
     this.grid.y = 58;
-    this.app.stage.addChild(this.grid);
+    this.gameContainer.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке
     if (userGridState) {
@@ -115,20 +130,19 @@ export class Game {
     // 6. Ряд из 3-х кнопок управления:
     const buttonRowY = this.grid.y + gridWidth + 12;
 
-    // A) 🐱 Купить (135px) — клик + Hold-to-buy
+    // A) 🐱 Купить (122px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
-    this.app.stage.sortableChildren = true;
 
-    this.spawnSystem.x = 12;
+    this.spawnSystem.x = 10;
     this.spawnSystem.y = buttonRowY;
     this.spawnSystem.zIndex = 10;
     this.spawnSystem.updateButtonLabel();
-    this.app.stage.addChild(this.spawnSystem);
+    this.gameContainer.addChild(this.spawnSystem);
 
-    // B) 📦 Заполнить (105px) — выкуп всех свободных слотов за 1 клик
+    // B) 📦 Заполнить (122px) — выкуп всех свободных слотов за 1 клик
     this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
       const freeSlots = [];
       for (let i = 0; i < 25; i++) {
@@ -203,10 +217,10 @@ export class Game {
         console.error('Ошибка сохранения после массовой покупки:', e);
       }
     });
-    this.fillAllButton.x = 144;
+    this.fillAllButton.x = 139;
     this.fillAllButton.y = buttonRowY;
     this.fillAllButton.zIndex = 10;
-    this.app.stage.addChild(this.fillAllButton);
+    this.gameContainer.addChild(this.fillAllButton);
 
     // C) ⚡ Соединить все (122px)
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
@@ -216,10 +230,10 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
-    this.autoMergeButton.x = 276;
+    this.autoMergeButton.x = 268;
     this.autoMergeButton.y = buttonRowY;
     this.autoMergeButton.zIndex = 10;
-    this.app.stage.addChild(this.autoMergeButton);
+    this.gameContainer.addChild(this.autoMergeButton);
 
     // 7. Панель «📖 Котопедия» прямо на главном экране под кнопками управления
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
@@ -230,7 +244,7 @@ export class Game {
       }
     });
     this.catDeck.y = buttonRowY + 58;
-    this.app.stage.addChild(this.catDeck);
+    this.gameContainer.addChild(this.catDeck);
 
     // 8. Движок Merge и Drag
     const onMerge = (newLevel, slotIndex) => {
