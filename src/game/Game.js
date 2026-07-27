@@ -402,7 +402,7 @@ export class Game {
     }, 30000);
   }
 
-  // Сохранение полного локального состояния в localStorage
+  // Сохранение полного локального и облачного состояния
   _saveToLocalStorage() {
     if (!this.economy) return;
     localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
@@ -412,6 +412,20 @@ export class Game {
     localStorage.setItem('cat_empire_last_total_merges', String(this.economy.totalMerges));
     if (this.grid) {
       localStorage.setItem('cat_empire_grid_state', JSON.stringify(this.grid.exportState()));
+    }
+
+    // Мгновенная синхронизация с облачным PostgreSQL без 30-секундных задержек
+    try {
+      saveProgress({
+        coins: this.economy.coins,
+        gems: this.economy.gems,
+        totalCatsBought: this.economy.totalCatsBought,
+        totalMerges: this.economy.totalMerges,
+        maxCatLevel: this.maxCatLevel,
+        gridState: this.grid ? this.grid.exportState() : []
+      });
+    } catch (e) {
+      // Игнорируем
     }
   }
 
