@@ -41,13 +41,13 @@ export class Cat extends Container {
     const texture = getCatTexture(this.level);
 
     if (texture) {
-      const catSize = cardWidth - 4;
+      const catSize = cardWidth - 10; // 62px - perfect fit inside 72px card
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5, 0.5);
       sprite.width = catSize;
       sprite.height = catSize;
       sprite.x = cardWidth / 2;
-      sprite.y = cardHeight / 2 - 2;
+      sprite.y = cardHeight / 2 - 4; // 32px center
       mainContainer.addChild(sprite);
     } else {
       const emojiStyle = new TextStyle({ fontSize: 38, align: 'center' });
