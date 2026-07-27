@@ -14,13 +14,18 @@ export class SyncManager {
   }
 
   /**
-   * Полный цикл инициализации профиля пользователя
+   * Полный цикл инициализации профиля пользователя с авто-трансфером незакрепленного прогресса
    */
   async initializeSession() {
     this.currentVkId = await vkIdentity.getVkUserId();
     const state = await storageService.loadProgress();
-    this.isInitialized = true;
     
+    // Если на устройстве есть прогресс выше серверного — сразу связываем его с авторизованным VK аккаунтом
+    if (state && (state.maxCatLevel > 1 || state.totalCatsBought > 0)) {
+      await storageService.saveProgress(state);
+    }
+
+    this.isInitialized = true;
     eventBus.emit('SESSION_INITIALIZED', { vkId: this.currentVkId, state });
     return state;
   }
