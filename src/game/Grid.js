@@ -18,17 +18,9 @@ export class Grid extends Container {
     return this.slots.filter((cat) => cat !== null).length;
   }
 
-  // Чистая минималистичная отрисовка подложки сетки без громоздкой внешней рамки
+  // Абсолютно бесшовная сетка — без единой внешней подложки/рамки
   _drawBackground() {
-    const gridWidth = CONFIG.GRID_SIZE * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
-    const gridHeight = gridWidth;
-
-    // Единая сочная тёмная подложка поля с тонким контуром
-    const bg = new Graphics();
-    bg.roundRect(0, 0, gridWidth, gridHeight, 20);
-    bg.fill(CONFIG.COLORS.GRID_BG || 0x15122c);
-    bg.stroke({ color: CONFIG.COLORS.CELL_BORDER || 0x3d356c, width: 2.0 });
-    this.addChild(bg);
+    // Внешняя подложка убрана на 100% — остаются только 25 ячеек!
   }
 
   // Отрисовка 25 ячеек 5х5 с эффектом углубления и радиусом 16px
