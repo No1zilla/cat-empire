@@ -39,6 +39,7 @@ export class SyncManager {
       clearTimeout(this.autoSaveDebounceTimer);
     }
     this.autoSaveDebounceTimer = setTimeout(async () => {
+      this.autoSaveDebounceTimer = null;
       await storageService.saveProgress(stateData);
       eventBus.emit('STATE_SYNCED_TO_CLOUD', { vkId: this.currentVkId });
     }, delayMs);

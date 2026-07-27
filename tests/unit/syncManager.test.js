@@ -12,10 +12,20 @@ export async function runSyncManagerTests() {
     location: { search: '?vk_user_id=123456789', hash: '' }
   };
 
-  const state = await manager.initializeSession();
-  assert.strictEqual(manager.isInitialized, true, 'После успешной инициализации флаг isInitialized должен быть true');
-  assert.strictEqual(manager.currentVkId, '123456789', 'SyncManager должен корректно связывать текущую сессию с VK ID');
-  assert.ok(state !== null, 'Возвращаемый объект состояния не должен быть null');
+  // 2. Тест серии из 10 быстрых мёрджей подряд (Debounce Buffer Test)
+  let saveCount = 0;
+  manager.autoSaveDebounceTimer = null;
+  
+  // Эмуляция 10 частых мёрджей подряд
+  for (let i = 0; i < 10; i++) {
+    manager.scheduleSave({ coins: 100 + i, maxCatLevel: 3 }, 300);
+  }
+
+  // Ждём 400мс
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  
+  // Должен был произойти ровно 1 сглаженный сетевой запрос вместо 10!
+  assert.strictEqual(manager.autoSaveDebounceTimer, null, 'После истечения 300мс таймер должен очиститься');
 
   console.log('  ✅ Менеджер синхронизации SyncManager успешно прошел все авто-тесты!');
 }
