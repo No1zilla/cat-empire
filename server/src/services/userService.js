@@ -14,6 +14,14 @@ function calculateIncomePerSecond(gridStateStr) {
 
 function formatUser(row) {
   if (!row) return null;
+  let parsedGridState = row.grid_state;
+  if (typeof parsedGridState === 'string') {
+    try {
+      parsedGridState = JSON.parse(parsedGridState);
+    } catch {
+      parsedGridState = null;
+    }
+  }
   return {
     id: row.id,
     vkId: row.vk_id,
@@ -26,7 +34,7 @@ function formatUser(row) {
     totalCatsBought: row.total_cats_bought || 0,
     totalCatsCreated: row.total_cats_created || row.total_cats_bought || 0,
     totalMerges: row.total_merges || 0,
-    gridState: row.grid_state,
+    gridState: parsedGridState,
     lastOfflineCheck: new Date(Number(row.last_offline_check) * 1000).toISOString()
   };
 }

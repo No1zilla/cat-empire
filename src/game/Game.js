@@ -65,8 +65,18 @@ export class Game {
         if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = Math.max(startTotalCatsBought, Number(profileData.user.totalCatsBought) || 0);
         if (profileData.user.totalCatsCreated !== undefined) startTotalCatsCreated = Math.max(startTotalCatsCreated, Number(profileData.user.totalCatsCreated) || 0);
         if (profileData.user.totalMerges      !== undefined) startTotalMerges = Math.max(startTotalMerges, Number(profileData.user.totalMerges) || 0);
-        if (profileData.user.gridState && Array.isArray(profileData.user.gridState) && profileData.user.gridState.length > 0) {
-          userGridState = profileData.user.gridState;
+        if (profileData.user.gridState) {
+          let parsedGrid = profileData.user.gridState;
+          if (typeof parsedGrid === 'string') {
+            try {
+              parsedGrid = JSON.parse(parsedGrid);
+            } catch (e) {
+              console.warn('Ошибка парсинга gridState:', e);
+            }
+          }
+          if (Array.isArray(parsedGrid) && parsedGrid.length > 0) {
+            userGridState = parsedGrid;
+          }
         }
       }
     } catch (error) {
