@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
   try {
     const vkId = String(vkUserId);
-    const { coins, gems, maxCatLevel, totalCatsBought, totalCatsCreated, totalMerges, gridState } = req.body || {};
+    const { coins, gems, maxCatLevel, totalCatsBought, totalMerges, gridState } = req.body || {};
     const now = Math.floor(Date.now() / 1000);
 
     const fields = ['last_offline_check = $1'];
@@ -37,7 +37,6 @@ export default async function handler(req, res) {
     if (gems !== undefined) { fields.push(`gems = $${idx++}`); values.push(gems); }
     if (maxCatLevel !== undefined) { fields.push(`max_cat_level = $${idx++}`); values.push(maxCatLevel); }
     if (totalCatsBought !== undefined) { fields.push(`total_cats_bought = $${idx++}`); values.push(totalCatsBought); }
-    if (totalCatsCreated !== undefined) { fields.push(`total_cats_created = $${idx++}`); values.push(totalCatsCreated); }
     if (totalMerges !== undefined) { fields.push(`total_merges = $${idx++}`); values.push(totalMerges); }
     if (gridState !== undefined) {
       const gs = typeof gridState === 'string' ? gridState : JSON.stringify(gridState);

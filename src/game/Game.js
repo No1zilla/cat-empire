@@ -45,7 +45,6 @@ export class Game {
     let startGems             = parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10);
     let startMaxCatLevel      = parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10);
     let startTotalCatsBought  = parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10);
-    let startTotalCatsCreated = parseInt(localStorage.getItem('cat_empire_last_total_created') || '0', 10);
     let startTotalMerges      = parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10);
     let localGridState        = null;
     try {
@@ -63,7 +62,6 @@ export class Game {
         if (profileData.user.gems             !== undefined) startGems  = profileData.user.gems;
         if (profileData.user.maxCatLevel      !== undefined) startMaxCatLevel = Math.max(startMaxCatLevel, Number(profileData.user.maxCatLevel) || 1);
         if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = Math.max(startTotalCatsBought, Number(profileData.user.totalCatsBought) || 0);
-        if (profileData.user.totalCatsCreated !== undefined) startTotalCatsCreated = Math.max(startTotalCatsCreated, Number(profileData.user.totalCatsCreated) || 0);
         if (profileData.user.totalMerges      !== undefined) startTotalMerges = Math.max(startTotalMerges, Number(profileData.user.totalMerges) || 0);
         if (profileData.user.gridState) {
           let parsedGrid = profileData.user.gridState;
@@ -144,7 +142,7 @@ export class Game {
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
     };
-    this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalCatsCreated, startTotalMerges);
+    this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalMerges);
     this.economy.startTicker();
 
     // 6. Ряд из 3-х кнопок управления:
@@ -344,7 +342,6 @@ export class Game {
             coins: this.economy.coins,
             gems: this.economy.gems,
             totalCatsBought: this.economy.totalCatsBought,
-            totalCatsCreated: this.economy.totalCatsCreated,
             totalMerges: this.economy.totalMerges,
             maxCatLevel: this.maxCatLevel,
             gridState: this.grid.exportState()
@@ -424,7 +421,6 @@ export class Game {
     localStorage.setItem('cat_empire_last_gems', String(this.economy.gems));
     localStorage.setItem('cat_empire_last_max_level', String(this.maxCatLevel));
     localStorage.setItem('cat_empire_last_total_bought', String(this.economy.totalCatsBought));
-    localStorage.setItem('cat_empire_last_total_created', String(this.economy.totalCatsCreated));
     localStorage.setItem('cat_empire_last_total_merges', String(this.economy.totalMerges));
     if (this.grid) {
       localStorage.setItem('cat_empire_grid_state', JSON.stringify(this.grid.exportState()));

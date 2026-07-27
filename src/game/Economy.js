@@ -7,7 +7,6 @@ export class Economy {
     this.coins = 0;
     this.gems = 0;
     this.totalCatsBought = 0;
-    this.totalCatsCreated = 0;
     this.totalMerges = 0;
     this.incomePerSecond = 0;
     this._ticker = null;
@@ -20,7 +19,7 @@ export class Economy {
   }
 
   // Установить начальный баланс и счётчики статистики с умной авто-регенерацией
-  setBalance(coins, gems, totalCatsBought = 0, totalCatsCreated = 0, totalMerges = 0) {
+  setBalance(coins, gems, totalCatsBought = 0, totalMerges = 0) {
     this.coins = Number(coins) || 0;
     this.gems = Number(gems) || 0;
     let bought = Number(totalCatsBought) || 0;
@@ -37,7 +36,6 @@ export class Economy {
 
     // Если счётчик сбросился в 0, восстанавливаем значение по состоянию игрового поля!
     this.totalCatsBought = Math.max(bought, minBoughtFromGrid);
-    this.totalCatsCreated = Math.max(Number(totalCatsCreated) || 0, this.totalCatsBought);
     this.totalMerges = Number(totalMerges) || 0;
 
     this._recalcIncome();

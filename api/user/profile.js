@@ -67,8 +67,8 @@ export default async function handler(req, res) {
       const id = String(Date.now());
       const now = Math.floor(Date.now() / 1000);
       await pool.query(`
-        INSERT INTO users (id, vk_id, first_name, coins, gems, max_cat_level, total_cats_bought, total_cats_created, total_merges, grid_state, last_offline_check, created_at)
-        VALUES ($1, $2, 'Игрок', 100, 10, 1, 0, 0, 0, $3, $4, $4)
+        INSERT INTO users (id, vk_id, first_name, coins, gems, max_cat_level, total_cats_bought, total_merges, grid_state, last_offline_check, created_at)
+        VALUES ($1, $2, 'Игрок', 100, 10, 1, 0, 0, $3, $4, $4)
       `, [id, vkId, initialGrid, now]);
 
       ({ rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]));
@@ -88,7 +88,6 @@ export default async function handler(req, res) {
         gems: row.gems,
         maxCatLevel: row.max_cat_level,
         totalCatsBought: row.total_cats_bought || 0,
-        totalCatsCreated: row.total_cats_created || 0,
         totalMerges: row.total_merges || 0,
         gridState: parsedGrid
       }
