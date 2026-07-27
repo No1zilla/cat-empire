@@ -29,13 +29,6 @@ export class HUD extends Container {
     bg.fill(0x0e0a26);
     this.addChild(bg);
 
-    // Мягкий нижний разделитель
-    const divider = new Graphics();
-    divider.moveTo(0, 53);
-    divider.lineTo(hudWidth, 53);
-    divider.stroke({ color: 0x2e2559, width: 1.2, alpha: 0.8 });
-    this.addChild(divider);
-
     const capH = 34;
     const capY = 10;
     const capRadius = 16;
