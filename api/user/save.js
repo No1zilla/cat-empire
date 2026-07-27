@@ -29,6 +29,22 @@ export default async function handler(req, res) {
     const { coins, gems, maxCatLevel, totalCatsBought, totalMerges, gridState } = req.body || {};
     const now = Math.floor(Date.now() / 1000);
 
+    // АНТИ-ЧИТ ВАЛИДАЦИЯ: Пересчитываем минимальные покупки по сетке котиков
+    let minCatsFromGrid = 0;
+    if (gridState) {
+      const parsedGrid = typeof gridState === 'string' ? JSON.parse(gridState) : gridState;
+      if (Array.isArray(parsedGrid)) {
+        parsedGrid.forEach(cell => {
+          if (cell && cell.catLevel) {
+            minCatsFromGrid += Math.pow(2, cell.catLevel - 1);
+          }
+        });
+      }
+    }
+
+    // Ограничиваем фальшивые значения: totalCatsBought не может быть меньше минимального по сетке
+    const validatedBought = Math.max(Number(totalCatsBought) || 0, minCatsFromGrid);
+
     const fields = ['last_offline_check = $1'];
     const values = [now];
     let idx = 2;
@@ -36,7 +52,7 @@ export default async function handler(req, res) {
     if (coins !== undefined) { fields.push(`coins = $${idx++}`); values.push(coins); }
     if (gems !== undefined) { fields.push(`gems = $${idx++}`); values.push(gems); }
     if (maxCatLevel !== undefined) { fields.push(`max_cat_level = $${idx++}`); values.push(maxCatLevel); }
-    if (totalCatsBought !== undefined) { fields.push(`total_cats_bought = $${idx++}`); values.push(totalCatsBought); }
+    if (validatedBought !== undefined) { fields.push(`total_cats_bought = $${idx++}`); values.push(validatedBought); }
     if (totalMerges !== undefined) { fields.push(`total_merges = $${idx++}`); values.push(totalMerges); }
     if (gridState !== undefined) {
       const gs = typeof gridState === 'string' ? gridState : JSON.stringify(gridState);
