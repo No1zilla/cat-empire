@@ -66,8 +66,8 @@ export class Cat extends Container {
 
     const badgeBg = new Graphics();
     badgeBg.roundRect(badgeX, badgeY, badgeW, badgeH, badgeH / 2);
-    badgeBg.fill({ color: 0x000000, alpha: 0.85 });
-    badgeBg.stroke({ color: catData.color || 0xffd700, alpha: 0.85, width: 1 });
+    badgeBg.fill({ color: 0x0c0821, alpha: 0.45 });
+    badgeBg.stroke({ color: catData.color || 0xffd700, alpha: 0.7, width: 1 });
     mainContainer.addChild(badgeBg);
 
     const levelStyle = new TextStyle({
@@ -75,7 +75,8 @@ export class Cat extends Container {
       fontSize: 9,
       fill: '#ffffff',
       fontWeight: 'bold',
-      align: 'center'
+      align: 'center',
+      dropShadow: { color: '#000000', alpha: 0.8, blur: 2, distance: 1 }
     });
     const levelText = new Text({ text: `Lvl ${this.level}`, style: levelStyle });
     levelText.anchor.set(0.5, 0.5);
