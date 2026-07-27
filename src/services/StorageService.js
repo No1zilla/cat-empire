@@ -57,7 +57,10 @@ export class StorageService {
     try {
       const serverProfile = await fetchProfile();
       if (serverProfile && serverProfile.user) {
-        return this.mergeStates(serverProfile.user, localData);
+        const merged = this.mergeStates(serverProfile.user, localData);
+        // Мгновенно мигрируем и сохраняем объединенный прогресс в облачный PostgreSQL
+        await this.saveProgress(merged);
+        return merged;
       }
     } catch {
       // Игнорируем ошибки сети
