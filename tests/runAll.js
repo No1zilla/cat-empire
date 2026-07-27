@@ -6,6 +6,7 @@ import { runSoundTests } from './unit/sound.test.js';
 import { runIdentityTests } from './unit/identity.test.js';
 import { runStorageTests } from './unit/storage.test.js';
 import { runTutorialAndBridgeTests } from './unit/tutorialAndBridge.test.js';
+import { runSyncManagerTests } from './unit/syncManager.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -20,6 +21,7 @@ async function main() {
     await runIdentityTests();
     runStorageTests();
     await runTutorialAndBridgeTests();
+    await runSyncManagerTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {
