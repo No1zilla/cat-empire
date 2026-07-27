@@ -1,4 +1,5 @@
 import { getCatData } from '../utils/catVisuals.js';
+import { BALANCE } from '../config/balance.js';
 
 // Класс управления экономикой (Простая цена: 10 + totalCatsBought, ровно +1 монета за покупку)
 export class Economy {
@@ -15,7 +16,7 @@ export class Economy {
 
   // Простая понятная цена: 10 монет + 1 монета за каждую совершённую покупку (каждый клик +1!)
   getCatCost() {
-    return 10 + (this.totalCatsBought || 0);
+    return BALANCE.calculateCatCost(this.totalCatsBought);
   }
 
   // Установить начальный баланс и счётчики статистики с умной авто-регенерацией
