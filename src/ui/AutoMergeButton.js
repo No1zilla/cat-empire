@@ -1,6 +1,6 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { saveProgress, showRewardedAd } from '../api/client.js';
+import { saveProgress } from '../api/client.js';
 import { AdModal } from './AdModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
@@ -18,7 +18,12 @@ export class AutoMergeButton extends Container {
     this._shadowBg = null;
     this._btnText = null;
     this._subText = null;
+    this._subContainer = null;
     this._warningText = null;
+
+    this._clickAnimTimeout = null;
+    this._warningTimeout = null;
+    this._timerInterval = null;
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
@@ -72,7 +77,7 @@ export class AutoMergeButton extends Container {
     this._innerContainer.addChild(this._btnText);
 
     // 5. Красивый сочный центрированный подтекст "5 💎" с 3D рубиновым гемом
-    const subContainer = new Container();
+    this._subContainer = new Container();
 
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
@@ -84,31 +89,48 @@ export class AutoMergeButton extends Container {
 
     this._subText = new Text({ text: '5', style: subStyle });
     this._subText.anchor.set(0, 0.5);
+    this._subText.position.set(0, 0);
 
-    const gemIcon = UIUtils.createGemIcon(9);
-    gemIcon.position.set(this._subText.width + 10, 0);
+    const gemSize = 9;
+    const gemIcon = UIUtils.createGemIcon(gemSize);
+    const gap = 4;
+    gemIcon.position.set(this._subText.width + gap + gemSize, 0);
 
-    subContainer.addChild(this._subText);
-    subContainer.addChild(gemIcon);
+    this._subContainer.addChild(this._subText);
+    this._subContainer.addChild(gemIcon);
 
-    subContainer.pivot.set((this._subText.width + 18) / 2, 0);
-    subContainer.position.set(btnWidth / 2, 33);
-    this._innerContainer.addChild(subContainer);
+    const totalSubWidth = this._subText.width + gap + (gemSize * 2);
+    this._subContainer.pivot.set(totalSubWidth / 2, 0);
+    this._subContainer.position.set(btnWidth / 2, 33);
+    this._innerContainer.addChild(this._subContainer);
 
     // Настройка кликов и микро-анимации
     this.on('pointerdown', (e) => {
-      e.stopPropagation();
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      this.alpha = 0.92;
       this._playClickAnim();
       this._handleClick();
     });
 
+    const onPointerRelease = () => {
+      this.alpha = 1.0;
+      if (!this.destroyed && this._innerContainer) {
+        this._innerContainer.scale.set(1.0);
+      }
+    };
+
+    this.on('pointerup', onPointerRelease);
+    this.on('pointerupoutside', onPointerRelease);
+    this.on('pointerout', onPointerRelease);
+    this.on('pointercancel', onPointerRelease);
+
     this.on('pointerover', () => { this.alpha = 0.92; });
-    this.on('pointerout',  () => { this.alpha = 1.0; });
   }
 
   _playClickAnim() {
     if (this._innerContainer) this._innerContainer.scale.set(0.90);
-    setTimeout(() => {
+    if (this._clickAnimTimeout) clearTimeout(this._clickAnimTimeout);
+    this._clickAnimTimeout = setTimeout(() => {
       if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
     }, 100);
   }
@@ -118,6 +140,10 @@ export class AutoMergeButton extends Container {
       this.removeChild(this._warningText);
       this._warningText.destroy();
       this._warningText = null;
+    }
+    if (this._warningTimeout) {
+      clearTimeout(this._warningTimeout);
+      this._warningTimeout = null;
     }
 
     const warnStyle = new TextStyle({
@@ -130,10 +156,10 @@ export class AutoMergeButton extends Container {
 
     this._warningText = new Text({ text, style: warnStyle });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(70, -18);
+    this._warningText.position.set(61, -18);
     this.addChild(this._warningText);
 
-    setTimeout(() => {
+    this._warningTimeout = setTimeout(() => {
       if (this._warningText) {
         this.removeChild(this._warningText);
         this._warningText.destroy();
@@ -185,6 +211,14 @@ export class AutoMergeButton extends Container {
     if (this._timerInterval) {
       clearInterval(this._timerInterval);
       this._timerInterval = null;
+    }
+    if (this._clickAnimTimeout) {
+      clearTimeout(this._clickAnimTimeout);
+      this._clickAnimTimeout = null;
+    }
+    if (this._warningTimeout) {
+      clearTimeout(this._warningTimeout);
+      this._warningTimeout = null;
     }
     super.destroy(options);
   }

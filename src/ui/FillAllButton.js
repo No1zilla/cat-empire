@@ -16,8 +16,12 @@ export class FillAllButton extends Container {
     this._btnBg = null;
     this._shadowBg = null;
     this._btnText = null;
-    this._subText = null;
+    this._subContainer = null;
     this._warningText = null;
+    this._warningCoin = null;
+
+    this._clickAnimTimeout = null;
+    this._warningTimeout = null;
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
@@ -52,32 +56,71 @@ export class FillAllButton extends Container {
   updateLabel() {
     const { count, cost, freeSlotsCount } = this.getFillData();
 
-    if (this._subText) {
-      this._subText.removeChildren();
-      if (this._btnText) this._btnText.text = '📦 Заполнить';
-      if (this._btnBg) this._btnBg.fill(0xff9f43);
+    if (!this._subContainer) return;
+    this._subContainer.removeChildren();
 
-      if (freeSlotsCount === 0) {
-        this._subText.text = 'ЗАПОЛНЕНО';
-        this._subText.style.fill = '#e5e7eb';
-      } else if (count === 0) {
-        const nextCost = 10 + (this.economy ? this.economy.totalCatsBought : 0);
-        this._subText.text = `${nextCost} `;
-        const coinIcon = UIUtils.createCoinIcon(6, true);
-        coinIcon.position.set(this._subText.width / 2 + 8, 8);
-        this._subText.addChild(coinIcon);
-        this._subText.style.fill = '#fff3a0';
-      } else {
-        const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
-        this._subText.text = `${count} шт (${formattedCost} `;
-        const coinIcon = UIUtils.createCoinIcon(6);
-        coinIcon.position.set(this._subText.width / 2 + 8, 8);
-        this._subText.addChild(coinIcon);
-        const bracket = new Text({ text: ')', style: this._subText.style });
-        bracket.position.set(this._subText.width / 2 + 16, 0);
-        this._subText.addChild(bracket);
-        this._subText.style.fill = '#ffffff';
-      }
+    if (this._btnText) this._btnText.text = '📦 Заполнить';
+    if (this._btnBg) this._btnBg.fill(0xff9f43);
+
+    const subStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 10,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
+    });
+
+    const btnWidth = 122;
+
+    if (freeSlotsCount === 0) {
+      const textStyle = new TextStyle({ ...subStyle, fill: '#e5e7eb' });
+      const textObj = new Text({ text: 'ЗАПОЛНЕНО', style: textStyle });
+      textObj.anchor.set(0.5, 0.5);
+      textObj.position.set(0, 0);
+      this._subContainer.addChild(textObj);
+      this._subContainer.pivot.set(0, 0);
+      this._subContainer.position.set(btnWidth / 2, 33);
+    } else if (count === 0) {
+      const nextCost = 10 + (this.economy ? this.economy.totalCatsBought : 0);
+      const formattedNextCost = nextCost >= 1000000 ? (nextCost / 1000000).toFixed(1) + 'M' : (nextCost >= 1000 ? (nextCost / 1000).toFixed(1) + 'K' : nextCost);
+      const textStyle = new TextStyle({ ...subStyle, fill: '#fff3a0' });
+      const textObj = new Text({ text: `${formattedNextCost} `, style: textStyle });
+      textObj.anchor.set(0, 0.5);
+      textObj.position.set(0, 0);
+
+      const coinRadius = 6;
+      const coinIcon = UIUtils.createCoinIcon(coinRadius, true);
+      const gap = 3;
+      coinIcon.position.set(textObj.width + gap + coinRadius, 0);
+
+      this._subContainer.addChild(textObj);
+      this._subContainer.addChild(coinIcon);
+
+      const totalWidth = textObj.width + gap + (coinRadius * 2);
+      this._subContainer.pivot.set(totalWidth / 2, 0);
+      this._subContainer.position.set(btnWidth / 2, 33);
+    } else {
+      const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
+      const text1Obj = new Text({ text: `${count} шт (${formattedCost} `, style: subStyle });
+      text1Obj.anchor.set(0, 0.5);
+      text1Obj.position.set(0, 0);
+
+      const coinRadius = 6;
+      const coinIcon = UIUtils.createCoinIcon(coinRadius);
+      const gap = 3;
+      coinIcon.position.set(text1Obj.width + gap + coinRadius, 0);
+
+      const text2Obj = new Text({ text: ')', style: subStyle });
+      text2Obj.anchor.set(0, 0.5);
+      text2Obj.position.set(text1Obj.width + gap + (coinRadius * 2) + gap, 0);
+
+      this._subContainer.addChild(text1Obj);
+      this._subContainer.addChild(coinIcon);
+      this._subContainer.addChild(text2Obj);
+
+      const totalWidth = text1Obj.width + gap + (coinRadius * 2) + gap + text2Obj.width;
+      this._subContainer.pivot.set(totalWidth / 2, 0);
+      this._subContainer.position.set(btnWidth / 2, 33);
     }
   }
 
@@ -126,37 +169,39 @@ export class FillAllButton extends Container {
     this._btnText.position.set(btnWidth / 2, 6);
     this._innerContainer.addChild(this._btnText);
 
-    // 5. Подтекст количества и стоимости
-    const subStyle = new TextStyle({
-      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 10,
-      fontWeight: 'bold',
-      fill: '#ffffff',
-      align: 'center',
-      dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
-    });
-
-    this._subText = new Text({ text: '0 шт', style: subStyle });
-    this._subText.anchor.set(0.5, 0);
-    this._subText.position.set(btnWidth / 2, 26);
-    this._innerContainer.addChild(this._subText);
+    // 5. Подтекст контейнер
+    this._subContainer = new Container();
+    this._innerContainer.addChild(this._subContainer);
 
     // Интерактивность
     this.on('pointerdown', (e) => {
-      e.stopPropagation();
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      this.alpha = 0.92;
       this._playClickAnim();
       this._handleClick();
     });
 
+    const onPointerRelease = () => {
+      this.alpha = 1.0;
+      if (!this.destroyed && this._innerContainer) {
+        this._innerContainer.scale.set(1.0);
+      }
+    };
+
+    this.on('pointerup', onPointerRelease);
+    this.on('pointerupoutside', onPointerRelease);
+    this.on('pointerout', onPointerRelease);
+    this.on('pointercancel', onPointerRelease);
+
     this.on('pointerover', () => { this.alpha = 0.92; });
-    this.on('pointerout',  () => { this.alpha = 1.0; });
 
     this.updateLabel();
   }
 
   _playClickAnim() {
     if (this._innerContainer) this._innerContainer.scale.set(0.90);
-    setTimeout(() => {
+    if (this._clickAnimTimeout) clearTimeout(this._clickAnimTimeout);
+    this._clickAnimTimeout = setTimeout(() => {
       if (!this.destroyed && this._innerContainer) this._innerContainer.scale.set(1.0);
     }, 100);
   }
@@ -171,6 +216,10 @@ export class FillAllButton extends Container {
       this.removeChild(this._warningCoin);
       this._warningCoin.destroy();
       this._warningCoin = null;
+    }
+    if (this._warningTimeout) {
+      clearTimeout(this._warningTimeout);
+      this._warningTimeout = null;
     }
 
     const warnStyle = new TextStyle({
@@ -187,16 +236,16 @@ export class FillAllButton extends Container {
       style: warnStyle
     });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(52, -18);
+    this._warningText.position.set(61, -18);
     this.addChild(this._warningText);
 
     if (showCoin) {
       this._warningCoin = UIUtils.createCoinIcon(7, true);
-      this._warningCoin.position.set(52 + this._warningText.width / 2 + 6, -18);
+      this._warningCoin.position.set(61 + this._warningText.width / 2 + 6, -18);
       this.addChild(this._warningCoin);
     }
 
-    setTimeout(() => {
+    this._warningTimeout = setTimeout(() => {
       if (this._warningText) {
         this.removeChild(this._warningText);
         this._warningText.destroy();
@@ -225,6 +274,18 @@ export class FillAllButton extends Container {
 
     await this.onTriggerFillAll(count, cost);
     this.updateLabel();
+  }
+
+  destroy(options) {
+    if (this._clickAnimTimeout) {
+      clearTimeout(this._clickAnimTimeout);
+      this._clickAnimTimeout = null;
+    }
+    if (this._warningTimeout) {
+      clearTimeout(this._warningTimeout);
+      this._warningTimeout = null;
+    }
+    super.destroy(options);
   }
 }
 
