@@ -13,6 +13,7 @@ import { Tutorial } from '../ui/Tutorial.js';
 import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
 import { CatDetailModal } from '../ui/CatDetailModal.js';
+import { storageService } from '../services/StorageService.js';
 import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
@@ -40,46 +41,15 @@ export class Game {
 
   // Асинхронный метод инициализации игровой сцены
   async init(userName = 'Тест Игрок') {
-    // 1. Инициализация из localStorage (надежный фоллбэк при перезагрузке)
-    let startCoins            = parseFloat(localStorage.getItem('cat_empire_last_coins') || '100');
-    let startGems             = parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10);
-    let startMaxCatLevel      = parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10);
-    let startTotalCatsBought  = parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10);
-    let startTotalMerges      = parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10);
-    let localGridState        = null;
-    try {
-      const rawGrid = localStorage.getItem('cat_empire_grid_state');
-      if (rawGrid) localGridState = JSON.parse(rawGrid);
-    } catch (e) {
-      console.warn('Ошибка чтения локальной сетки:', e);
-    }
-    let userGridState = null;
+    // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
+    const progress = await storageService.loadProgress();
 
-    try {
-      const profileData = await fetchProfile();
-      if (profileData && profileData.user) {
-        if (profileData.user.coins            !== undefined) startCoins = profileData.user.coins;
-        if (profileData.user.gems             !== undefined) startGems  = profileData.user.gems;
-        if (profileData.user.maxCatLevel      !== undefined) startMaxCatLevel = Math.max(startMaxCatLevel, Number(profileData.user.maxCatLevel) || 1);
-        if (profileData.user.totalCatsBought  !== undefined) startTotalCatsBought = Math.max(startTotalCatsBought, Number(profileData.user.totalCatsBought) || 0);
-        if (profileData.user.totalMerges      !== undefined) startTotalMerges = Math.max(startTotalMerges, Number(profileData.user.totalMerges) || 0);
-        if (profileData.user.gridState) {
-          let parsedGrid = profileData.user.gridState;
-          if (typeof parsedGrid === 'string') {
-            try {
-              parsedGrid = JSON.parse(parsedGrid);
-            } catch (e) {
-              console.warn('Ошибка парсинга gridState:', e);
-            }
-          }
-          if (Array.isArray(parsedGrid) && parsedGrid.length > 0) {
-            userGridState = parsedGrid;
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Сервер не доступен или ошибка получения профиля, используются локальные данные:', error);
-    }
+    let startCoins           = progress.coins;
+    let startGems            = progress.gems;
+    let startMaxCatLevel     = progress.maxCatLevel;
+    let startTotalCatsBought = progress.totalCatsBought;
+    let startTotalMerges     = progress.totalMerges;
+    let gridToImport         = progress.gridState;
 
     this.maxCatLevel = startMaxCatLevel;
 
@@ -117,8 +87,7 @@ export class Game {
     this.grid.y = 58;
     this.gameContainer.addChild(this.grid);
 
-    // 4. Восстановление состояния котиков на сетке (приоритет: профиль сервера -> локальное хранилище -> дефолт)
-    const gridToImport = userGridState || localGridState;
+    // 4. Восстановление состояния котиков на сетке через StorageService
     if (gridToImport && Array.isArray(gridToImport) && gridToImport.length > 0) {
       this.grid.importState(gridToImport);
     } else {
