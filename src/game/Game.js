@@ -343,6 +343,7 @@ export class Game {
     });
 
     this._startFloatingIncomePopups();
+    this._bindLifecycleFlushes();
 
     // 9. Модальные окна
     const showTutorialIfNeeded = (force = false) => {
@@ -424,6 +425,24 @@ export class Game {
       maxCatLevel: this.maxCatLevel,
       gridState: this.grid ? this.grid.exportState() : []
     }, 800);
+  }
+
+  // Защита от потери данных при сворачивании приложения или переключении закладок
+  _bindLifecycleFlushes() {
+    const flushOnLeave = () => {
+      if (document.hidden && this.economy) {
+        syncManager.flushImmediate({
+          coins: this.economy.coins,
+          gems: this.economy.gems,
+          totalCatsBought: this.economy.totalCatsBought,
+          totalMerges: this.economy.totalMerges,
+          maxCatLevel: this.maxCatLevel,
+          gridState: this.grid ? this.grid.exportState() : []
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', flushOnLeave);
+    window.addEventListener('pagehide', flushOnLeave);
   }
 
   _startFloatingIncomePopups() {
