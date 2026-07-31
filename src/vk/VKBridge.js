@@ -1,5 +1,9 @@
 import bridge from '@vkontakte/vk-bridge';
 
+if (typeof window !== 'undefined') {
+  window.vkBridge = bridge;
+}
+
 // Класс VKService для взаимодействия с VK Mini Apps SDK
 export class VKService {
   constructor() {

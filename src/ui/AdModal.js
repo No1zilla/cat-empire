@@ -132,9 +132,19 @@ export class AdModal extends Container {
     this.addChild(closeBtn);
   }
 
-  // 2. Живой 60 FPS анимированный видеоплеер рекламного ролика VK
   async _startVideoPlayer() {
-    showRewardedAd().catch(() => {});
+    const realAdRes = await showRewardedAd().catch(() => null);
+    if (realAdRes && realAdRes.success) {
+      if (this.economy && this.rewardGems > 0) {
+        this.economy.addGems(this.rewardGems);
+        try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+      }
+      this._close();
+      if (typeof this.onRewardGranted === 'function') {
+        this.onRewardGranted();
+      }
+      return;
+    }
 
     this.removeChildren();
 
