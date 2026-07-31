@@ -94,6 +94,19 @@ export class CatDetailModal extends Container {
     nameText.position.set(W / 2, cardY + 20);
     this.addChild(nameText);
 
+    // Кнопка закрытия ✕
+    const closeBtnStyle = new TextStyle({ fontSize: 18, fill: '#aaaaaa', fontWeight: 'bold' });
+    const closeCross = new Text({ text: '✕', style: closeBtnStyle });
+    closeCross.anchor.set(0.5, 0.5);
+    closeCross.position.set(cardX + cardW - 20, cardY + 20);
+    closeCross.eventMode = 'static';
+    closeCross.cursor = 'pointer';
+    closeCross.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this._close();
+    });
+    this.addChild(closeCross);
+
     const lvlStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 13,

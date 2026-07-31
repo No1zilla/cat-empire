@@ -117,15 +117,15 @@ export class Tutorial extends Container {
     descText.y = cardY + 48;
     this.addChild(descText);
 
-    // 4. Кнопка «Пропустить ✕»
+    // 4. Кнопка закрытия «✕»
     const skipStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 12,
+      fontSize: 18,
       fontWeight: 'bold',
       fill: '#aaaaaa',
       align: 'right'
     });
-    const skipText = new Text({ text: 'Пропустить ✕', style: skipStyle });
+    const skipText = new Text({ text: '✕', style: skipStyle });
     skipText.anchor.set(1, 0);
     skipText.position.set(355, cardY + 12);
     skipText.eventMode = 'static';

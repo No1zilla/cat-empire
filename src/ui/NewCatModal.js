@@ -111,6 +111,19 @@ export class NewCatModal extends Container {
     title.position.set(W / 2, cardY + 20);
     this.addChild(title);
 
+    // Кнопка закрытия ✕
+    const closeBtnStyle = new TextStyle({ fontSize: 18, fill: '#aaaaaa', fontWeight: 'bold' });
+    const closeBtn = new Text({ text: '✕', style: closeBtnStyle });
+    closeBtn.anchor.set(0.5, 0.5);
+    closeBtn.position.set(cardX + cardW - 20, cardY + 20);
+    closeBtn.eventMode = 'static';
+    closeBtn.cursor = 'pointer';
+    closeBtn.on('pointerdown', (e) => {
+      e.stopPropagation();
+      this._close();
+    });
+    this.addChild(closeBtn);
+
     // 5. Изображение котика
     const texture = getCatTexture(this.level);
     if (texture) {
