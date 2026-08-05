@@ -39,30 +39,32 @@ export class MainMenu extends Container {
 
     const font = TOKENS.typography.fontFamily;
 
-    // 3. Заголовок "👑 ИМПЕРИЯ КОТИКОВ"
+    // 3. Заголовок "ИМПЕРИЯ КОТИКОВ" (Чистый премиальный шрифт без эмодзи)
     const titleStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 28,
+      fontSize: 30,
       fontWeight: TOKENS.typography.fontWeightBold,
       fill: [TOKENS.colors.textPrimary, TOKENS.colors.gold],
       fillGradientStops: [0, 1],
-      dropShadow: { color: '#000000', alpha: 0.8, blur: 6, distance: 3 },
+      dropShadow: { color: '#000000', alpha: 0.7, blur: 5, distance: 2 },
+      letterSpacing: 2,
       align: 'center'
     });
 
-    const title = new Text({ text: '👑 ИМПЕРИЯ КОТИКОВ 👑', style: titleStyle });
+    const title = new Text({ text: 'ИМПЕРИЯ КОТИКОВ', style: titleStyle });
     title.anchor.set(0.5);
     title.position.set(width / 2, 110);
     this.addChild(title);
 
     const subTitleStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 14,
+      fontSize: 13,
+      fontWeight: 'bold',
       fill: TOKENS.colors.income,
-      letterSpacing: 1
+      letterSpacing: 1.5
     });
 
-    const subTitle = new Text({ text: 'Королевский Idle Merge-Кликер', style: subTitleStyle });
+    const subTitle = new Text({ text: 'IDLE MERGE KINGDOM', style: subTitleStyle });
     subTitle.anchor.set(0.5);
     subTitle.position.set(width / 2, 145);
     this.addChild(subTitle);
