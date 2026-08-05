@@ -15,7 +15,7 @@ export async function loadCatTextures() {
   const version = Date.now() + '_cat3fix';
   for (let level = 1; level <= 15; level++) {
     try {
-      textures[level] = await Assets.load(`${base}assets/cats/cat_${level}.png?v=${version}`);
+      textures[level] = await Assets.load(`${base}assets/cats/cat_${level}.png`);
     } catch (e) {
       console.warn(`Failed to load cat_${level}.png, fallback to emoji:`, e);
       textures[level] = null;
