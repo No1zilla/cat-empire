@@ -10,10 +10,12 @@ export class VKService {
     this.bridge = bridge;
   }
 
-  // Инициализация VK Bridge
+  // Инициализация VK Bridge (с быстрым таймаутом вне iframe)
   async init() {
     try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
+      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+      const timeoutMs = isIframe ? 3000 : 300;
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
       console.log('VKWebAppInit result:', result);
       return result;
@@ -23,10 +25,12 @@ export class VKService {
     }
   }
 
-  // Получение данных пользователя (С надежным тайм-аутом 5 секунд для смартфона)
+  // Получение данных пользователя (с быстрым таймаутом вне iframe)
   async getUserInfo() {
     try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+      const timeoutMs = isIframe ? 5000 : 300;
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const user = await Promise.race([this.bridge.send('VKWebAppGetUserInfo'), timeout]);
       if (user && user.id) {
         return {
@@ -50,7 +54,9 @@ export class VKService {
   // TASK-SYNC: Чтение из нативного облачного хранилища VK (VKWebAppStorageGet)
   async storageGet(keys = ['cat_empire_progress']) {
     try {
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 4000));
+      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+      const timeoutMs = isIframe ? 4000 : 300;
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const res = await Promise.race([
         this.bridge.send('VKWebAppStorageGet', { keys }),
         timeout
@@ -77,8 +83,10 @@ export class VKService {
   // TASK-SYNC: Сохранение в нативное облачное хранилище VK (VKWebAppStorageSet)
   async storageSet(key, value) {
     try {
+      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
+      const timeoutMs = isIframe ? 4000 : 300;
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 4000));
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       await Promise.race([
         this.bridge.send('VKWebAppStorageSet', { key, value: stringValue }),
         timeout

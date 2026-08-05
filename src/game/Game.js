@@ -19,9 +19,11 @@ import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
+import { MainMenu } from '../ui/MainMenu.js';
+import { SettingsModal } from '../ui/SettingsModal.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
-// Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия)
+// Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
 export class Game {
   constructor(app) {
     this.app = app;
@@ -74,10 +76,15 @@ export class Game {
       const modal = new CollectionModal(this.app, this.maxCatLevel, () => {
         console.log('Котопедия закрыта');
       });
+      modal.zIndex = 999999;
       this.app.stage.addChild(modal);
     };
 
-    this.hud = new HUD(this.app, openCollection);
+    const openMenu = () => {
+      this.showMainMenu();
+    };
+
+    this.hud = new HUD(this.app, openCollection, openMenu);
     this.hud.position.set(0, 0);
     this.gameContainer.addChild(this.hud);
 
@@ -311,16 +318,20 @@ export class Game {
     const previousCoins = parseFloat(localStorage.getItem('cat_empire_last_coins') || '0');
     const offlineEarned = Math.max(0, startCoins - previousCoins);
 
-    if (previousCoins > 0 && offlineEarned > 1) {
-      const modal = new OfflineModal(this.app, offlineEarned, () => {
-        console.log('Оффлайн-доход получен:', offlineEarned);
+    this._onMenuPlayCallback = () => {
+      if (previousCoins > 0 && offlineEarned > 1) {
+        const modal = new OfflineModal(this.app, offlineEarned, () => {
+          console.log('Оффлайн-доход получен:', offlineEarned);
+          showTutorialIfNeeded();
+        });
+        modal.zIndex = 99999;
+        this.app.stage.addChild(modal);
+      } else {
         showTutorialIfNeeded();
-      });
-      modal.zIndex = 99999;
-      this.app.stage.addChild(modal);
-    } else {
-      showTutorialIfNeeded();
-    }
+      }
+    };
+
+    this.showMainMenu();
 
     this._saveToLocalStorage();
 
@@ -447,6 +458,52 @@ export class Game {
         }
       });
     }, 1250);
+  }
+
+  // TASK-044: Главное стартовое меню (Соответствие правилу 4.2.10 VK Mini Apps)
+  showMainMenu() {
+    if (this._mainMenuInstance) {
+      if (this._mainMenuInstance.parent) {
+        this._mainMenuInstance.parent.removeChild(this._mainMenuInstance);
+      }
+      this._mainMenuInstance.destroy();
+      this._mainMenuInstance = null;
+    }
+
+    this._mainMenuInstance = new MainMenu(this.app, {
+      onPlay: () => {
+        if (this._mainMenuInstance) {
+          if (this._mainMenuInstance.parent) {
+            this._mainMenuInstance.parent.removeChild(this._mainMenuInstance);
+          }
+          this._mainMenuInstance.destroy();
+          this._mainMenuInstance = null;
+        }
+        console.log('▶️ Игра запущена из главного меню!');
+        if (this._onMenuPlayCallback) {
+          const cb = this._onMenuPlayCallback;
+          this._onMenuPlayCallback = null;
+          cb();
+        }
+      },
+      onOpenCollection: () => {
+        const modal = new CollectionModal(this.app, this.maxCatLevel, () => {});
+        modal.zIndex = 999999;
+        this.app.stage.addChild(modal);
+      },
+      onOpenSettings: () => {
+        this.showSettingsModal();
+      }
+    });
+
+    this._mainMenuInstance.zIndex = 999990;
+    this.app.stage.addChild(this._mainMenuInstance);
+  }
+
+  showSettingsModal() {
+    const modal = new SettingsModal(this.app, () => {});
+    modal.zIndex = 999999;
+    this.app.stage.addChild(modal);
   }
 }
 

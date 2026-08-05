@@ -6,10 +6,11 @@ import { UIUtils } from '../utils/UIUtils.js';
  * Премиальный HUD AAA-уровня
  */
 export class HUD extends Container {
-  constructor(app, onOpenCollection) {
+  constructor(app, onOpenCollection, onOpenMenu) {
     super();
     this.app = app;
     this.onOpenCollection = onOpenCollection || (() => {});
+    this.onOpenMenu = onOpenMenu || (() => {});
     this._coinsText = null;
     this._gemsText = null;
     this._ipsText = null;
@@ -20,7 +21,7 @@ export class HUD extends Container {
 
   _draw() {
     this.removeChildren();
-    const hudWidth = CONFIG.GAME_WIDTH || 400;
+    const hudWidth = CONFIG.GAME_WIDTH || 375;
     const hudHeight = 54;
 
     // 1. Главная плашка шапки
@@ -31,67 +32,64 @@ export class HUD extends Container {
 
     const capH = 34;
     const capY = 10;
-    const capRadius = 16;
+    const capRadius = 14;
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
 
     // Вспомогательный хелпер для рисования 3D-капсулы с глянцем
     const createCapsuleBg = (x, y, w, h) => {
       const cContainer = new Container();
 
-      // Тень капсулы
       const cShadow = new Graphics();
       cShadow.roundRect(x, y + 2, w, h, capRadius);
       cShadow.fill({ color: 0x000000, alpha: 0.35 });
       cContainer.addChild(cShadow);
 
-      // Объёмная подложка
       const cBg = new Graphics();
       cBg.roundRect(x, y, w, h, capRadius);
       cBg.fill(0x1f1a42);
       cBg.stroke({ color: 0x3c3475, width: 1.5 });
       cContainer.addChild(cBg);
 
-      // Верхний стеклянный блик (Shine overlay)
       const shine = new Graphics();
-      shine.roundRect(x + 2, y + 2, w - 4, 14, 12);
+      shine.roundRect(x + 2, y + 2, w - 4, 12, 10);
       shine.fill({ color: 0xffffff, alpha: 0.12 });
       cContainer.addChild(shine);
 
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (Слева: W = 155px, X = 10px)
-    const cap1X = 10;
-    const cap1W = 155;
+    // 2. КАПСУЛА 1: Монеты (Слева: W = 115px, X = 6px)
+    const cap1X = 6;
+    const cap1W = 115;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
-    const coinIcon = UIUtils.createCoinIcon(11);
-    coinIcon.position.set(cap1X + 18, capY + capH / 2);
+    const coinIcon = UIUtils.createCoinIcon(10);
+    coinIcon.position.set(cap1X + 14, capY + capH / 2);
     this.addChild(coinIcon);
 
     const coinsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._coinsText = new Text({ text: '0', style: coinsStyle });
     this._coinsText.anchor.set(0, 0.5);
-    this._coinsText.position.set(cap1X + 34, capY + capH / 2);
+    this._coinsText.position.set(cap1X + 28, capY + capH / 2);
     this.addChild(this._coinsText);
 
-    // 3. КАПСУЛА 2: Гемы (По центру: W = 90px, X = 170px)
-    const cap2X = 170;
-    const cap2W = 90;
+    // 3. КАПСУЛА 2: Гемы (W = 75px, X = 126px)
+    const cap2X = 126;
+    const cap2W = 75;
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
-    this._gemIcon = UIUtils.createGemIcon(11);
+    this._gemIcon = UIUtils.createGemIcon(10);
     this.addChild(this._gemIcon);
 
     const gemsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
@@ -102,26 +100,48 @@ export class HUD extends Container {
 
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (Справа: W = 125px, X = 265px)
-    const cap3X = 265;
-    const cap3W = 125;
+    // 4. КАПСУЛА 3: Доход в секунду (W = 105px, X = 206px)
+    const cap3X = 206;
+    const cap3W = 105;
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
     const ipsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#2ecc71',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
-    this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });
+    this._ipsText = new Text({ text: '+0/с', style: ipsStyle });
     this._ipsText.anchor.set(0, 0.5);
-    this._ipsText.position.set(cap3X + 14, capY + capH / 2);
+    this._ipsText.position.set(cap3X + 10, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    const upArrowIcon = UIUtils.createUpArrowIcon(8);
-    upArrowIcon.position.set(cap3X + cap3W - 18, capY + capH / 2);
-    this.addChild(upArrowIcon);
+    // 5. КНОПКА «🏠» (Вернуться в Главное Меню по п. 4.2.10)
+    const menuBtnX = 317;
+    const menuBtnW = 52;
+    const menuBtnContainer = new Container();
+    menuBtnContainer.position.set(menuBtnX, capY);
+
+    const menuBg = new Graphics();
+    menuBg.roundRect(0, 0, menuBtnW, capH, capRadius);
+    menuBg.fill(0x8e44ad);
+    menuBg.stroke({ color: 0x9b59b6, width: 1.5 });
+    menuBtnContainer.addChild(menuBg);
+
+    const menuText = new Text({
+      text: '🏠',
+      style: new TextStyle({ fontSize: 16, align: 'center' })
+    });
+    menuText.anchor.set(0.5);
+    menuText.position.set(menuBtnW / 2, capH / 2);
+    menuBtnContainer.addChild(menuText);
+
+    menuBtnContainer.eventMode = 'static';
+    menuBtnContainer.cursor = 'pointer';
+    menuBtnContainer.on('pointerdown', () => this.onOpenMenu());
+
+    this.addChild(menuBtnContainer);
   }
 
   _repositionGemContent() {

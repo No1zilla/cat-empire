@@ -1,4 +1,5 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { CONFIG } from '../config.js';
 
 export const UIUtils = {
   /**
@@ -136,6 +137,53 @@ export const UIUtils = {
     arrow.fill(0x2ecc71); // Изумрудно-зеленый неон
     arrow.stroke({ color: 0xffffff, width: 1.2, alpha: 0.8 });
     container.addChild(arrow);
+
+    return container;
+  },
+
+  /**
+   * Рисует сочную глянцевую 3D кнопку
+   */
+  createButton: (x, y, width, height, text, color = 0x2ecc71, onClick = () => {}) => {
+    const container = new Container();
+    container.position.set(x, y);
+
+    // 1. Тень
+    const shadow = new Graphics();
+    shadow.roundRect(0, 4, width, height, 16);
+    shadow.fill({ color: 0x000000, alpha: 0.4 });
+    container.addChild(shadow);
+
+    // 2. Тело кнопки
+    const bg = new Graphics();
+    bg.roundRect(0, 0, width, height, 16);
+    bg.fill(color);
+    bg.stroke({ color: 0xffffff, width: 1.5, alpha: 0.4 });
+    container.addChild(bg);
+
+    // 3. Блик сверху
+    const shine = new Graphics();
+    shine.roundRect(2, 2, width - 4, Math.floor(height * 0.45), 14);
+    shine.fill({ color: 0xffffff, alpha: 0.2 });
+    container.addChild(shine);
+
+    // 4. Текст
+    const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
+    const btnStyle = new TextStyle({
+      fontFamily: font,
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
+    });
+    const label = new Text({ text, style: btnStyle });
+    label.anchor.set(0.5);
+    label.position.set(width / 2, height / 2);
+    container.addChild(label);
+
+    container.eventMode = 'static';
+    container.cursor = 'pointer';
+    container.on('pointerdown', onClick);
 
     return container;
   }
