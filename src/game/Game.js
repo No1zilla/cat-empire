@@ -62,8 +62,8 @@ export class Game {
     this.app.stage.addChild(this.gameContainer);
 
     const updateCentering = () => {
-      const screenW = this.app.renderer ? this.app.renderer.width : (this.app.screen ? this.app.screen.width : 400);
-      const gameW = 400;
+      const screenW = this.app.renderer ? this.app.renderer.width : (this.app.screen ? this.app.screen.width : CONFIG.GAME_WIDTH);
+      const gameW = CONFIG.GAME_WIDTH;
       this.gameContainer.x = Math.max(0, Math.floor((screenW - gameW) / 2));
     };
     updateCentering();
@@ -88,10 +88,10 @@ export class Game {
     this.hud.position.set(0, 0);
     this.gameContainer.addChild(this.hud);
 
-    // 3. Увеличенное сочное игровое поле 5x5 (всцентрировано ровно по 400px)
+    // 3. Увеличенное сочное игровое поле 5x5 (всцентрировано ровно по CONFIG.GAME_WIDTH)
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
-    this.grid.x = Math.floor((400 - gridWidth) / 2);
+    this.grid.x = Math.max(0, Math.floor((CONFIG.GAME_WIDTH - gridWidth) / 2));
     this.grid.y = 58;
     this.gameContainer.addChild(this.grid);
 
@@ -128,13 +128,13 @@ export class Game {
     // 6. Ряд из 3-х кнопок управления:
     const buttonRowY = this.grid.y + gridWidth + 12;
 
-    // A) 🐱 Купить (122px) — клик + Hold-to-buy
+    // A) 🐱 Купить (128px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
 
-    this.spawnSystem.x = 10;
+    this.spawnSystem.x = 8;
     this.spawnSystem.y = buttonRowY;
     this.spawnSystem.zIndex = 10;
     this.spawnSystem.updateButtonLabel();
@@ -208,12 +208,12 @@ export class Game {
         console.error('Ошибка сохранения после массовой покупки:', e);
       }
     });
-    this.fillAllButton.x = 139;
+    this.fillAllButton.x = 141;
     this.fillAllButton.y = buttonRowY;
     this.fillAllButton.zIndex = 10;
     this.gameContainer.addChild(this.fillAllButton);
 
-    // C) ⚡ Соединить все (122px)
+    // C) ⚡ Соединить все (128px)
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
       if (this.autoMergeSystem) {
         await this.autoMergeSystem.runAutoMerge();
@@ -221,7 +221,7 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
     });
-    this.autoMergeButton.x = 268;
+    this.autoMergeButton.x = 274;
     this.autoMergeButton.y = buttonRowY;
     this.autoMergeButton.zIndex = 10;
     this.gameContainer.addChild(this.autoMergeButton);
@@ -497,13 +497,13 @@ export class Game {
     });
 
     this._mainMenuInstance.zIndex = 999990;
-    this.app.stage.addChild(this._mainMenuInstance);
+    this.gameContainer.addChild(this._mainMenuInstance);
   }
 
   showSettingsModal() {
     const modal = new SettingsModal(this.app, () => {});
     modal.zIndex = 999999;
-    this.app.stage.addChild(modal);
+    this.gameContainer.addChild(modal);
   }
 }
 

@@ -58,9 +58,9 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (Слева: W = 115px, X = 6px)
+    // 2. КАПСУЛА 1: Монеты (Слева: W = 124px, X = 6px)
     const cap1X = 6;
-    const cap1W = 115;
+    const cap1W = 124;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
     const coinIcon = UIUtils.createCoinIcon(10);
@@ -79,9 +79,9 @@ export class HUD extends Container {
     this._coinsText.position.set(cap1X + 28, capY + capH / 2);
     this.addChild(this._coinsText);
 
-    // 3. КАПСУЛА 2: Гемы (W = 75px, X = 126px)
-    const cap2X = 126;
-    const cap2W = 75;
+    // 3. КАПСУЛА 2: Гемы (W = 74px, X = 136px)
+    const cap2X = 136;
+    const cap2W = 74;
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
     this._gemIcon = UIUtils.createGemIcon(10);
@@ -102,9 +102,9 @@ export class HUD extends Container {
     this._cap2W = cap2W;
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (W = 105px, X = 206px)
-    const cap3X = 206;
-    const cap3W = 105;
+    // 4. КАПСУЛА 3: Доход в секунду (W = 124px, X = 216px)
+    const cap3X = 216;
+    const cap3W = 124;
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
     const ipsStyle = new TextStyle({
@@ -116,12 +116,12 @@ export class HUD extends Container {
     });
     this._ipsText = new Text({ text: '+0/с', style: ipsStyle });
     this._ipsText.anchor.set(0, 0.5);
-    this._ipsText.position.set(cap3X + 10, capY + capH / 2);
+    this._ipsText.position.set(cap3X + 12, capY + capH / 2);
     this.addChild(this._ipsText);
 
     // 5. КНОПКА «🏠» (Вернуться в Главное Меню по п. 4.2.10)
-    const menuBtnX = 317;
-    const menuBtnW = 52;
+    const menuBtnX = 346;
+    const menuBtnW = 58;
     const menuBtnContainer = new Container();
     menuBtnContainer.position.set(menuBtnX, capY);
 
