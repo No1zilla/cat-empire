@@ -1,9 +1,10 @@
-import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite, Assets } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { TOKENS } from '../styles/design-tokens.js';
 
 /**
- * Главное Стартовое Меню (Соответствие правилу 4.2.10 VK Mini Apps)
+ * Главное Стартовое Меню (Соответствие правилу 4.2.10 VK Mini Apps + TOKENS)
  */
 export class MainMenu extends Container {
   constructor(app, { onPlay, onOpenCollection, onOpenSettings }) {
@@ -23,26 +24,26 @@ export class MainMenu extends Container {
     const width = CONFIG.GAME_WIDTH || 375;
     const height = CONFIG.GAME_HEIGHT || 667;
 
-    // 1. Тёмный фон в стиле глянцевого космического фиолета
+    // 1. Тёмный фон в едином стиле TOKENS (#0D0A1C)
     const bg = new Graphics();
     bg.rect(0, 0, width, height);
-    bg.fill(0x0e0a26);
+    bg.fill(TOKENS.colors.background);
     this.addChild(bg);
 
     // 2. Глянцевое свечение в центре
     const glow = new Graphics();
     glow.circle(width / 2, height / 2 - 40, 160);
-    glow.fill({ color: 0x8e44ad, alpha: 0.25 });
+    glow.fill({ color: 0x3d2375, alpha: 0.35 });
     this.addChild(glow);
 
-    const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
+    const font = TOKENS.typography.fontFamily;
 
     // 3. Заголовок "👑 ИМПЕРИЯ КОТИКОВ"
     const titleStyle = new TextStyle({
       fontFamily: font,
       fontSize: 28,
-      fontWeight: 'bold',
-      fill: ['#fff', '#ffd700'],
+      fontWeight: TOKENS.typography.fontWeightBold,
+      fill: [TOKENS.colors.textPrimary, TOKENS.colors.gold],
       fillGradientStops: [0, 1],
       dropShadow: { color: '#000000', alpha: 0.8, blur: 6, distance: 3 },
       align: 'center'
@@ -56,11 +57,11 @@ export class MainMenu extends Container {
     const subTitleStyle = new TextStyle({
       fontFamily: font,
       fontSize: 14,
-      fill: '#a29bfe',
+      fill: TOKENS.colors.income,
       letterSpacing: 1
     });
 
-    const subTitle = new Text({ text: 'Идл Мёрдж Королевство', style: subTitleStyle });
+    const subTitle = new Text({ text: 'Королевский Idle Merge-Кликер', style: subTitleStyle });
     subTitle.anchor.set(0.5);
     subTitle.position.set(width / 2, 145);
     this.addChild(subTitle);
@@ -70,18 +71,27 @@ export class MainMenu extends Container {
     mascotContainer.position.set(width / 2, 250);
 
     const mascotBg = new Graphics();
-    mascotBg.circle(0, 0, 70);
-    mascotBg.fill({ color: 0x1f1a42, alpha: 0.8 });
-    mascotBg.stroke({ color: 0x9b59b6, width: 3 });
+    mascotBg.circle(0, 0, 72);
+    mascotBg.fill({ color: 0x15102A, alpha: 0.95 });
+    mascotBg.stroke({ color: 0x271F4F, width: 3 });
     mascotContainer.addChild(mascotBg);
 
-    const mascotText = new Text({
-      text: '🐱👑',
-      style: new TextStyle({ fontSize: 64, align: 'center' })
-    });
-    mascotText.anchor.set(0.5);
-    mascotContainer.addChild(mascotText);
-
+    // Отрисовка лучшего текстурного кота или эмодзи
+    let catSprite = null;
+    const catTex = Assets.get('cat_15') || Assets.get('cat_1');
+    if (catTex) {
+      catSprite = new Sprite(catTex);
+      catSprite.anchor.set(0.5);
+      catSprite.width = 110;
+      catSprite.height = 110;
+    } else {
+      catSprite = new Text({
+        text: '🐱👑',
+        style: new TextStyle({ fontSize: 64, align: 'center' })
+      });
+      catSprite.anchor.set(0.5);
+    }
+    mascotContainer.addChild(catSprite);
     this.addChild(mascotContainer);
 
     // Плавная анимация покачивания маскота (Idle bounce)
@@ -93,42 +103,43 @@ export class MainMenu extends Container {
     };
     this.app.ticker.add(this._tickerCallback);
 
-    // 5. Кнопка «▶️ ИГРАТЬ» (Большая зелёная сочная кнопка)
+    // 5. Кнопки управления в единой токены-палитре
     const btnW = 240;
-    const btnH = 56;
+    const btnH = 54;
     const btnX = (width - btnW) / 2;
 
+    // А) ▶️ ИГРАТЬ (Сочная розовая/красная кнопка TOKENS.colors.btnBuy)
     const playBtn = UIUtils.createButton(
       btnX,
       360,
       btnW,
       btnH,
       '▶️ ИГРАТЬ',
-      0x2ecc71,
+      0xFF6B6B,
       () => this.onPlay()
     );
     this.addChild(playBtn);
 
-    // 6. Кнопка «📖 КОТОПЕДИЯ»
+    // Б) 📖 КОТОПЕДИЯ (Оранжевая кнопка TOKENS.colors.btnFill)
     const deckBtn = UIUtils.createButton(
       btnX,
-      432,
+      430,
       btnW,
       48,
       '📖 КОТОПЕДИЯ',
-      0x3498db,
+      0xFF9F43,
       () => this.onOpenCollection()
     );
     this.addChild(deckBtn);
 
-    // 7. Кнопка «⚙️ НАСТРОЙКИ»
+    // В) ⚙️ НАСТРОЙКИ (Фиолетовая кнопка TOKENS.colors.btnMerge)
     const settingsBtn = UIUtils.createButton(
       btnX,
-      494,
+      492,
       btnW,
       48,
       '⚙️ НАСТРОЙКИ',
-      0x8e44ad,
+      0xA55EEA,
       () => this.onOpenSettings()
     );
     this.addChild(settingsBtn);
@@ -137,7 +148,7 @@ export class MainMenu extends Container {
     const footerStyle = new TextStyle({
       fontFamily: font,
       fontSize: 11,
-      fill: '#7f8c8d'
+      fill: TOKENS.colors.textMuted
     });
     const footer = new Text({ text: 'v1.0.0 • VK Mini Apps', style: footerStyle });
     footer.anchor.set(0.5);
