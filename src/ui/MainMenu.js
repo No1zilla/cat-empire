@@ -14,6 +14,7 @@ export class MainMenu extends Container {
     this.onOpenSettings = onOpenSettings || (() => {});
 
     this._tickerCallback = null;
+    this.eventMode = 'static';
     this._draw();
   }
 

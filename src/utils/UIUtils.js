@@ -261,6 +261,9 @@ export const UIUtils = {
     container.eventMode = 'static';
     container.cursor = 'pointer';
     container.on('pointerdown', onClick);
+    container.on('pointertap', onClick);
+    container.on('tap', onClick);
+    container.on('click', onClick);
 
     return container;
   }

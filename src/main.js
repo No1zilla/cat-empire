@@ -24,12 +24,13 @@ function updateSplashProgress(percent, statusText) {
 function hideSplashScreen() {
   const splash = document.getElementById('splash-screen');
   if (splash) {
+    splash.style.pointerEvents = 'none';
     splash.style.opacity = '0';
-    splash.style.transition = 'opacity 0.45s ease-out';
+    splash.style.transition = 'opacity 0.25s ease-out';
     setTimeout(() => {
-      if (splash.parent) splash.parent.removeChild(splash);
+      if (splash.parentNode) splash.parentNode.removeChild(splash);
       splash.remove();
-    }, 450);
+    }, 250);
   }
 }
 
@@ -91,14 +92,14 @@ async function initApp() {
     ? `${userInfo.firstName} ${userInfo.lastName}`.trim()
     : 'Тест Игрок';
 
-  updateSplashProgress(75, 'Загружаем текстуры котиков...');
+  updateSplashProgress(90, 'Загружаем текстуры котиков...');
   try {
     await loadCatTextures();
   } catch (e) {
     console.warn('⚠️ Спрайты не загружены, используются эмодзи:', e.message);
   }
 
-  updateSplashProgress(90, 'Строим королевство котиков...');
+  updateSplashProgress(98, 'Строим королевство котиков...');
   const game = new Game(app);
   if (typeof window !== 'undefined') {
     window.game = game;
@@ -106,9 +107,8 @@ async function initApp() {
   await game.init(userName);
 
   updateSplashProgress(100, 'Готово! 👑');
-  setTimeout(() => {
-    hideSplashScreen();
-  }, 150);
+  // Скрывать сплэш строго после полной готовности сцены
+  hideSplashScreen();
 
   console.log('🐱 Империя Котиков запущены со стилем Premium Splash & Glow!');
 }

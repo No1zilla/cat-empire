@@ -84,6 +84,7 @@ export class Game {
 
     this.hud = new HUD(this.app, openCollection, openMenu);
     this.hud.position.set(0, 0);
+    this.hud.zIndex = 100;
     this.gameContainer.addChild(this.hud);
 
     // 3. Увеличенное сочное игровое поле 5x5 (всцентрировано ровно по CONFIG.GAME_WIDTH)
@@ -91,6 +92,7 @@ export class Game {
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     this.grid.x = Math.max(0, Math.floor((CONFIG.GAME_WIDTH - gridWidth) / 2));
     this.grid.y = 58;
+    this.grid.zIndex = 50;
     this.gameContainer.addChild(this.grid);
 
     // 4. Восстановление состояния котиков на сетке через StorageService
@@ -233,6 +235,7 @@ export class Game {
       }
     });
     this.catDeck.y = buttonRowY + 58;
+    this.catDeck.zIndex = 70;
     this.gameContainer.addChild(this.catDeck);
 
     // 8. Движок Merge и Drag
