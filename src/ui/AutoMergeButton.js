@@ -105,12 +105,16 @@ export class AutoMergeButton extends Container {
     this._innerContainer.addChild(this._subContainer);
 
     // Настройка кликов и микро-анимации
-    this.on('pointerdown', (e) => {
+    const triggerAutoMergeClick = (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
       this.alpha = 0.92;
       this._playClickAnim();
       this._handleClick();
-    });
+    };
+
+    this.on('pointertap', triggerAutoMergeClick);
+    this.on('pointerdown', triggerAutoMergeClick);
+    this.on('click', triggerAutoMergeClick);
 
     const onPointerRelease = () => {
       this.alpha = 1.0;
@@ -195,11 +199,15 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы для начисления +5 💎!
+    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы для начисления +5 💎 и авто-слияния!
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
-      const adModal = new AdModal(this.app, this.economy, null, 5);
+      const adModal = new AdModal(this.app, this.economy, async () => {
+        if (typeof this.onTriggerAutoMerge === 'function') {
+          await this.onTriggerAutoMerge();
+        }
+      }, 5);
       adModal.zIndex = 99999;
       stage.addChild(adModal);
     } else {

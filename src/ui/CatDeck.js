@@ -71,15 +71,20 @@ export class CatDeck extends Container {
     tutorialBtn.position.set(W - 30, 8);
     tutorialBtn.eventMode = 'static';
     tutorialBtn.cursor = 'pointer';
-    tutorialBtn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      if (typeof window.resetTutorial === 'function') {
+    const handleTutorialClick = (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (window.game && typeof window.game.restartTutorial === 'function') {
+        window.game.restartTutorial();
+      } else if (typeof window.resetTutorial === 'function') {
         window.resetTutorial();
       } else {
         localStorage.removeItem('cat_empire_tutorial_done');
         location.reload();
       }
-    });
+    };
+    tutorialBtn.on('pointertap', handleTutorialClick);
+    tutorialBtn.on('pointerdown', handleTutorialClick);
+    tutorialBtn.on('click', handleTutorialClick);
     tutorialBtn.on('pointerover', () => { tutorialBtn.style.fill = '#ffd700'; });
     tutorialBtn.on('pointerout', () => { tutorialBtn.style.fill = '#a8d8ff'; });
     this.addChild(tutorialBtn);

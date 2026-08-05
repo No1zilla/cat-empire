@@ -515,6 +515,20 @@ export class Game {
     modal.zIndex = 999999;
     this.gameContainer.addChild(modal);
   }
+
+  restartTutorial() {
+    localStorage.removeItem('cat_empire_tutorial_done');
+    if (this.tutorialOverlay && this.tutorialOverlay.parent) {
+      this.tutorialOverlay.parent.removeChild(this.tutorialOverlay);
+      this.tutorialOverlay.destroy();
+      this.tutorialOverlay = null;
+    }
+    this.tutorialOverlay = new Tutorial(this.app, () => {
+      console.log('🎓 Обучение завершено!');
+    });
+    this.tutorialOverlay.zIndex = 999999;
+    this.gameContainer.addChild(this.tutorialOverlay);
+  }
 }
 
 export default Game;

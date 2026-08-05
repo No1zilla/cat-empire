@@ -141,7 +141,13 @@ export class HUD extends Container {
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';
-    menuBtnContainer.on('pointerdown', () => this.onOpenMenu());
+    const handleMenuClick = (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      this.onOpenMenu();
+    };
+    menuBtnContainer.on('pointertap', handleMenuClick);
+    menuBtnContainer.on('pointerdown', handleMenuClick);
+    menuBtnContainer.on('click', handleMenuClick);
 
     this.addChild(menuBtnContainer);
   }
