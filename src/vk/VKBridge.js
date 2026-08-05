@@ -4,17 +4,31 @@ if (typeof window !== 'undefined') {
   window.vkBridge = bridge;
 }
 
+function isVkEnvironment() {
+  if (typeof window === 'undefined') return false;
+  const urlStr = window.location.search + window.location.hash;
+  if (urlStr.includes('vk_user_id') || urlStr.includes('vk_app_id') || urlStr.includes('vk_platform')) {
+    return true;
+  }
+  if (localStorage.getItem('cat_empire_vk_user_id') || localStorage.getItem('cat_empire_vk_launch_params')) {
+    return true;
+  }
+  if (window.self !== window.top) {
+    return true;
+  }
+  return false;
+}
+
 // Класс VKService для взаимодействия с VK Mini Apps SDK
 export class VKService {
   constructor() {
     this.bridge = bridge;
   }
 
-  // Инициализация VK Bridge (с быстрым таймаутом вне iframe)
+  // Инициализация VK Bridge
   async init() {
     try {
-      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-      const timeoutMs = isIframe ? 3000 : 300;
+      const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
       console.log('VKWebAppInit result:', result);
@@ -25,11 +39,10 @@ export class VKService {
     }
   }
 
-  // Получение данных пользователя (с быстрым таймаутом вне iframe)
+  // Получение данных пользователя
   async getUserInfo() {
     try {
-      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-      const timeoutMs = isIframe ? 5000 : 300;
+      const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const user = await Promise.race([this.bridge.send('VKWebAppGetUserInfo'), timeout]);
       if (user && user.id) {
@@ -54,8 +67,7 @@ export class VKService {
   // TASK-SYNC: Чтение из нативного облачного хранилища VK (VKWebAppStorageGet)
   async storageGet(keys = ['cat_empire_progress']) {
     try {
-      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-      const timeoutMs = isIframe ? 4000 : 300;
+      const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const res = await Promise.race([
         this.bridge.send('VKWebAppStorageGet', { keys }),
@@ -83,8 +95,7 @@ export class VKService {
   // TASK-SYNC: Сохранение в нативное облачное хранилище VK (VKWebAppStorageSet)
   async storageSet(key, value) {
     try {
-      const isIframe = typeof window !== 'undefined' && window.self !== window.top;
-      const timeoutMs = isIframe ? 4000 : 300;
+      const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       await Promise.race([

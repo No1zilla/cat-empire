@@ -21,6 +21,16 @@ function getVkSignHeader() {
     } catch (e) {}
   }
 
+  // Если параметров запуска нет, используем сохранённый vk_user_id
+  if (!str || !str.includes('vk_user_id')) {
+    try {
+      const savedUserId = localStorage.getItem('cat_empire_vk_user_id');
+      if (savedUserId) {
+        str = `vk_user_id=${savedUserId}`;
+      }
+    } catch (e) {}
+  }
+
   // Вычищаем '#' и '?' для 100% гарантированной совместимости с HTTP-заголовками Nginx/Railway
   while (str.startsWith('?') || str.startsWith('#')) {
     str = str.slice(1);

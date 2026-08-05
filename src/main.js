@@ -50,6 +50,12 @@ async function initApp() {
     updateSplashProgress(35, 'Получаем профиль игрока...');
     try {
       userInfo = await vkService.getUserInfo();
+      if (userInfo && userInfo.id) {
+        localStorage.setItem('cat_empire_vk_user_id', String(userInfo.id));
+        if (!localStorage.getItem('cat_empire_vk_launch_params')) {
+          localStorage.setItem('cat_empire_vk_launch_params', `vk_user_id=${userInfo.id}`);
+        }
+      }
     } catch (e) {
       console.warn('VK UserInfo warning:', e);
     }
