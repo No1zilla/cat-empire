@@ -73,7 +73,12 @@ export class CatDeck extends Container {
     tutorialBtn.cursor = 'pointer';
     tutorialBtn.hitArea = new Rectangle(-20, -10, 110, 36);
 
+    let lastTutTapTime = 0;
     const handleTutorialClick = (e) => {
+      const now = Date.now();
+      if (now - lastTutTapTime < 300) return;
+      lastTutTapTime = now;
+
       if (e) {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -89,6 +94,10 @@ export class CatDeck extends Container {
       }
     };
     tutorialBtn.on('pointertap', handleTutorialClick);
+    tutorialBtn.on('pointerdown', handleTutorialClick);
+    tutorialBtn.on('tap', handleTutorialClick);
+    tutorialBtn.on('click', handleTutorialClick);
+    tutorialBtn.on('touchstart', handleTutorialClick);
     tutorialBtn.on('pointerover', () => { tutorialBtn.style.fill = '#ffd700'; });
     tutorialBtn.on('pointerout', () => { tutorialBtn.style.fill = '#a8d8ff'; });
     this.addChild(tutorialBtn);

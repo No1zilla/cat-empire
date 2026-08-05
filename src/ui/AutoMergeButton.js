@@ -108,8 +108,12 @@ export class AutoMergeButton extends Container {
     this.cursor = 'pointer';
     this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
-    // Настройка кликов и микро-анимации
+    let lastAMTapTime = 0;
     const triggerAutoMergeClick = (e) => {
+      const now = Date.now();
+      if (now - lastAMTapTime < 300) return;
+      lastAMTapTime = now;
+
       if (e) {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -121,6 +125,10 @@ export class AutoMergeButton extends Container {
     };
 
     this.on('pointertap', triggerAutoMergeClick);
+    this.on('pointerdown', triggerAutoMergeClick);
+    this.on('tap', triggerAutoMergeClick);
+    this.on('click', triggerAutoMergeClick);
+    this.on('touchstart', triggerAutoMergeClick);
 
     const onPointerRelease = () => {
       this.alpha = 1.0;

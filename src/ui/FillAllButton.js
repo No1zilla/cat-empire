@@ -177,8 +177,12 @@ export class FillAllButton extends Container {
     this.cursor = 'pointer';
     this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
-    // Интерактивность
+    let lastFATapTime = 0;
     const triggerFillAllClick = (e) => {
+      const now = Date.now();
+      if (now - lastFATapTime < 300) return;
+      lastFATapTime = now;
+
       if (e) {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -189,6 +193,10 @@ export class FillAllButton extends Container {
     };
 
     this.on('pointertap', triggerFillAllClick);
+    this.on('pointerdown', triggerFillAllClick);
+    this.on('tap', triggerFillAllClick);
+    this.on('click', triggerFillAllClick);
+    this.on('touchstart', triggerFillAllClick);
 
     const onPointerRelease = () => {
       this.alpha = 1.0;

@@ -143,7 +143,12 @@ export class HUD extends Container {
     menuBtnContainer.cursor = 'pointer';
     menuBtnContainer.hitArea = new Rectangle(0, 0, menuBtnW, capH);
 
+    let lastMenuTapTime = 0;
     const handleMenuClick = (e) => {
+      const now = Date.now();
+      if (now - lastMenuTapTime < 300) return;
+      lastMenuTapTime = now;
+
       if (e) {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -151,7 +156,12 @@ export class HUD extends Container {
       console.log('🐾 HUD Menu button tapped!');
       this.onOpenMenu();
     };
+
     menuBtnContainer.on('pointertap', handleMenuClick);
+    menuBtnContainer.on('pointerdown', handleMenuClick);
+    menuBtnContainer.on('tap', handleMenuClick);
+    menuBtnContainer.on('click', handleMenuClick);
+    menuBtnContainer.on('touchstart', handleMenuClick);
 
     this.addChild(menuBtnContainer);
   }

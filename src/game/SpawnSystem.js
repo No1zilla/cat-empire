@@ -111,7 +111,12 @@ export class SpawnSystem extends Container {
     this.cursor = 'pointer';
     this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
+    let lastSpawnTapTime = 0;
     const handleSpawnPress = (e) => {
+      const now = Date.now();
+      if (now - lastSpawnTapTime < 300) return;
+      lastSpawnTapTime = now;
+
       if (e) {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -121,7 +126,11 @@ export class SpawnSystem extends Container {
       this._startHold();
     };
 
+    this.on('pointertap', handleSpawnPress);
     this.on('pointerdown', handleSpawnPress);
+    this.on('tap', handleSpawnPress);
+    this.on('click', handleSpawnPress);
+    this.on('touchstart', handleSpawnPress);
 
     const stopHandler = () => this._stopHold();
     this.on('pointerup', stopHandler);
