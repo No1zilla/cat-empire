@@ -1,9 +1,10 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { TOKENS } from '../styles/design-tokens.js';
 
 /**
- * Премиальный HUD AAA-уровня
+ * Премиальный HUD AAA-уровня с подключением TOKENS (TASK-047)
  */
 export class HUD extends Container {
   constructor(app, onOpenCollection, onOpenMenu) {
@@ -24,18 +25,18 @@ export class HUD extends Container {
     const hudWidth = CONFIG.GAME_WIDTH || 375;
     const hudHeight = 54;
 
-    // 1. Главная плашка шапки
+    // 1. Главная плашка шапки (использование токена background)
     const bg = new Graphics();
     bg.rect(0, 0, hudWidth, hudHeight);
-    bg.fill(0x0e0a26);
+    bg.fill(parseInt(TOKENS.colors.background.replace('#', '0x')));
     this.addChild(bg);
 
     const capH = 34;
     const capY = 10;
-    const capRadius = 14;
+    const capRadius = TOKENS.radii.hud || 14;
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
 
-    // Вспомогательный хелпер для рисования 3D-капсулы с глянцем
+    // Вспомогательный хелпер для рисования 3D-капсулы с токенами
     const createCapsuleBg = (x, y, w, h) => {
       const cContainer = new Container();
 
@@ -46,8 +47,8 @@ export class HUD extends Container {
 
       const cBg = new Graphics();
       cBg.roundRect(x, y, w, h, capRadius);
-      cBg.fill(0x1f1a42);
-      cBg.stroke({ color: 0x3c3475, width: 1.5 });
+      cBg.fill(parseInt(TOKENS.colors.panelBg.replace('#', '0x')));
+      cBg.stroke({ color: parseInt(TOKENS.colors.panelBorder.replace('#', '0x')), width: 1.5 });
       cContainer.addChild(cBg);
 
       const shine = new Graphics();
