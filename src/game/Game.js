@@ -1,6 +1,5 @@
-import { Container, Text, TextStyle, Sprite } from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { getUITexture } from '../utils/catTextures.js';
 import { Grid } from './Grid.js';
 import { Cat } from './Cat.js';
 import { SpawnSystem } from './SpawnSystem.js';
@@ -8,9 +7,7 @@ import { MergeEngine } from './MergeEngine.js';
 import { DragSystem } from './DragSystem.js';
 import { Economy } from './Economy.js';
 import { HUD } from '../ui/HUD.js';
-import { OfflineModal } from '../ui/OfflineModal.js';
 import { Tutorial } from '../ui/Tutorial.js';
-import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
 import { CatDetailModal } from '../ui/CatDetailModal.js';
 import { storageService } from '../services/StorageService.js';

@@ -89,10 +89,6 @@ export class CatDeck extends Container {
       }
     };
     tutorialBtn.on('pointertap', handleTutorialClick);
-    tutorialBtn.on('pointerdown', handleTutorialClick);
-    tutorialBtn.on('tap', handleTutorialClick);
-    tutorialBtn.on('click', handleTutorialClick);
-    tutorialBtn.on('touchstart', handleTutorialClick);
     tutorialBtn.on('pointerover', () => { tutorialBtn.style.fill = '#ffd700'; });
     tutorialBtn.on('pointerout', () => { tutorialBtn.style.fill = '#a8d8ff'; });
     this.addChild(tutorialBtn);

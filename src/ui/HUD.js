@@ -152,10 +152,6 @@ export class HUD extends Container {
       this.onOpenMenu();
     };
     menuBtnContainer.on('pointertap', handleMenuClick);
-    menuBtnContainer.on('pointerdown', handleMenuClick);
-    menuBtnContainer.on('tap', handleMenuClick);
-    menuBtnContainer.on('click', handleMenuClick);
-    menuBtnContainer.on('touchstart', handleMenuClick);
 
     this.addChild(menuBtnContainer);
   }

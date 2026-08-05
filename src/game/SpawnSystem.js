@@ -121,11 +121,7 @@ export class SpawnSystem extends Container {
       this._startHold();
     };
 
-    this.on('pointertap', handleSpawnPress);
     this.on('pointerdown', handleSpawnPress);
-    this.on('tap', handleSpawnPress);
-    this.on('click', handleSpawnPress);
-    this.on('touchstart', handleSpawnPress);
 
     const stopHandler = () => this._stopHold();
     this.on('pointerup', stopHandler);
