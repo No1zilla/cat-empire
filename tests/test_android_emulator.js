@@ -113,7 +113,27 @@ async function runAndroidTestRunner() {
   await page.screenshot({ path: shotSwipePath });
   console.log('📸 [Android Step 5/5] Свайп Котопедии зафиксирован:', shotSwipePath);
 
-  // 4. Открытие главного меню через 🐾 и вызов Настроек
+  // 6. Проверка тапа по кнопке «🎓 Обучение»
+  const tutorialTapX = 350;
+  const tutorialTapY = 570;
+  await page.touchscreen.tap(tutorialTapX, tutorialTapY);
+  await page.waitForTimeout(600);
+
+  // 7. Списание гемов до 0 и тестирование кнопки «⚡ Соединить» (проверка всплывающего рекламного окна)
+  await page.evaluate(() => {
+    if (window.game && window.game.economy) {
+      window.game.economy.gems = 0;
+      if (window.game.hud) window.game.hud.update(window.game.economy.coins, 0, window.game.economy.incomePerSec);
+    }
+  });
+  await page.touchscreen.tap(320, 520); // Тап по «⚡ Соединить» при 0 💎
+  await page.waitForTimeout(800);
+
+  const shotAdPath = path.join(snapshotsDir, 'android_6_automerge_ad_modal.png');
+  await page.screenshot({ path: shotAdPath });
+  console.log('📸 [Android Step 6/6] Окно рекламы при 0 гемах зафиксировано:', shotAdPath);
+
+  // 8. Открытие главного меню через 🐾 и вызов Настроек
   await page.touchscreen.tap(360, 25); // Тач по 🐾
   await page.waitForTimeout(800);
   await page.touchscreen.tap(196, 518); // Тач по Настройки (центр Y = 518)
