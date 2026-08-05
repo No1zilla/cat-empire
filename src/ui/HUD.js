@@ -59,9 +59,9 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (Слева: W = 124px, X = 6px)
+    // 2. КАПСУЛА 1: Монеты (Слева: W = 120px, X = 6px)
     const cap1X = 6;
-    const cap1W = 124;
+    const cap1W = 120;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
     this._coinIcon = UIUtils.createCoinIcon(10);
@@ -79,9 +79,9 @@ export class HUD extends Container {
     this.addChild(this._coinsText);
     this._repositionCoinContent();
 
-    // 3. КАПСУЛА 2: Гемы (W = 74px, X = 136px)
-    const cap2X = 136;
-    const cap2W = 74;
+    // 3. КАПСУЛА 2: Гемы (W = 68px, X = 130px)
+    const cap2X = 130;
+    const cap2W = 68;
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
     this._gemIcon = UIUtils.createGemIcon(10);
@@ -102,14 +102,14 @@ export class HUD extends Container {
     this._cap2W = cap2W;
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (W = 124px, X = 216px)
-    const cap3X = 216;
-    const cap3W = 124;
+    // 4. КАПСУЛА 3: Доход в секунду (W = 114px, X = 202px)
+    const cap3X = 202;
+    const cap3W = 114;
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
     const ipsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 13,
+      fontSize: 11,
       fontWeight: 'bold',
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
@@ -119,11 +119,12 @@ export class HUD extends Container {
     this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    // 5. КНОПКА «🏠» (Вернуться в Главное Меню по п. 4.2.10)
-    const menuBtnX = 346;
-    const menuBtnW = 58;
+    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: W = 48px, X = 320px — четко на экране!)
+    const menuBtnX = 320;
+    const menuBtnW = 48;
     const menuBtnContainer = new Container();
-    menuBtnContainer.position.set(menuBtnX, capY);
+    menuBtnContainer.pivot.set(menuBtnW / 2, capH / 2);
+    menuBtnContainer.position.set(menuBtnX + menuBtnW / 2, capY + capH / 2);
 
     const menuBg = new Graphics();
     menuBg.roundRect(0, 0, menuBtnW, capH, capRadius);
@@ -142,7 +143,7 @@ export class HUD extends Container {
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';
-    menuBtnContainer.hitArea = new Rectangle(0, 0, menuBtnW, capH);
+    menuBtnContainer.hitArea = new Rectangle(-8, -8, menuBtnW + 16, capH + 16);
 
     let lastMenuTapTime = 0;
     const handleMenuClick = (e) => {
@@ -154,6 +155,10 @@ export class HUD extends Container {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
       }
+      menuBtnContainer.scale.set(0.9);
+      setTimeout(() => {
+        if (!menuBtnContainer.destroyed) menuBtnContainer.scale.set(1.0);
+      }, 100);
       console.log('🐾 HUD Menu button tapped!');
       this.onOpenMenu();
     };
