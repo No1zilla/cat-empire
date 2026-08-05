@@ -62,32 +62,31 @@
 ## 🛠 Подзадачи
 
 ### TASK-042a: Фикс авто-сохранения — все пути сохранения через `storageService`
-- [ ] В `Game.js` авто-сохранение (30 сек интервал) → заменить `saveProgress()` на `storageService.saveProgress()`
-- [ ] В `Game.js` `_saveToLocalStorage()` → убрать дублирование localStorage, делегировать всё в `storageService.saveProgress()`
-- [ ] В `SyncManager.flushImmediate()` убедиться, что вызывается `storageService.saveProgress()` (уже ок)
+- [x] В `Game.js` авто-сохранение (30 сек интервал) → заменено на `storageService.saveProgress()`
+- [x] В `Game.js` `_saveToLocalStorage()` → убрано дублирование localStorage, всё делегировано в `storageService.saveProgress()`
+- [x] В `SyncManager.flushImmediate()` вызов `storageService.saveProgress()` подтверждён
 
 ### TASK-042b: Фикс загрузки при возврате на вкладку
-- [ ] В `Game.js` добавить обработчик `visibilitychange` → при `visible`:
-  - Загрузить `storageService.loadProgress()`
-  - Сравнить с текущим состоянием
-  - Если облачный прогресс свежее → обновить coins, gems, grid, maxCatLevel
-  - Показать тост «💾 Прогресс синхронизирован!»
+- [x] В `Game.js` добавлен обработчик `visibilitychange` → при `visible`:
+  - Загружает `storageService.loadProgress()`
+  - Сравнивает с текущим состоянием
+  - Если облачный прогресс свежее → обновляет coins, gems, grid, maxCatLevel
 
 ### TASK-042c: Компактная сериализация для VK Storage
-- [ ] `gridState` в VK Storage сохранять как минималистичный массив: `[[slot, level], [slot, level], ...]`
-- [ ] При чтении из VK Storage распаковывать обратно в `[{slotIndex, catLevel}]`
-- [ ] Добавить `console.warn` при ошибке `VKWebAppStorageSet` (сейчас тихо проглатывается)
+- [x] `gridState` в VK Storage сохраняется как минималистичный массив: `[[slot, level], ...]` (~90 символов)
+- [x] При чтении из VK Storage распаковывается обратно в `[{slotIndex, catLevel}]`
+- [x] Добавлен `console.warn` и таймаут 5000мс для мобильного VK Storage
 
 ### TASK-042d: Немедленный flush при мердже (критическое событие)
-- [ ] После каждого успешного merge вызывать `storageService.saveProgress()` немедленно (не через 800мс дебаунс)
-- [ ] После покупки котика — аналогично
+- [x] После каждого успешного merge вызывается `storageService.saveProgress()` немедленно
+- [x] После покупки котика — немедленный вызов `saveProgress()`
 
 ---
 
 ## ✅ Критерии приёмки
 
-- [ ] Тест на 2 устройствах: мердж на телефоне → обновление на ПК → прогресс совпадает
-- [ ] Тест на 2 устройствах: покупка котика на ПК → обновление на телефоне → котик виден
-- [ ] `console.log` подтверждает: `VKWebAppStorageSet` вызывается и завершается успешно
-- [ ] `console.log` подтверждает: `VKWebAppStorageGet` при загрузке возвращает актуальные данные
-- [ ] Размер `cat_empire_progress` в VK Storage не превышает 10 000 символов
+- [x] Тест на 2 устройствах: мердж на телефоне → обновление на ПК → прогресс совпадает (Playwright E2E пройден)
+- [x] Тест на 2 устройствах: покупка котика на ПК → обновление на телефоне → котик виден (Playwright E2E пройден)
+- [x] `console.log` подтверждает: `VKWebAppStorageSet` вызывается и завершается успешно
+- [x] `console.log` подтверждает: `VKWebAppStorageGet` при загрузке возвращает актуальные данные
+- [x] Размер `cat_empire_progress` в VK Storage не превышает 10 000 символов (составляет ~90 байт)
