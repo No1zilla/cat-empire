@@ -114,9 +114,9 @@ export class HUD extends Container {
       fill: '#2ecc71',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
-    this._ipsText = new Text({ text: '+0/с', style: ipsStyle });
-    this._ipsText.anchor.set(0, 0.5);
-    this._ipsText.position.set(cap3X + 12, capY + capH / 2);
+    this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });
+    this._ipsText.anchor.set(0.5, 0.5);
+    this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
     // 5. КНОПКА «🏠» (Вернуться в Главное Меню по п. 4.2.10)
