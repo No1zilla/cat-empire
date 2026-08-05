@@ -80,12 +80,7 @@ async function runAndroidTestRunner() {
   await page.touchscreen.tap(196, 430);
   await page.waitForTimeout(1500);
 
-  // Скриншот Android: Игровой экран
-  const shot2Path = path.join(snapshotsDir, 'android_2_gameplay.png');
-  await page.screenshot({ path: shot2Path });
-  console.log('📸 [Android Step 2/4] Игровой экран зафиксирован:', shot2Path);
-
-  // 3. Тач-клик по «🐱 Купить» (Нижняя левая кнопка)
+  // 3. Тач-клик по «🐱 Купить» (Спавн котиков)
   await page.touchscreen.tap(80, 520);
   await page.waitForTimeout(600);
   await page.touchscreen.tap(80, 520);
@@ -94,7 +89,29 @@ async function runAndroidTestRunner() {
   // Скриншот Android после спавна котиков
   const shot3Path = path.join(snapshotsDir, 'android_3_cats_spawned.png');
   await page.screenshot({ path: shot3Path });
-  console.log('📸 [Android Step 3/4] Спавн котиков зафиксирован:', shot3Path);
+  console.log('📸 [Android Step 3/5] Спавн 2D PNG котиков зафиксирован:', shot3Path);
+
+  // 4. Тач drag-and-drop: МЕРДЖ котиков со слота 1 на слот 0
+  await page.mouse.move(118, 96);
+  await page.mouse.down();
+  await page.mouse.move(41, 96, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(800);
+
+  const shotMergePath = path.join(snapshotsDir, 'android_4_drag_drop_merged.png');
+  await page.screenshot({ path: shotMergePath });
+  console.log('📸 [Android Step 4/5] Тач Drag-and-Drop Мердж зафиксирован:', shotMergePath);
+
+  // 5. СВАЙП Котопедии (тач свайп влево)
+  await page.mouse.move(320, 640);
+  await page.mouse.down();
+  await page.mouse.move(80, 640, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(800);
+
+  const shotSwipePath = path.join(snapshotsDir, 'android_5_catpedia_swiped.png');
+  await page.screenshot({ path: shotSwipePath });
+  console.log('📸 [Android Step 5/5] Свайп Котопедии зафиксирован:', shotSwipePath);
 
   // 4. Открытие главного меню через 🐾 и вызов Настроек
   await page.touchscreen.tap(360, 25); // Тач по 🐾
