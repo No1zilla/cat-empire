@@ -384,8 +384,18 @@ export class Game {
           const cloudState = await storageService.loadProgress();
           if (cloudState && this.economy) {
             // Принять облачные данные, если они свежее
-            if (Number(cloudState.totalMerges) > this.economy.totalMerges ||
-                Number(cloudState.maxCatLevel) > this.maxCatLevel) {
+            const cloudMerges = Number(cloudState.totalMerges) || 0;
+            const cloudBought = Number(cloudState.totalCatsBought) || 0;
+            const cloudMaxLevel = Number(cloudState.maxCatLevel) || 1;
+            const localMerges = this.economy.totalMerges || 0;
+            const localBought = this.economy.totalCatsBought || 0;
+            const localMaxLevel = this.maxCatLevel || 1;
+
+            const isCloudFresher = cloudMerges > localMerges ||
+              (cloudMerges === localMerges && cloudBought > localBought) ||
+              cloudMaxLevel > localMaxLevel;
+
+            if (isCloudFresher) {
               this.economy.setBalance(
                 cloudState.coins,
                 cloudState.gems,

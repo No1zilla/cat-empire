@@ -16,29 +16,43 @@ export class StorageService {
     const a = stateA || {};
     const b = stateB || {};
 
-    const mergedCoins = Math.max(Number(a.coins) || 0, Number(b.coins) || 0);
-    const mergedGems = Math.max(Number(a.gems) || 0, Number(b.gems) || 0);
-    const mergedMaxLevel = Math.max(Number(a.maxCatLevel) || 1, Number(b.maxCatLevel) || 1);
-    const mergedBought = Math.max(Number(a.totalCatsBought) || 0, Number(b.totalCatsBought) || 0);
-    const mergedMerges = Math.max(Number(a.totalMerges) || 0, Number(b.totalMerges) || 0);
+    const mergesA = Number(a.totalMerges) || 0;
+    const mergesB = Number(b.totalMerges) || 0;
+    const boughtA = Number(a.totalCatsBought) || 0;
+    const boughtB = Number(b.totalCatsBought) || 0;
+    const coinsA = Number(a.coins) || 0;
+    const coinsB = Number(b.coins) || 0;
 
-    const getGridWeight = (grid) => {
-      if (!Array.isArray(grid)) return 0;
-      return grid.reduce((acc, cell) => acc + (Number(cell.catLevel) || 0), 0);
-    };
+    // Определение наиболее свежего снимка прогресса:
+    // 1. Снимок с большим числом слияний (totalMerges) — более поздний в игровом процессе
+    // 2. При равных слияниях — с большим числом покупок (totalCatsBought)
+    // 3. При равных покупках — с большей суммой монет
+    let chooseB = false;
 
-    const gridWeightA = getGridWeight(a.gridState);
-    const gridWeightB = getGridWeight(b.gridState);
+    if (mergesB > mergesA) {
+      chooseB = true;
+    } else if (mergesB === mergesA) {
+      if (boughtB > boughtA) {
+        chooseB = true;
+      } else if (boughtB === boughtA) {
+        if (coinsB > coinsA) {
+          chooseB = true;
+        }
+      }
+    }
 
-    const chosenGrid = gridWeightA >= gridWeightB ? (a.gridState || b.gridState) : b.gridState;
+    const chosenState = chooseB ? b : a;
+    const fallbackState = chooseB ? a : b;
 
     return {
-      coins: mergedCoins,
-      gems: mergedGems,
-      maxCatLevel: mergedMaxLevel,
-      totalCatsBought: mergedBought,
-      totalMerges: mergedMerges,
-      gridState: chosenGrid || []
+      coins: Math.max(coinsA, coinsB),
+      gems: Math.max(Number(a.gems) || 0, Number(b.gems) || 0),
+      maxCatLevel: Math.max(Number(a.maxCatLevel) || 1, Number(b.maxCatLevel) || 1),
+      totalCatsBought: Math.max(boughtA, boughtB),
+      totalMerges: Math.max(mergesA, mergesB),
+      gridState: (chosenState.gridState && Array.isArray(chosenState.gridState))
+        ? chosenState.gridState
+        : (fallbackState.gridState || [])
     };
   }
 
