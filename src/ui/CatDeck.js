@@ -2,9 +2,11 @@ import { Container, Graphics, Text, TextStyle, Sprite, Rectangle } from 'pixi.js
 import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
+import { TOKENS } from '../styles/design-tokens.js';
 
 /**
  * TASK-015: Переработанная панель «Колода карт» в стиле Glassmorphism со стильными замочками 🔒
+ * TASK-046: Интеграция единой системы токенов TOKENS
  */
 export class CatDeck extends Container {
   constructor(app, maxUnlockedLevel = 1, onCardClick) {
@@ -38,11 +40,11 @@ export class CatDeck extends Container {
     const W = CONFIG.GAME_WIDTH;
     const deckH = 125;
 
-    // 1. Панель матового стекла (Glassmorphism): полупрозрачная тёмная подложка + белая окантовка alpha 0.18
+    // 1. Панель матового стекла (Glassmorphism): использование токенов panelBg & panelBorder
     const bg = new Graphics();
-    bg.roundRect(10, 0, W - 20, deckH, 16);
-    bg.fill({ color: 0x110d26, alpha: 0.7 });
-    bg.stroke({ color: 0xffffff, alpha: 0.18, width: 1.5 });
+    bg.roundRect(10, 0, W - 20, deckH, TOKENS.radii.cell);
+    bg.fill({ color: parseInt(TOKENS.colors.panelBg.replace('#', '0x')), alpha: 0.85 });
+    bg.stroke({ color: parseInt(TOKENS.colors.panelBorder.replace('#', '0x')), alpha: 0.6, width: 1.5 });
     this.addChild(bg);
 
     // 2. Заголовок "📖 Котопедия (Открыто N/15)"
