@@ -142,6 +142,83 @@ export const UIUtils = {
   },
 
   /**
+   * Векторный 3D Кошачий Домик с ушками на крыше 🏰
+   */
+  createCatHouseIcon: (size = 10) => {
+    const container = new Container();
+
+    const shadow = new Graphics();
+    shadow.poly([-size, 2, 0, -size * 0.8 + 2, size, 2, size * 0.7, size + 2, -size * 0.7, size + 2]);
+    shadow.fill({ color: 0x000000, alpha: 0.35 });
+    container.addChild(shadow);
+
+    const g = new Graphics();
+
+    // Ушки на крыше
+    g.poly([-size * 0.7, -size * 0.4, -size * 0.4, -size * 1.1, -size * 0.1, -size * 0.4]);
+    g.fill(0xff7675);
+    g.poly([size * 0.1, -size * 0.4, size * 0.4, -size * 1.1, size * 0.7, -size * 0.4]);
+    g.fill(0xff7675);
+
+    // Скатная коралловая крыша
+    g.poly([-size, 0, 0, -size * 0.85, size, 0]);
+    g.fill(0xff5e62);
+    g.stroke({ color: 0xffffff, width: 1.2, alpha: 0.9 });
+
+    // Стены домика
+    g.roundRect(-size * 0.7, 0, size * 1.4, size * 0.9, 4);
+    g.fill(0xffd700);
+    g.stroke({ color: 0xb87c00, width: 1 });
+
+    // Арочная дверца
+    g.ellipse(0, size * 0.35, size * 0.3, size * 0.45);
+    g.fill(0x2d3436);
+
+    container.addChild(g);
+
+    const shine = new Graphics();
+    shine.moveTo(-size * 0.6, -size * 0.3);
+    shine.lineTo(0, -size * 0.7);
+    shine.stroke({ color: 0xffffff, width: 1.2, alpha: 0.8 });
+    container.addChild(shine);
+
+    return container;
+  },
+
+  /**
+   * Векторная 3D Кавайная Розовая Лапка 🐾
+   */
+  createCatPawIcon: (size = 10) => {
+    const container = new Container();
+
+    const shadow = new Graphics();
+    shadow.ellipse(0, size * 0.3 + 2, size * 0.8, size * 0.6);
+    shadow.fill({ color: 0x000000, alpha: 0.35 });
+    container.addChild(shadow);
+
+    const g = new Graphics();
+    g.ellipse(0, size * 0.25, size * 0.55, size * 0.45);
+    g.fill(0xff7675);
+    g.stroke({ color: 0xffffff, width: 1.2, alpha: 0.8 });
+
+    const toeCoords = [
+      { x: -size * 0.5, y: -size * 0.3, r: size * 0.2 },
+      { x: -size * 0.2, y: -size * 0.6, r: size * 0.22 },
+      { x: size * 0.2, y: -size * 0.6, r: size * 0.22 },
+      { x: size * 0.5, y: -size * 0.3, r: size * 0.2 }
+    ];
+
+    toeCoords.forEach(t => {
+      g.circle(t.x, t.y, t.r);
+      g.fill(0xff7675);
+      g.stroke({ color: 0xffffff, width: 1, alpha: 0.8 });
+    });
+
+    container.addChild(g);
+    return container;
+  },
+
+  /**
    * Рисует сочную глянцевую 3D кнопку
    */
   createButton: (x, y, width, height, text, color = 0x2ecc71, onClick = () => {}) => {

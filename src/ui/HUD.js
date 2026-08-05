@@ -131,13 +131,14 @@ export class HUD extends Container {
     menuBg.stroke({ color: 0x9b59b6, width: 1.5 });
     menuBtnContainer.addChild(menuBg);
 
-    const menuText = new Text({
-      text: '🏠',
-      style: new TextStyle({ fontSize: 16, align: 'center' })
-    });
-    menuText.anchor.set(0.5);
-    menuText.position.set(menuBtnW / 2, capH / 2);
-    menuBtnContainer.addChild(menuText);
+    const menuShine = new Graphics();
+    menuShine.roundRect(2, 2, menuBtnW - 4, 12, 10);
+    menuShine.fill({ color: 0xffffff, alpha: 0.15 });
+    menuBtnContainer.addChild(menuShine);
+
+    const catPawIcon = UIUtils.createCatPawIcon(11);
+    catPawIcon.position.set(menuBtnW / 2, capH / 2);
+    menuBtnContainer.addChild(catPawIcon);
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';

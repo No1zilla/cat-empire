@@ -52,7 +52,7 @@ async function runVisualTests() {
 
   console.log('🎨 Запуск Visual Snapshot Testing...');
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
+  const context = await browser.newContext({ viewport: { width: 410, height: 700 } });
   const page = await context.newPage();
 
   const errors = [];
@@ -70,25 +70,32 @@ async function runVisualTests() {
   await page.screenshot({ path: mainMenuPath });
   console.log('✅ [Snapshot 1/4] Главное Меню зафиксировано:', mainMenuPath);
 
-  // 2. Клик «▶️ ИГРАТЬ» -> Открытие игрового экрана
-  await page.mouse.click(187, 385);
-  await page.waitForTimeout(1000);
+  // 2. Клик «▶️ ИГРАТЬ» -> Открытие игрового экрана (Центр кнопки 205, 388)
+  await page.mouse.move(205, 388);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(1500);
 
   // 3. Скриншот: Шапка HUD (капсулы монет, гемов, дохода, меню)
   const hudPath = path.join(snapshotsDir, 'golden_hud_header.png');
-  await page.screenshot({ path: hudPath, clip: { x: 0, y: 0, width: 375, height: 60 } });
-  console.log('✅ [Snapshot 2/4] Шапка HUD зафиксирована (clip 375x60):', hudPath);
+  await page.screenshot({ path: hudPath, clip: { x: 0, y: 0, width: 410, height: 60 } });
+  console.log('✅ [Snapshot 2/4] Шапка HUD зафиксирована (clip 410x60):', hudPath);
 
   // 4. Скриншот: Полный игровой экран и сетка 5x5
   const gameplayPath = path.join(snapshotsDir, 'golden_gameplay_grid.png');
   await page.screenshot({ path: gameplayPath });
   console.log('✅ [Snapshot 3/4] Игровой экран зафиксирован:', gameplayPath);
 
-  // 5. Клик по «⚙️ НАСТРОЙКИ» в Главном Меню (открываем меню -> клик настройки)
-  await page.mouse.click(340, 25); // Клик по 🏠
-  await page.waitForTimeout(600);
-  await page.mouse.click(187, 495); // Клик по Настройки
-  await page.waitForTimeout(600);
+  // 5. Клик по кнопке 🐾 в HUD (X = 375, Y = 25)
+  await page.mouse.move(375, 25);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(800);
+
+  await page.mouse.move(205, 518); // Клик по Настройки
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(800);
 
   const settingsPath = path.join(snapshotsDir, 'golden_settings_modal.png');
   await page.screenshot({ path: settingsPath });

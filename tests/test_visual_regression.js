@@ -53,7 +53,7 @@ async function runVisualRegressionRunner() {
 
   console.log('🔍 Запуск Visual Pixel-by-Pixel Audit (сравнение с эталонами)...');
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 375, height: 667 } });
+  const context = await browser.newContext({ viewport: { width: 410, height: 700 } });
   const page = await context.newPage();
 
   await page.goto('http://localhost:8769');
@@ -70,10 +70,12 @@ async function runVisualRegressionRunner() {
       name: 'Шапка HUD',
       goldenFile: 'golden_hud_header.png',
       actionBefore: async () => {
-        await page.mouse.click(187, 385); // Клик «▶️ ИГРАТЬ»
-        await page.waitForTimeout(1000);
+        await page.mouse.move(205, 388); // Клик «▶️ ИГРАТЬ»
+        await page.mouse.down();
+        await page.mouse.up();
+        await page.waitForTimeout(1500);
       },
-      clip: { x: 0, y: 0, width: 375, height: 60 }
+      clip: { x: 0, y: 0, width: 410, height: 60 }
     },
     {
       name: 'Игровое поле 5x5',
@@ -85,10 +87,15 @@ async function runVisualRegressionRunner() {
       name: 'Окно Настроек',
       goldenFile: 'golden_settings_modal.png',
       actionBefore: async () => {
-        await page.mouse.click(346, 25); // Клик 🏠
-        await page.waitForTimeout(500);
-        await page.mouse.click(187, 495); // Клик Настройки
-        await page.waitForTimeout(500);
+        await page.mouse.move(375, 25); // Клик по лапке 🐾 в HUD
+        await page.mouse.down();
+        await page.mouse.up();
+        await page.waitForTimeout(800);
+
+        await page.mouse.move(205, 518); // Клик по Настройкам в главном меню
+        await page.mouse.down();
+        await page.mouse.up();
+        await page.waitForTimeout(800);
       },
       clip: null
     }
