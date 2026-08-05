@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle, Sprite, Assets } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
+import { getCatTexture } from '../utils/catTextures.js';
 
 /**
  * Главное Стартовое Меню (Соответствие правилу 4.2.10 VK Mini Apps + TOKENS)
@@ -76,17 +77,17 @@ export class MainMenu extends Container {
     mascotBg.stroke({ color: 0x271F4F, width: 3 });
     mascotContainer.addChild(mascotBg);
 
-    // Отрисовка лучшего текстурного кота или эмодзи
+    // Отрисовка реального PNG спрайта Главного Королевского Кота (Lvl 15 / Lvl 1)
     let catSprite = null;
-    const catTex = Assets.get('cat_15') || Assets.get('cat_1');
+    const catTex = getCatTexture(15) || getCatTexture(1);
     if (catTex) {
       catSprite = new Sprite(catTex);
       catSprite.anchor.set(0.5);
-      catSprite.width = 110;
-      catSprite.height = 110;
+      catSprite.width = 118;
+      catSprite.height = 118;
     } else {
       catSprite = new Text({
-        text: '🐱👑',
+        text: '🐱',
         style: new TextStyle({ fontSize: 64, align: 'center' })
       });
       catSprite.anchor.set(0.5);
