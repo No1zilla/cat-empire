@@ -65,7 +65,22 @@ export class StorageService {
     try {
       const vkStorage = await vkService.storageGet([STORAGE_KEY]);
       if (vkStorage && vkStorage[STORAGE_KEY]) {
-        resultState = this.mergeStates(resultState, vkStorage[STORAGE_KEY]);
+        const raw = vkStorage[STORAGE_KEY];
+        // Декодирование компактного формата (TASK-042c)
+        const vkState = raw.c !== undefined ? {
+          coins: raw.c,
+          gems: raw.g,
+          maxCatLevel: raw.m,
+          totalCatsBought: raw.b,
+          totalMerges: raw.r,
+          gridState: Array.isArray(raw.s) ? raw.s.map(item =>
+            Array.isArray(item)
+              ? { slotIndex: item[0], catLevel: item[1] }
+              : item  // обратная совместимость со старым форматом
+          ) : raw.s
+        } : raw;  // обратная совместимость: если формат старый — использовать как есть
+        resultState = this.mergeStates(resultState, vkState);
+        console.log('☁️ VK Storage loaded, merges:', vkState.totalMerges, 'maxLevel:', vkState.maxCatLevel);
       }
     } catch (e) {
       console.warn('Ошибка загрузки из VK Storage:', e);
@@ -110,27 +125,40 @@ export class StorageService {
       // Игнорируем
     }
 
-    // B. Сохранение в Нативное Облако VK (VKWebAppStorageSet)
+    // B. Сохранение в Нативное Облако VK (VKWebAppStorageSet) — TASK-042c: компактный формат
     try {
+      // Компактная сериализация gridState: [[slotIndex, catLevel], ...] вместо [{slotIndex, catLevel}, ...]
+      const compactGrid = Array.isArray(data.gridState)
+        ? data.gridState.map(c => [c.slotIndex, c.catLevel])
+        : [];
       const payload = {
-        coins: data.coins,
-        gems: data.gems,
-        maxCatLevel: data.maxCatLevel,
-        totalCatsBought: data.totalCatsBought,
-        totalMerges: data.totalMerges,
-        gridState: data.gridState,
-        updatedAt: Date.now()
+        c: Math.round(data.coins),  // coins
+        g: data.gems,               // gems
+        m: data.maxCatLevel,        // maxCatLevel
+        b: data.totalCatsBought,    // totalCatsBought
+        r: data.totalMerges,        // totalMerges
+        s: compactGrid,             // gridState (compact)
+        t: Date.now()               // updatedAt
       };
-      await vkService.storageSet(STORAGE_KEY, payload);
+      const jsonStr = JSON.stringify(payload);
+      if (jsonStr.length > 9500) {
+        console.warn(`⚠️ VK Storage payload too large: ${jsonStr.length} chars (limit 10000)`);
+      }
+      const ok = await vkService.storageSet(STORAGE_KEY, payload);
+      if (ok) {
+        console.log(`💾 VK Storage saved (${jsonStr.length} chars)`);
+      } else {
+        console.warn('⚠️ VK Storage save returned false');
+      }
     } catch (e) {
-      // Игнорируем
+      console.warn('⚠️ VK Storage save error:', e);
     }
 
     // C. Сохранение на центральный сервер PostgreSQL
     try {
       await saveProgress(data);
     } catch (e) {
-      // Игнорируем
+      console.warn('⚠️ Server save error:', e);
     }
   }
 }

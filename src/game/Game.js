@@ -19,7 +19,7 @@ import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
-import { fetchProfile, saveProgress } from '../api/client.js';
+// TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия)
 export class Game {
@@ -196,14 +196,7 @@ export class Game {
       this._saveToLocalStorage();
 
       try {
-        await saveProgress({
-          coins: this.economy ? this.economy.coins : undefined,
-          gems: this.economy ? this.economy.gems : undefined,
-          totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
-          totalCatsCreated: this.economy ? this.economy.totalCatsCreated : undefined,
-          totalMerges: this.economy ? this.economy.totalMerges : undefined,
-          gridState: this.grid.exportState()
-        });
+        await storageService.saveProgress(this._getStateSnapshot());
       } catch (e) {
         console.error('Ошибка сохранения после массовой покупки:', e);
       }
@@ -253,20 +246,7 @@ export class Game {
         if (this.economy) this.economy.addGems(rewardGems);
 
         const newCatModal = new NewCatModal(this.app, newLevel, rewardGems, async () => {
-          this._saveToLocalStorage();
-          try {
-            await saveProgress({
-              coins: this.economy ? this.economy.coins : undefined,
-              gems: this.economy ? this.economy.gems : undefined,
-              totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
-              totalCatsCreated: this.economy ? this.economy.totalCatsCreated : undefined,
-              totalMerges: this.economy ? this.economy.totalMerges : undefined,
-              maxCatLevel: this.maxCatLevel,
-              gridState: this.grid.exportState()
-            });
-          } catch (e) {
-            console.error('Ошибка сохранения после открытия нового кота:', e);
-          }
+          this._syncToCloud();
         });
         newCatModal.zIndex = 99999;
         this.app.stage.addChild(newCatModal);
@@ -279,20 +259,7 @@ export class Game {
       this.economy.recalcAfterMerge();
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
-      this._saveToLocalStorage();
-      try {
-        await saveProgress({
-          coins: this.economy.coins,
-          gems: this.economy.gems,
-          totalCatsBought: this.economy.totalCatsBought,
-          totalCatsCreated: this.economy.totalCatsCreated,
-          totalMerges: this.economy.totalMerges,
-          maxCatLevel: this.maxCatLevel,
-          gridState: this.grid.exportState()
-        });
-      } catch (e) {
-        console.error('Ошибка сохранения после действия:', e);
-      }
+      this._syncToCloud();
     };
 
     this.dragSystem = new DragSystem(this.app, this.grid, this.mergeEngine, onStateChange);
@@ -309,19 +276,7 @@ export class Game {
         this.economy.recalcAfterMerge();
         if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
         if (this.fillAllButton) this.fillAllButton.updateLabel();
-        this._saveToLocalStorage();
-        try {
-          await saveProgress({
-            coins: this.economy.coins,
-            gems: this.economy.gems,
-            totalCatsBought: this.economy.totalCatsBought,
-            totalMerges: this.economy.totalMerges,
-            maxCatLevel: this.maxCatLevel,
-            gridState: this.grid.exportState()
-          });
-        } catch (e) {
-          console.error('Ошибка сохранения после авто-мерджа:', e);
-        }
+        this._syncToCloud();
       }
     );
 
@@ -369,66 +324,84 @@ export class Game {
 
     this._saveToLocalStorage();
 
-    // 10. Авто-сохранение каждые 30 секунд
+    // 10. Авто-сохранение каждые 30 секунд через storageService (VK Storage + DB + localStorage)
     if (this._autoSaveInterval) clearInterval(this._autoSaveInterval);
     this._autoSaveInterval = setInterval(async () => {
       try {
-        this._saveToLocalStorage();
-        await saveProgress({
-          coins: this.economy.coins,
-          gems: this.economy.gems,
-          totalCatsBought: this.economy.totalCatsBought,
-          totalCatsCreated: this.economy.totalCatsCreated,
-          totalMerges: this.economy.totalMerges,
-          maxCatLevel: this.maxCatLevel,
-          gridState: this.grid.exportState()
-        });
-        console.log('🔄 Авто-сохранение баланса и статистики выполнено');
+        await this._syncToCloud();
+        console.log('🔄 Авто-сохранение (VK Storage + DB + localStorage) выполнено');
       } catch (e) {
         console.error('Ошибка авто-сохранения:', e);
       }
     }, 30000);
   }
 
-  // Умная событийно-ориентированная синхронизация (Защита БД от перегрузок)
-  _saveToLocalStorage() {
-    if (!this.economy) return;
-    localStorage.setItem('cat_empire_last_coins', String(this.economy.coins));
-    localStorage.setItem('cat_empire_last_gems', String(this.economy.gems));
-    localStorage.setItem('cat_empire_last_max_level', String(this.maxCatLevel));
-    localStorage.setItem('cat_empire_last_total_bought', String(this.economy.totalCatsBought));
-    localStorage.setItem('cat_empire_last_total_merges', String(this.economy.totalMerges));
-    if (this.grid) {
-      localStorage.setItem('cat_empire_grid_state', JSON.stringify(this.grid.exportState()));
-    }
-
-    // Защита базы данных: серия быстрах кликов сглаживается в 1 пакет через 800мс тишины
-    syncManager.scheduleSave({
+  // TASK-042: Единая точка сохранения во все хранилища
+  _getStateSnapshot() {
+    return {
       coins: this.economy.coins,
       gems: this.economy.gems,
       totalCatsBought: this.economy.totalCatsBought,
       totalMerges: this.economy.totalMerges,
       maxCatLevel: this.maxCatLevel,
       gridState: this.grid ? this.grid.exportState() : []
-    }, 800);
+    };
   }
 
-  // Защита от потери данных при сворачивании приложения или переключении закладок
+  // TASK-042a: Дебаунсированное сохранение через storageService (VK Storage + DB + localStorage)
+  _syncToCloud() {
+    if (!this.economy) return;
+    syncManager.scheduleSave(this._getStateSnapshot(), 800);
+  }
+
+  // Обратная совместимость: старый метод
+  _saveToLocalStorage() {
+    this._syncToCloud();
+  }
+
+  // TASK-042b + защита от потери данных при сворачивании
   _bindLifecycleFlushes() {
-    const flushOnLeave = () => {
-      if (document.hidden && this.economy) {
-        syncManager.flushImmediate({
-          coins: this.economy.coins,
-          gems: this.economy.gems,
-          totalCatsBought: this.economy.totalCatsBought,
-          totalMerges: this.economy.totalMerges,
-          maxCatLevel: this.maxCatLevel,
-          gridState: this.grid ? this.grid.exportState() : []
-        });
+    const handleVisibility = async () => {
+      if (!this.economy) return;
+
+      if (document.hidden) {
+        // Сворачивание — немедленный flush во все хранилища
+        await syncManager.flushImmediate(this._getStateSnapshot());
+      } else {
+        // Возврат на вкладку — подтянуть свежие данные из облака
+        try {
+          const cloudState = await storageService.loadProgress();
+          if (cloudState && this.economy) {
+            // Принять облачные данные, если они свежее
+            if (Number(cloudState.totalMerges) > this.economy.totalMerges ||
+                Number(cloudState.maxCatLevel) > this.maxCatLevel) {
+              this.economy.setBalance(
+                cloudState.coins,
+                cloudState.gems,
+                cloudState.totalCatsBought,
+                cloudState.totalMerges
+              );
+              this.maxCatLevel = cloudState.maxCatLevel || this.maxCatLevel;
+              if (cloudState.gridState && this.grid) {
+                this.grid.importState(cloudState.gridState);
+                this.grid.slots.forEach((cat) => {
+                  if (cat !== null && this.dragSystem) this.dragSystem.makeDraggable(cat);
+                });
+              }
+              if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
+              if (this.hud) this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
+              console.log('☁️ Прогресс синхронизирован из облака!');
+            }
+          }
+        } catch (e) {
+          console.warn('Ошибка синхронизации при возврате:', e);
+        }
       }
     };
-    document.addEventListener('visibilitychange', flushOnLeave);
-    window.addEventListener('pagehide', flushOnLeave);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', () => {
+      if (this.economy) syncManager.flushImmediate(this._getStateSnapshot());
+    });
   }
 
   _startFloatingIncomePopups() {
