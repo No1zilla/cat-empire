@@ -77,9 +77,9 @@ export class MainMenu extends Container {
     mascotBg.stroke({ color: 0x271F4F, width: 3 });
     mascotContainer.addChild(mascotBg);
 
-    // Отрисовка реального PNG спрайта Главного Королевского Кота (Lvl 15 / Lvl 1)
+    // Отрисовка реального PNG спрайта Главного Королевского Кота (Lvl 12 Astronaut)
     let catSprite = null;
-    const catTex = getCatTexture(15) || getCatTexture(1);
+    const catTex = getCatTexture(12) || getCatTexture(1);
     if (catTex) {
       catSprite = new Sprite(catTex);
       catSprite.anchor.set(0.5);
