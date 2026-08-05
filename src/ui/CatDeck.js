@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
@@ -71,8 +71,14 @@ export class CatDeck extends Container {
     tutorialBtn.position.set(W - 30, 8);
     tutorialBtn.eventMode = 'static';
     tutorialBtn.cursor = 'pointer';
+    tutorialBtn.hitArea = new Rectangle(-20, -10, 110, 36);
+
     const handleTutorialClick = (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
+      console.log('🎓 Tutorial button tapped!');
       if (window.game && typeof window.game.restartTutorial === 'function') {
         window.game.restartTutorial();
       } else if (typeof window.resetTutorial === 'function') {
@@ -84,7 +90,9 @@ export class CatDeck extends Container {
     };
     tutorialBtn.on('pointertap', handleTutorialClick);
     tutorialBtn.on('pointerdown', handleTutorialClick);
+    tutorialBtn.on('tap', handleTutorialClick);
     tutorialBtn.on('click', handleTutorialClick);
+    tutorialBtn.on('touchstart', handleTutorialClick);
     tutorialBtn.on('pointerover', () => { tutorialBtn.style.fill = '#ffd700'; });
     tutorialBtn.on('pointerout', () => { tutorialBtn.style.fill = '#a8d8ff'; });
     this.addChild(tutorialBtn);

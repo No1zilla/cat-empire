@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
@@ -109,15 +109,23 @@ export class SpawnSystem extends Container {
     // 5. Настройка интерактивности и Hold-to-Buy
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
-    this.on('pointerdown', (e) => {
-      if (e && typeof e.stopPropagation === 'function') {
-        e.stopPropagation();
+    const handleSpawnPress = (e) => {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
       }
       this._playClickAnim();
       this._spawnCat();
       this._startHold();
-    });
+    };
+
+    this.on('pointertap', handleSpawnPress);
+    this.on('pointerdown', handleSpawnPress);
+    this.on('tap', handleSpawnPress);
+    this.on('click', handleSpawnPress);
+    this.on('touchstart', handleSpawnPress);
 
     const stopHandler = () => this._stopHold();
     this.on('pointerup', stopHandler);

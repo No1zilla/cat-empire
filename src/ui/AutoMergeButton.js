@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { saveProgress } from '../api/client.js';
 import { AdModal } from './AdModal.js';
@@ -104,9 +104,17 @@ export class AutoMergeButton extends Container {
     this._subContainer.position.set(btnWidth / 2, 33);
     this._innerContainer.addChild(this._subContainer);
 
+    this.eventMode = 'static';
+    this.cursor = 'pointer';
+    this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
+
     // Настройка кликов и микро-анимации
     const triggerAutoMergeClick = (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
+      console.log('⚡ AutoMerge button tapped!');
       this.alpha = 0.92;
       this._playClickAnim();
       this._handleClick();
@@ -114,7 +122,9 @@ export class AutoMergeButton extends Container {
 
     this.on('pointertap', triggerAutoMergeClick);
     this.on('pointerdown', triggerAutoMergeClick);
+    this.on('tap', triggerAutoMergeClick);
     this.on('click', triggerAutoMergeClick);
+    this.on('touchstart', triggerAutoMergeClick);
 
     const onPointerRelease = () => {
       this.alpha = 1.0;

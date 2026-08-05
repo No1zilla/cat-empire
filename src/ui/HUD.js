@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
@@ -141,13 +141,21 @@ export class HUD extends Container {
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';
+    menuBtnContainer.hitArea = new Rectangle(0, 0, menuBtnW, capH);
+
     const handleMenuClick = (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
+      console.log('🐾 HUD Menu button tapped!');
       this.onOpenMenu();
     };
     menuBtnContainer.on('pointertap', handleMenuClick);
     menuBtnContainer.on('pointerdown', handleMenuClick);
+    menuBtnContainer.on('tap', handleMenuClick);
     menuBtnContainer.on('click', handleMenuClick);
+    menuBtnContainer.on('touchstart', handleMenuClick);
 
     this.addChild(menuBtnContainer);
   }

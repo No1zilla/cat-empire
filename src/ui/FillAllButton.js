@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
@@ -173,13 +173,26 @@ export class FillAllButton extends Container {
     this._subContainer = new Container();
     this._innerContainer.addChild(this._subContainer);
 
+    this.eventMode = 'static';
+    this.cursor = 'pointer';
+    this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
+
     // Интерактивность
-    this.on('pointerdown', (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const triggerFillAllClick = (e) => {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
       this.alpha = 0.92;
       this._playClickAnim();
       this._handleClick();
-    });
+    };
+
+    this.on('pointertap', triggerFillAllClick);
+    this.on('pointerdown', triggerFillAllClick);
+    this.on('tap', triggerFillAllClick);
+    this.on('click', triggerFillAllClick);
+    this.on('touchstart', triggerFillAllClick);
 
     const onPointerRelease = () => {
       this.alpha = 1.0;
