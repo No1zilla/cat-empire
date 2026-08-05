@@ -63,9 +63,8 @@ export class HUD extends Container {
     const cap1W = 124;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
-    const coinIcon = UIUtils.createCoinIcon(10);
-    coinIcon.position.set(cap1X + 14, capY + capH / 2);
-    this.addChild(coinIcon);
+    this._coinIcon = UIUtils.createCoinIcon(10);
+    this.addChild(this._coinIcon);
 
     const coinsStyle = new TextStyle({
       fontFamily: font,
@@ -76,8 +75,8 @@ export class HUD extends Container {
     });
     this._coinsText = new Text({ text: '0', style: coinsStyle });
     this._coinsText.anchor.set(0, 0.5);
-    this._coinsText.position.set(cap1X + 28, capY + capH / 2);
     this.addChild(this._coinsText);
+    this._repositionCoinContent();
 
     // 3. КАПСУЛА 2: Гемы (W = 74px, X = 136px)
     const cap2X = 136;
@@ -147,6 +146,22 @@ export class HUD extends Container {
     this.addChild(menuBtnContainer);
   }
 
+  _repositionCoinContent() {
+    if (!this._coinsText || !this._coinIcon) return;
+    const cap1X = 6;
+    const cap1W = 124;
+    const capY = 10;
+    const capH = 34;
+
+    const iconW = 14;
+    const gap = 5;
+    const totalW = iconW + gap + this._coinsText.width;
+    const startX = cap1X + (cap1W - totalW) / 2;
+
+    this._coinIcon.position.set(startX + iconW / 2, capY + capH / 2);
+    this._coinsText.position.set(startX + iconW + gap, capY + capH / 2);
+  }
+
   _repositionGemContent() {
     if (!this._gemsText || !this._gemIcon) return;
     const cap2W = this._cap2W || 75;
@@ -166,6 +181,7 @@ export class HUD extends Container {
   update(coins, gems, incomePerSecond) {
     if (this._coinsText) {
       this._coinsText.text = Math.floor(coins || 0).toLocaleString('ru-RU');
+      this._repositionCoinContent();
     }
     if (this._gemsText) {
       this._gemsText.text = String(gems || 0);
