@@ -21,11 +21,46 @@
 ## 📲 VK Mini App Данные
 - **APP_ID:** `54692477`
 - **Ссылка в VK:** [vk.com/app54692477](https://vk.com/app54692477)
-- **Правило 2.3.8 (Синхронизация):** Реализована трехсторонняя синхронизация (LocalStorage + VK Cloud Storage `VKWebAppStorageGet/Set` + PostgreSQL бэкенд на Railway).
+- **Правило 2.3.8 (Синхронизация):** ВЫПОЛНЕНО И ВЕРИФИЦИРОВАНО. Трехсторонняя синхронизация (LocalStorage + VK Cloud Storage `VKWebAppStorageGet/Set` + PostgreSQL бэкенд на Railway) с прецедентом `totalMerges` > `totalCatsBought` > `coins`.
+- **Правило 4.2.10 (Верстка & Кнопка Меню):** ВЫПОЛНЕНО. Единый контейнер 410px, Главное Меню, Окно Настроек, кавайная 3D розовая лапка `🐾` в HUD.
 
 ---
 
 ## 📱 Сборка Android APK
-- Сборка: `npm run build:android`
-- Подготовка пакета Gradle: `GRADLE_USER_HOME=./.gradle JAVA_HOME=/opt/homebrew/opt/openjdk@21 ./gradlew assembleDebug` (в папке `android/`)
-- Готовый файл APK: `/Users/ai/Desktop/CatEmpire.apk`
+- **Синхронизация Capacitor:** `npx cap sync android`
+- **Запуск Gradle сборки:**
+  ```bash
+  JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.12/libexec/openjdk.jdk/Contents/Home ./gradlew assembleDebug
+  ```
+- **Готовый APK файл на Рабочем столе:** `/Users/ai/Desktop/CatEmpire.apk` (20.0 МБ)
+- **Кастомная 3D Иконка:** 32-bit PNG 3D Kawaii Cat King в золотой короне на фиолетовом глянцевом стекле (`public/icon_512.png` + `mipmap-*`).
+
+---
+
+## 🧪 Автоматизированное тестирование (Test Suite)
+
+В репозитории создана комплексная система авто-тестирования для предотвращения багов и регрессий:
+
+1. **📸 Генерация золотых визуальных эталонов:**
+   ```bash
+   node tests/test_visual_snapshots.js
+   ```
+   *Захватывает 4 золотых PNG-снапшота компонентов при ширине 410px в `snapshots/`.*
+
+2. **🔍 Попиксельный аудит визуальной регрессии (Visual Regression):**
+   ```bash
+   node tests/test_visual_regression.js
+   ```
+   *Выполняет RGBA-сравнение рендеринга Canvas 2D API с порогом допущения анти-алиасинга 3.5%.*
+
+3. **🔄 E2E Тест кросс-платформенной синхронизации (Правило 2.3.8):**
+   ```bash
+   node tests/test_e2e_multi_device.js
+   ```
+   *Запускает 2 параллельных изолированных браузерных контекста (ПК и Смартфон) под одним VK ID.*
+
+4. **📱 E2E Тест эмулятора Android (Pixel 5, Touch Events, Safe Area):**
+   ```bash
+   node tests/test_android_emulator.js
+   ```
+   *Проверяет нативный тач-спавн котиков, drag-and-drop мёрдж на сетке 5x5, тач-свайп Котопедии, живой туториал «🎓 Обучение», оверлей рекламы при 0 💎 и кнопку 🐾 в HUD.*
