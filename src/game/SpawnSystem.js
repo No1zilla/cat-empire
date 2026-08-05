@@ -133,6 +133,8 @@ export class SpawnSystem extends Container {
     this.on('touchstart', handleSpawnPress);
 
     const stopHandler = () => this._stopHold();
+    this._globalStopHandler = stopHandler;
+
     this.on('pointerup', stopHandler);
     this.on('pointerupoutside', stopHandler);
     this.on('pointerout', () => {
@@ -140,6 +142,11 @@ export class SpawnSystem extends Container {
       stopHandler();
     });
     this.on('pointercancel', stopHandler);
+    this.on('touchend', stopHandler);
+
+    window.addEventListener('pointerup', stopHandler);
+    window.addEventListener('touchend', stopHandler);
+    window.addEventListener('blur', stopHandler);
 
     this.on('pointerover', () => {
       this.alpha = 0.92;
@@ -167,6 +174,11 @@ export class SpawnSystem extends Container {
   }
 
   destroy(options) {
+    if (this._globalStopHandler) {
+      window.removeEventListener('pointerup', this._globalStopHandler);
+      window.removeEventListener('touchend', this._globalStopHandler);
+      window.removeEventListener('blur', this._globalStopHandler);
+    }
     this._stopHold();
     super.destroy(options);
   }

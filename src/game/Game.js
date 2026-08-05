@@ -8,6 +8,7 @@ import { DragSystem } from './DragSystem.js';
 import { Economy } from './Economy.js';
 import { HUD } from '../ui/HUD.js';
 import { Tutorial } from '../ui/Tutorial.js';
+import { NewCatModal } from '../ui/NewCatModal.js';
 import { CollectionModal } from '../ui/CollectionModal.js';
 import { CatDetailModal } from '../ui/CatDetailModal.js';
 import { storageService } from '../services/StorageService.js';
@@ -244,6 +245,7 @@ export class Game {
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
+        if (this.spawnSystem) this.spawnSystem._stopHold();
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
 
         const rewardGems = 5;
@@ -400,7 +402,9 @@ export class Game {
                 cloudState.totalMerges
               );
               this.maxCatLevel = cloudState.maxCatLevel || this.maxCatLevel;
-              if (cloudState.gridState && this.grid) {
+              // Не перезаписываем активное игровое поле локальной сессии если игрок в процессе взаимодействия
+              const isGridEmpty = this.grid ? this.grid.getActiveCatsCount() === 0 : true;
+              if (cloudState.gridState && this.grid && isGridEmpty) {
                 this.grid.importState(cloudState.gridState);
                 this.grid.slots.forEach((cat) => {
                   if (cat !== null && this.dragSystem) this.dragSystem.makeDraggable(cat);
