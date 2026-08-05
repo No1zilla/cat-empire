@@ -98,6 +98,8 @@ export class HUD extends Container {
     this._gemsText.anchor.set(0, 0.5);
     this.addChild(this._gemsText);
 
+    this._cap2X = cap2X;
+    this._cap2W = cap2W;
     this._repositionGemContent();
 
     // 4. КАПСУЛА 3: Доход в секунду (W = 105px, X = 206px)
@@ -146,13 +148,13 @@ export class HUD extends Container {
 
   _repositionGemContent() {
     if (!this._gemsText || !this._gemIcon) return;
-    const cap2W = 90;
-    const cap2X = 170;
+    const cap2W = this._cap2W || 75;
+    const cap2X = this._cap2X || 126;
     const capY = 10;
     const capH = 34;
 
-    const iconW = 16;
-    const gap = 6;
+    const iconW = 14;
+    const gap = 4;
     const totalW = iconW + gap + this._gemsText.width;
     const startX = cap2X + (cap2W - totalW) / 2;
 
