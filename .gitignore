@@ -15,4 +15,5 @@ server/prisma/dev.db-journal
 # system & IDE
 .DS_Store
 *.log
+.gradle
 server/node_modules

@@ -1,6 +1,7 @@
 import { Application, Container, Graphics } from 'pixi.js';
 import { CONFIG } from './config.js';
 import { VKService } from './vk/VKBridge.js';
+import { PlatformService } from './services/PlatformService.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 
@@ -34,23 +35,27 @@ function hideSplashScreen() {
 
 // Точка входа в приложение
 async function initApp() {
-  console.log('🚀 Инициализация приложения с роскошным Splash-экраном...');
-  updateSplashProgress(15, 'Подключаем VK Bridge...');
-
-  // 1. Создать экземпляр VKService и инициализировать VK Bridge
-  const vkService = new VKService();
-  try {
-    await vkService.init();
-  } catch (e) {
-    console.warn('VK Bridge init warning:', e);
-  }
-
-  updateSplashProgress(35, 'Получаем профиль игрока...');
+  console.log(`🚀 Инициализация приложения (${PlatformService.platform.toUpperCase()})...`);
+  
   let userInfo = null;
-  try {
-    userInfo = await vkService.getUserInfo();
-  } catch (e) {
-    console.warn('VK UserInfo warning:', e);
+  if (PlatformService.isVK()) {
+    updateSplashProgress(15, 'Подключаем VK Bridge...');
+    const vkService = new VKService();
+    try {
+      await vkService.init();
+    } catch (e) {
+      console.warn('VK Bridge init warning:', e);
+    }
+
+    updateSplashProgress(35, 'Получаем профиль игрока...');
+    try {
+      userInfo = await vkService.getUserInfo();
+    } catch (e) {
+      console.warn('VK UserInfo warning:', e);
+    }
+  } else {
+    updateSplashProgress(35, 'Инициализация Android...');
+    userInfo = { firstName: 'Котовед', lastName: 'Игрок' };
   }
 
   // 3. Создать PIXI.Application для PixiJS v8

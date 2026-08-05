@@ -115,20 +115,8 @@ export class Game {
     this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalMerges);
     this.economy.startTicker();
 
-    // Синхронизируем максимально объединенный прогресс с бэкендом при старте
+    // Синхронизируем максимально объединенный прогресс со всеми хранилищами (VK Storage, LocalStorage, DB) при старте
     this._saveToLocalStorage();
-    try {
-      saveProgress({
-        coins: this.economy.coins,
-        gems: this.economy.gems,
-        totalCatsBought: this.economy.totalCatsBought,
-        totalMerges: this.economy.totalMerges,
-        maxCatLevel: this.maxCatLevel,
-        gridState: this.grid.exportState()
-      });
-    } catch {
-      // Игнорируем
-    }
 
     // 6. Ряд из 3-х кнопок управления:
     const buttonRowY = this.grid.y + gridWidth + 12;

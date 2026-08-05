@@ -47,6 +47,49 @@ export class VKService {
     };
   }
 
+  // TASK-SYNC: Чтение из нативного облачного хранилища VK (VKWebAppStorageGet)
+  async storageGet(keys = ['cat_empire_progress']) {
+    try {
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 4000));
+      const res = await Promise.race([
+        this.bridge.send('VKWebAppStorageGet', { keys }),
+        timeout
+      ]);
+      if (res && res.keys && Array.isArray(res.keys)) {
+        const result = {};
+        res.keys.forEach((item) => {
+          if (item.value) {
+            try {
+              result[item.key] = JSON.parse(item.value);
+            } catch (e) {
+              result[item.key] = item.value;
+            }
+          }
+        });
+        return result;
+      }
+    } catch (e) {
+      console.warn('VKWebAppStorageGet error:', e);
+    }
+    return null;
+  }
+
+  // TASK-SYNC: Сохранение в нативное облачное хранилище VK (VKWebAppStorageSet)
+  async storageSet(key, value) {
+    try {
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 4000));
+      await Promise.race([
+        this.bridge.send('VKWebAppStorageSet', { key, value: stringValue }),
+        timeout
+      ]);
+      return true;
+    } catch (e) {
+      console.warn('VKWebAppStorageSet error:', e);
+      return false;
+    }
+  }
+
   // TASK-015B: Тактильная отдача (вибрация VK Haptics)
   triggerHaptic(style = 'medium') {
     try {
@@ -58,3 +101,4 @@ export class VKService {
 }
 
 export default VKService;
+

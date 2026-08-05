@@ -5,11 +5,21 @@ const BASE_URL = (typeof window !== 'undefined' && window.location.origin.includ
   : 'https://cat-empire-production.up.railway.app/api';
 
 /**
- * Извлечение параметров запуска VK для заголовка x-vk-sign
+ * Извлечение параметров запуска VK для заголовка x-vk-sign (с закэшированным сохранениям)
  */
 function getVkSignHeader() {
   if (typeof window === 'undefined') return '';
   let str = window.location.search || window.location.hash || '';
+
+  if (str && str.includes('vk_user_id')) {
+    try {
+      localStorage.setItem('cat_empire_vk_launch_params', str);
+    } catch (e) {}
+  } else {
+    try {
+      str = localStorage.getItem('cat_empire_vk_launch_params') || str;
+    } catch (e) {}
+  }
 
   // Вычищаем '#' и '?' для 100% гарантированной совместимости с HTTP-заголовками Nginx/Railway
   while (str.startsWith('?') || str.startsWith('#')) {
