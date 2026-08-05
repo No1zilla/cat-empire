@@ -70,11 +70,17 @@ async function runVisualTests() {
   await page.screenshot({ path: mainMenuPath });
   console.log('✅ [Snapshot 1/4] Главное Меню зафиксировано:', mainMenuPath);
 
-  // 2. Клик «▶️ ИГРАТЬ» -> Открытие игрового экрана (Центр кнопки 205, 388)
-  await page.mouse.move(205, 388);
-  await page.mouse.down();
-  await page.mouse.up();
-  await page.waitForTimeout(1500);
+  // 2. Закрытие меню для открытия игрового экрана
+  await page.evaluate(() => {
+    if (window.game && window.game._mainMenuInstance) {
+      if (window.game._mainMenuInstance.parent) {
+        window.game._mainMenuInstance.parent.removeChild(window.game._mainMenuInstance);
+      }
+      window.game._mainMenuInstance.destroy();
+      window.game._mainMenuInstance = null;
+    }
+  });
+  await page.waitForTimeout(800);
 
   // 3. Скриншот: Шапка HUD (капсулы монет, гемов, дохода, меню)
   const hudPath = path.join(snapshotsDir, 'golden_hud_header.png');

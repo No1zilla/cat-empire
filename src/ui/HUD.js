@@ -108,9 +108,9 @@ export class HUD extends Container {
 
     const ipsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: 'bold',
-      fill: '#2ecc71',
+      fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });

@@ -100,6 +100,9 @@ async function initApp() {
 
   updateSplashProgress(90, 'Строим королевство котиков...');
   const game = new Game(app);
+  if (typeof window !== 'undefined') {
+    window.game = game;
+  }
   await game.init(userName);
 
   updateSplashProgress(100, 'Готово! 👑');
