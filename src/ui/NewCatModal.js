@@ -93,8 +93,8 @@ export class NewCatModal extends Container {
 
     const card = new Graphics();
     card.roundRect(cardX, cardY, cardW, cardH, 20);
-    card.fill(0x181433);
-    card.stroke({ color: CONFIG.COLORS.GOLD || 0xffd700, width: 3 });
+    card.fill(0x15102A);  // TOKENS.panelBg — единый фон модалки
+    card.stroke({ color: 0xffd700, width: 3 });
     this.addChild(card);
 
     // 4. Заголовок "🎉 НОВЫЙ КОТИК!"
@@ -168,29 +168,16 @@ export class NewCatModal extends Container {
     statsText.position.set(W / 2, cardY + 210);
     this.addChild(statsText);
 
-    // 8. Награда
-    const rewardStyle = new TextStyle({
-      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 16,
-      fontWeight: 'bold',
-      fill: '#a8d8ff',
-      align: 'center'
-    });
-    const rewardText = new Text({ text: `Награда: +${this.rewardGems} 💎`, style: rewardStyle });
-    rewardText.anchor.set(0.5, 0);
-    rewardText.position.set(W / 2, cardY + 238);
-    this.addChild(rewardText);
-
     // 9. Кнопка "Круто! 🚀"
     const btnW = 200;
     const btnH = 46;
     const btnX = (W - btnW) / 2;
-    const btnY = cardY + cardH - 58;
+    const btnY = cardY + cardH - 54;
 
     const btnBg = new Graphics();
-    btnBg.roundRect(btnX, btnY, btnW, btnH, 12);
-    btnBg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
-    btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 2 });
+    btnBg.roundRect(btnX, btnY, btnW, btnH, 14);
+    btnBg.fill(0xFF6B6B);  // TOKENS.btnBuy
+    btnBg.stroke({ color: '#ffffff', alpha: 0.4, width: 2 });
     btnBg.eventMode = 'static';
     btnBg.cursor = 'pointer';
 

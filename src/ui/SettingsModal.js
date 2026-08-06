@@ -19,10 +19,10 @@ export class SettingsModal extends Container {
     const width = CONFIG.GAME_WIDTH || 375;
     const height = CONFIG.GAME_HEIGHT || 667;
 
-    // 1. Полупрозрачный оверлей
+    // 1. Полупрозрачный оверлей (единый тон с другими модальными окнами)
     const overlay = new Graphics();
     overlay.rect(0, 0, width, height);
-    overlay.fill({ color: 0x000000, alpha: 0.7 });
+    overlay.fill({ color: 0x07040d, alpha: 0.88 });
     overlay.interactive = true;
     this.addChild(overlay);
 
@@ -34,8 +34,8 @@ export class SettingsModal extends Container {
 
     const bg = new Graphics();
     bg.roundRect(modalX, modalY, modalW, modalH, 20);
-    bg.fill(0x1a153b);
-    bg.stroke({ color: 0x8e44ad, width: 2 });
+    bg.fill(0x15102A);  // TOKENS.panelBg — единый фон
+    bg.stroke({ color: 0xA55EEA, width: 2 });  // TOKENS.btnMerge — фиолетовая рамка
     this.addChild(bg);
 
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
@@ -107,14 +107,13 @@ export class SettingsModal extends Container {
     verText.position.set(width / 2, modalY + 235);
     this.addChild(verText);
 
-    // 7. Кнопка «ЗАКРЫТЬ»
     const closeBtn = UIUtils.createButton(
       modalX + (modalW - 160) / 2,
       modalY + modalH - 55,
       160,
       40,
       'ЗАКРЫТЬ',
-      0xe74c3c,
+      0xFF6B6B,  // TOKENS.btnBuy — единый красный
       () => {
         this.onClose();
         if (this.parent) this.parent.removeChild(this);

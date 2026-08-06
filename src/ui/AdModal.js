@@ -40,7 +40,7 @@ export class AdModal extends Container {
 
     const card = new Graphics();
     card.roundRect(cardX, cardY, cardW, cardH, 20);
-    card.fill(0x16132d);
+    card.fill(0x15102A);  // TOKENS.panelBg — единый фон
     card.stroke({ color: 0xffd700, width: 2.0 });
     this.addChild(card);
 
@@ -83,7 +83,7 @@ export class AdModal extends Container {
     const watchBtn = new Graphics();
     watchBtn.roundRect(btnX, btnY, btnW, btnH, 14);
     watchBtn.fill(0x2ecc71);
-    watchBtn.stroke({ color: '#ffffff', alpha: 0.6, width: 1.5 });
+    watchBtn.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
     watchBtn.eventMode = 'static';
     watchBtn.cursor = 'pointer';
 
@@ -280,7 +280,9 @@ export class AdModal extends Container {
       fill: '#ffd700',
       align: 'center'
     });
-    const timerText = new Text({ text: `Вознаграждение через: ${secondsLeft} сек`, style: timerStyle });
+    // Текст таймера зависит от типа награды
+    const timerLabel = this.rewardGems > 0 ? 'Вознаграждение через:' : 'Авто-соединение через:';
+    const timerText = new Text({ text: `${timerLabel} ${secondsLeft} сек`, style: timerStyle });
     timerText.anchor.set(0.5, 0);
     timerText.position.set(W / 2, screenY + screenH + 16);
     this.addChild(timerText);
@@ -319,7 +321,12 @@ export class AdModal extends Container {
       const progress = Math.min(1.0, elapsed / totalDuration);
       secondsLeft = Math.max(0, Math.ceil(totalDuration - elapsed));
 
-      timerText.text = secondsLeft > 0 ? `Вознаграждение через: ${secondsLeft} сек` : 'Зачисление наград... 🎉';
+      // Текст таймера зависит от типа награды
+      if (this.rewardGems > 0) {
+        timerText.text = secondsLeft > 0 ? `Вознаграждение через: ${secondsLeft} сек` : 'Начисляем награду... 🎉';
+      } else {
+        timerText.text = secondsLeft > 0 ? `Авто-соединение через: ${secondsLeft} сек` : 'Соединяем котиков... ⚡';
+      }
       updateFill(progress);
 
       if (progress >= 1.0) {

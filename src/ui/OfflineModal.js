@@ -42,10 +42,10 @@ export class OfflineModal extends Container {
 
   // Отрисовка элементов модального окна
   _draw() {
-    // 1. Полупрозрачный оверлей
+    // 1. Полупрозрачный оверлей (едиственный тон с другими модальными окнами)
     const overlay = new Graphics();
     overlay.rect(0, 0, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT);
-    overlay.fill({ color: 0x07040d, alpha: 0.85 });
+    overlay.fill({ color: 0x07040d, alpha: 0.88 });
     overlay.eventMode = 'static';
     overlay.on('pointerdown', (e) => e.stopPropagation());
     overlay.on('pointerup', (e) => e.stopPropagation());
@@ -60,8 +60,8 @@ export class OfflineModal extends Container {
 
     const card = new Graphics();
     card.roundRect(cardX, cardY, cardWidth, cardHeight, 20);
-    card.fill(0x181433);
-    card.stroke({ color: CONFIG.COLORS.ACCENT || 0xff5e62, width: 2.5 });
+    card.fill(0x15102A);  // TOKENS.panelBg — единый фон
+    card.stroke({ color: 0xff6b6b, width: 2.5 });
     this.addChild(card);
 
     // 3. Заголовок
@@ -124,9 +124,9 @@ export class OfflineModal extends Container {
     buttonGroup.position.set(btnX, btnY);
 
     const btnBg = new Graphics();
-    btnBg.roundRect(0, 0, btnWidth, btnHeight, 12);
-    btnBg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
-    btnBg.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
+    btnBg.roundRect(0, 0, btnWidth, btnHeight, 14);
+    btnBg.fill(0xFF6B6B);  // TOKENS.btnBuy — единый акцентный цвет
+    btnBg.stroke({ color: '#ffffff', alpha: 0.4, width: 1.5 });
     buttonGroup.addChild(btnBg);
 
     const btnStyle = new TextStyle({

@@ -39,7 +39,7 @@ export const TOKENS = {
   },
 
   typography: {
-    fontFamily: 'Nunito, system-ui, -apple-system, sans-serif',
+    fontFamily: "'Fredoka', 'Nunito', sans-serif",
     fontWeightBold: 'bold',
     fontWeightNormal: 'normal'
   }
