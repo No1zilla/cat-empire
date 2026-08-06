@@ -476,6 +476,8 @@ export class Game {
 
   // TASK-044: Главное стартовое меню (Соответствие правилу 4.2.10 VK Mini Apps)
   showMainMenu() {
+    if (this.hud) this.hud.hideMenuOverlay();
+
     if (this._mainMenuInstance) {
       if (this._mainMenuInstance.parent) {
         this._mainMenuInstance.parent.removeChild(this._mainMenuInstance);
@@ -493,6 +495,7 @@ export class Game {
           this._mainMenuInstance.destroy();
           this._mainMenuInstance = null;
         }
+        if (this.hud) this.hud.showMenuOverlay();
         console.log('▶️ Игра запущена из главного меню!');
         if (this._onMenuPlayCallback) {
           const cb = this._onMenuPlayCallback;

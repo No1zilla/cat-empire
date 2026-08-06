@@ -13,7 +13,7 @@ if (!fs.existsSync(snapshotsDir)) {
 }
 
 // HTTP Сервер
-function startServer(port = 8799) {
+function startServer(port = 8833) {
   const mimeTypes = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -47,8 +47,8 @@ function startServer(port = 8799) {
 
 async function runAndroidTestRunner() {
   console.log('⚡ Запуск локального сервера для Android E2E-теста...');
-  const server = await startServer(8799);
-  console.log('🌐 Сервер запущен на http://localhost:8799');
+  const server = await startServer(8833);
+  console.log('🌐 Сервер запущен на http://localhost:8833');
 
   console.log('📱 Запуск мобильного эмулятора Android (Pixel 5, Touch Events, Safe Area)...');
   const browser = await chromium.launch({ headless: true });
@@ -68,7 +68,7 @@ async function runAndroidTestRunner() {
     if (msg.type() === 'error') errors.push(msg.text());
   });
 
-  await page.goto('http://localhost:8799');
+  await page.goto('http://localhost:8833', { waitUntil: 'commit', timeout: 15000 });
   await page.waitForTimeout(6000);
 
   // 1. Скриншот Android: Главное меню

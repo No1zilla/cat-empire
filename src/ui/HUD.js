@@ -119,12 +119,11 @@ export class HUD extends Container {
     this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: W = 48px, X = 320px — четко на экране!)
+    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: W = 48px, X = 320px — чистый PixiJS + HTML Оверлей)
     const menuBtnX = 320;
     const menuBtnW = 48;
     const menuBtnContainer = new Container();
-    menuBtnContainer.pivot.set(menuBtnW / 2, capH / 2);
-    menuBtnContainer.position.set(menuBtnX + menuBtnW / 2, capY + capH / 2);
+    menuBtnContainer.position.set(menuBtnX, capY);
 
     const menuBg = new Graphics();
     menuBg.roundRect(0, 0, menuBtnW, capH, capRadius);
@@ -143,10 +142,10 @@ export class HUD extends Container {
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';
-    menuBtnContainer.hitArea = new Rectangle(-8, -8, menuBtnW + 16, capH + 16);
+    menuBtnContainer.hitArea = new Rectangle(-10, -10, menuBtnW + 20, capH + 20);
 
     let lastMenuTapTime = 0;
-    const handleMenuClick = (e) => {
+    const handleMenuTrigger = (e) => {
       const now = Date.now();
       if (now - lastMenuTapTime < 300) return;
       lastMenuTapTime = now;
@@ -155,21 +154,44 @@ export class HUD extends Container {
         if (typeof e.stopPropagation === 'function') e.stopPropagation();
         if (typeof e.preventDefault === 'function') e.preventDefault();
       }
-      menuBtnContainer.scale.set(0.9);
+      menuBtnContainer.alpha = 0.6;
       setTimeout(() => {
-        if (!menuBtnContainer.destroyed) menuBtnContainer.scale.set(1.0);
-      }, 100);
-      console.log('🐾 HUD Menu button tapped!');
+        if (!menuBtnContainer.destroyed) menuBtnContainer.alpha = 1.0;
+      }, 120);
+
+      console.log('🐾 [HUD ARCHITECTURE] Menu button triggered!');
       this.onOpenMenu();
     };
 
-    menuBtnContainer.on('pointertap', handleMenuClick);
-    menuBtnContainer.on('pointerdown', handleMenuClick);
-    menuBtnContainer.on('tap', handleMenuClick);
-    menuBtnContainer.on('click', handleMenuClick);
-    menuBtnContainer.on('touchstart', handleMenuClick);
+    menuBtnContainer.on('pointertap', handleMenuTrigger);
+    menuBtnContainer.on('pointerdown', handleMenuTrigger);
+    menuBtnContainer.on('tap', handleMenuTrigger);
+    menuBtnContainer.on('click', handleMenuTrigger);
+    menuBtnContainer.on('touchstart', handleMenuTrigger);
 
     this.addChild(menuBtnContainer);
+
+    // Связка с HTML DOM Оверлеем для 100% отклика на сенсорных экранах Android
+    this._bindHtmlOverlayMenu(handleMenuTrigger);
+  }
+
+  _bindHtmlOverlayMenu(triggerFn) {
+    const htmlBtn = document.getElementById('hud-menu-btn-overlay');
+    if (!htmlBtn) return;
+
+    htmlBtn.style.display = 'flex';
+    htmlBtn.onclick = (e) => triggerFn(e);
+    htmlBtn.ontouchstart = (e) => triggerFn(e);
+  }
+
+  showMenuOverlay() {
+    const htmlBtn = document.getElementById('hud-menu-btn-overlay');
+    if (htmlBtn) htmlBtn.style.display = 'flex';
+  }
+
+  hideMenuOverlay() {
+    const htmlBtn = document.getElementById('hud-menu-btn-overlay');
+    if (htmlBtn) htmlBtn.style.display = 'none';
   }
 
   _repositionCoinContent() {
