@@ -214,15 +214,13 @@ export class AutoMergeButton extends Container {
     }
 
     // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы!
-    // За просмотр намертво НАЧИСЛЯЮТСЯ +5 💎 в баланс игрока и запускается объединение!
+    // За просмотр РЕКЛАМЫ ПРОСТО НАЧИСЛЯЮТСЯ +5 💎 в баланс игрока!
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
       const adModal = new AdModal(this.app, this.economy, async () => {
-        // Начисленные за рекламу +5 💎 остаются на балансе, затем запускаем слияние!
-        if (typeof this.onTriggerAutoMerge === 'function') {
-          await this.onTriggerAutoMerge();
-        }
+        // Реклама просмотрена -> +5 💎 зачислены в баланс игрока!
+        this._showWarning('+5 💎 получено! 💎');
         try {
           await saveProgress({
             coins: this.economy ? this.economy.coins : undefined,
