@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { saveProgress } from '../api/client.js';
 import { AdModal } from './AdModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { AnalyticsService } from '../services/AnalyticsService.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -193,6 +194,7 @@ export class AutoMergeButton extends Container {
     if (this.economy && this.economy.gems >= GEM_COST) {
       try {
         this.economy.spendGems(GEM_COST);
+        AnalyticsService.trackGemsSpent(GEM_COST, 'automerge');
         this._showWarning('-5 💎 списано! ⚡');
       } catch (e) {
         this._showWarning('Мало 💎 гемов!');
