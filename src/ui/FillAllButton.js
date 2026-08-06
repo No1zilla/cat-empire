@@ -1,6 +1,8 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { AdModal } from './AdModal.js';
+import { AnalyticsService } from '../services/AnalyticsService.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -73,6 +75,10 @@ export class FillAllButton extends Container {
     const btnWidth = 122;
 
     if (freeSlotsCount === 0) {
+      if (this._btnText) this._btnText.text = '📦 Заполнить';
+      if (this._btnBg) this._btnBg.fill(0xff9f43);
+      if (this._shadowBg) this._shadowBg.fill(0xd35400);
+
       const textStyle = new TextStyle({ ...subStyle, fill: '#e5e7eb' });
       const textObj = new Text({ text: 'ЗАПОЛНЕНО', style: textStyle });
       textObj.anchor.set(0.5, 0.5);
@@ -81,23 +87,20 @@ export class FillAllButton extends Container {
       this._subContainer.pivot.set(0, 0);
       this._subContainer.position.set(btnWidth / 2, 33);
     } else if (count === 0) {
-      const nextCost = 10 + (this.economy ? this.economy.totalCatsBought : 0);
-      const formattedNextCost = nextCost >= 1000000 ? (nextCost / 1000000).toFixed(1) + 'M' : (nextCost >= 1000 ? (nextCost / 1000).toFixed(1) + 'K' : nextCost);
-      const textStyle = new TextStyle({ ...subStyle, fill: '#fff3a0' });
-      const textObj = new Text({ text: `${formattedNextCost} `, style: textStyle });
-      textObj.anchor.set(0, 0.5);
+      if (this._btnText) this._btnText.text = '🎬 Заполнить';
+      if (this._btnBg) {
+        this._btnBg.fill(0x2ecc71);
+        this._btnBg.stroke({ color: '#ffffff', alpha: 0.8, width: 2 });
+      }
+      if (this._shadowBg) this._shadowBg.fill(0x1e8449);
+
+      const textStyle = new TextStyle({ ...subStyle, fill: '#ffffff', fontSize: 12 });
+      const textObj = new Text({ text: 'За рекламу', style: textStyle });
+      textObj.anchor.set(0.5, 0.5);
       textObj.position.set(0, 0);
 
-      const coinRadius = 6;
-      const coinIcon = UIUtils.createCoinIcon(coinRadius, true);
-      const gap = 3;
-      coinIcon.position.set(textObj.width + gap + coinRadius, 0);
-
       this._subContainer.addChild(textObj);
-      this._subContainer.addChild(coinIcon);
-
-      const totalWidth = textObj.width + gap + (coinRadius * 2);
-      this._subContainer.pivot.set(totalWidth / 2, 0);
+      this._subContainer.pivot.set(0, 0);
       this._subContainer.position.set(btnWidth / 2, 33);
     } else {
       const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
@@ -285,7 +288,19 @@ export class FillAllButton extends Container {
     }
 
     if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
-      this._showWarning('Мало монет! ', true);
+      const stage = this.app ? this.app.stage : (this.parent || this.stage);
+      if (stage) {
+        stage.sortableChildren = true;
+        const adModal = new AdModal(this.app, this.economy, async () => {
+          AnalyticsService.trackAdWatched('fill_all', 0);
+          await this.onTriggerFillAll(freeSlotsCount, 0);
+          this.updateLabel();
+        }, 0);
+        adModal.zIndex = 99999;
+        stage.addChild(adModal);
+      } else {
+        this._showWarning('Ошибка запуска 🚫');
+      }
       return;
     }
 

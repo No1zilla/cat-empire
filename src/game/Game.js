@@ -271,6 +271,7 @@ export class Game {
       this.economy.recalcAfterMerge();
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
+      if (this.autoMergeButton) this.autoMergeButton.updateLabel();
       this._syncToCloud();
     };
 
@@ -288,6 +289,7 @@ export class Game {
         this.economy.recalcAfterMerge();
         if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
         if (this.fillAllButton) this.fillAllButton.updateLabel();
+        if (this.autoMergeButton) this.autoMergeButton.updateLabel();
         this._syncToCloud();
       }
     );

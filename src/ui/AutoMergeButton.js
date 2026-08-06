@@ -30,6 +30,7 @@ export class AutoMergeButton extends Container {
     this.cursor = 'pointer';
 
     this._draw();
+    this.updateLabel();
   }
 
   _draw() {
@@ -104,6 +105,8 @@ export class AutoMergeButton extends Container {
     this._subContainer.pivot.set(totalSubWidth / 2, 0);
     this._subContainer.position.set(btnWidth / 2, 33);
     this._innerContainer.addChild(this._subContainer);
+
+    this.updateLabel();
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
@@ -187,6 +190,62 @@ export class AutoMergeButton extends Container {
     }, 1200);
   }
 
+  updateLabel() {
+    if (!this._subContainer) return;
+    const btnWidth = 122;
+    const hasEnoughGems = this.economy && this.economy.gems >= 5;
+
+    this._subContainer.removeChildren();
+
+    const subStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 12,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.7, blur: 2, distance: 1 }
+    });
+
+    if (hasEnoughGems) {
+      if (this._btnText) this._btnText.text = '⚡ Соединить';
+      if (this._btnBg) {
+        this._btnBg.fill(0x8e44ad);
+        this._btnBg.stroke({ color: '#ffffff', alpha: 0.6, width: 2 });
+      }
+      if (this._shadowBg) this._shadowBg.fill(0x6c3483);
+
+      const textObj = new Text({ text: '5', style: subStyle });
+      textObj.anchor.set(0, 0.5);
+      textObj.position.set(0, 0);
+
+      const gemSize = 9;
+      const gemIcon = UIUtils.createGemIcon(gemSize);
+      const gap = 4;
+      gemIcon.position.set(textObj.width + gap + gemSize, 0);
+
+      this._subContainer.addChild(textObj);
+      this._subContainer.addChild(gemIcon);
+
+      const totalSubWidth = textObj.width + gap + (gemSize * 2);
+      this._subContainer.pivot.set(totalSubWidth / 2, 0);
+      this._subContainer.position.set(btnWidth / 2, 33);
+    } else {
+      if (this._btnText) this._btnText.text = '🎬 Соединить';
+      if (this._btnBg) {
+        this._btnBg.fill(0x2ecc71);
+        this._btnBg.stroke({ color: '#ffffff', alpha: 0.8, width: 2 });
+      }
+      if (this._shadowBg) this._shadowBg.fill(0x1e8449);
+
+      const textObj = new Text({ text: 'За рекламу', style: subStyle });
+      textObj.anchor.set(0.5, 0.5);
+      textObj.position.set(0, 0);
+
+      this._subContainer.addChild(textObj);
+      this._subContainer.pivot.set(0, 0);
+      this._subContainer.position.set(btnWidth / 2, 33);
+    }
+  }
+
   async _handleClick() {
     const GEM_COST = 5;
 
@@ -212,6 +271,7 @@ export class AutoMergeButton extends Container {
       } catch (err) {
         console.error('Ошибка автосохранения гемов:', err);
       }
+      this.updateLabel();
       return;
     }
 
