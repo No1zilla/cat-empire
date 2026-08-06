@@ -175,17 +175,25 @@ export class HUD extends Container {
   showMenuOverlay() {}
   hideMenuOverlay() {}
 
+  _formatShortNumber(num) {
+    const val = Math.floor(num || 0);
+    if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'B';
+    if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
+    if (val >= 100000) return (val / 1000).toFixed(0) + 'K';
+    return val.toLocaleString('ru-RU');
+  }
+
   _repositionCoinContent() {
     if (!this._coinsText || !this._coinIcon) return;
     const cap1X = 6;
-    const cap1W = 124;
+    const cap1W = this._cap1W || 112;
     const capY = 10;
     const capH = 34;
 
     const iconW = 14;
     const gap = 5;
     const totalW = iconW + gap + this._coinsText.width;
-    const startX = cap1X + (cap1W - totalW) / 2;
+    const startX = cap1X + Math.max(4, (cap1W - totalW) / 2);
 
     this._coinIcon.position.set(startX + iconW / 2, capY + capH / 2);
     this._coinsText.position.set(startX + iconW + gap, capY + capH / 2);
@@ -193,15 +201,15 @@ export class HUD extends Container {
 
   _repositionGemContent() {
     if (!this._gemsText || !this._gemIcon) return;
-    const cap2W = this._cap2W || 75;
-    const cap2X = this._cap2X || 126;
+    const cap2W = this._cap2W || 60;
+    const cap2X = this._cap2X || 122;
     const capY = 10;
     const capH = 34;
 
     const iconW = 14;
     const gap = 4;
     const totalW = iconW + gap + this._gemsText.width;
-    const startX = cap2X + (cap2W - totalW) / 2;
+    const startX = cap2X + Math.max(4, (cap2W - totalW) / 2);
 
     this._gemIcon.position.set(startX + iconW / 2, capY + capH / 2);
     this._gemsText.position.set(startX + iconW + gap, capY + capH / 2);
@@ -209,7 +217,7 @@ export class HUD extends Container {
 
   update(coins, gems, incomePerSecond) {
     if (this._coinsText) {
-      this._coinsText.text = Math.floor(coins || 0).toLocaleString('ru-RU');
+      this._coinsText.text = this._formatShortNumber(coins);
       this._repositionCoinContent();
     }
     if (this._gemsText) {
@@ -217,7 +225,7 @@ export class HUD extends Container {
       this._repositionGemContent();
     }
     if (this._ipsText) {
-      this._ipsText.text = `+${Math.floor(incomePerSecond || 0).toLocaleString('ru-RU')}/сек`;
+      this._ipsText.text = `+${this._formatShortNumber(incomePerSecond)}/сек`;
     }
   }
 }
