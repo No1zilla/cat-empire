@@ -59,11 +59,26 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (X = 8px, W = 126px)
-    const cap1X = 8;
-    const cap1W = 126;
+    // Автоматический расчёт позиций капсул с равными промежутками
+    // Ширины 4-х элементов (фиксированные пропорции)
+    const cap1W = 126;   // 🪙 Монеты
+    const cap2W = 60;    // 💎 Гемы
+    const cap3W = 128;   // 📈 Доход
+    const menuBtnW = 50; // 🐾 Меню
+    const totalContentW = cap1W + cap2W + cap3W + menuBtnW; // = 364px
+    const totalGapSpace = hudWidth - totalContentW;          // = 46px
+    const gap = Math.floor(totalGapSpace / 5);               // = 9px (5 промежутков: по краям + между)
+    const extraPx = totalGapSpace - gap * 5;                 // = 1px остаток → добавим к первому отступу
+
+    const cap1X = gap + extraPx;
+    const cap2X = cap1X + cap1W + gap;
+    const cap3X = cap2X + cap2W + gap;
+    const menuBtnX = cap3X + cap3W + gap;
+
     this._cap1X = cap1X;
     this._cap1W = cap1W;
+
+    // 2. КАПСУЛА 1: Монеты
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
     this._coinIcon = UIUtils.createCoinIcon(10);
@@ -81,9 +96,7 @@ export class HUD extends Container {
     this.addChild(this._coinsText);
     this._repositionCoinContent();
 
-    // 3. КАПСУЛА 2: Гемы (X = 140px, W = 60px)
-    const cap2X = 140;
-    const cap2W = 60;
+    // 3. КАПСУЛА 2: Гемы
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
     this._gemIcon = UIUtils.createGemIcon(10);
@@ -104,9 +117,7 @@ export class HUD extends Container {
     this._cap2W = cap2W;
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (X = 206px, W = 128px)
-    const cap3X = 206;
-    const cap3W = 128;
+    // 4. КАПСУЛА 3: Доход в секунду
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
     const ipsStyle = new TextStyle({
@@ -121,9 +132,7 @@ export class HUD extends Container {
     this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: X = 340px, W = 62px -> заканч на 402px, отступ справа 8px!)
-    const menuBtnX = 340;
-    const menuBtnW = 62;
+    // 5. КНОПКА «🐾» Меню (auto-positioned)
     const menuBtnContainer = new Container();
     menuBtnContainer.position.set(menuBtnX, capY);
 
@@ -138,8 +147,8 @@ export class HUD extends Container {
     menuShine.fill({ color: 0xffffff, alpha: 0.15 });
     menuBtnContainer.addChild(menuShine);
 
-    const catPawIcon = UIUtils.createCatPawIcon(11);
-    catPawIcon.position.set(menuBtnW / 2, capH / 2);
+    const catPawIcon = UIUtils.createCatPawIcon(10);
+    catPawIcon.position.set(menuBtnW / 2, capH / 2 - 1);
     menuBtnContainer.addChild(catPawIcon);
 
     menuBtnContainer.eventMode = 'static';
@@ -187,8 +196,8 @@ export class HUD extends Container {
 
   _repositionCoinContent() {
     if (!this._coinsText || !this._coinIcon) return;
-    const cap1X = this._cap1X || 6;
-    const cap1W = this._cap1W || 130;
+    const cap1X = this._cap1X || 10;
+    const cap1W = this._cap1W || 126;
     const capY = 10;
     const capH = 34;
 
@@ -204,7 +213,7 @@ export class HUD extends Container {
   _repositionGemContent() {
     if (!this._gemsText || !this._gemIcon) return;
     const cap2W = this._cap2W || 60;
-    const cap2X = this._cap2X || 140;
+    const cap2X = this._cap2X || 145;
     const capY = 10;
     const capH = 34;
 
