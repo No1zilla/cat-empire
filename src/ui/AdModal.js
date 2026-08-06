@@ -97,7 +97,9 @@ export class AdModal extends Container {
           try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
         }
         this._close();
-        this.onRewardGranted();
+        if (typeof this.onRewardGranted === 'function') {
+          this.onRewardGranted();
+        }
       } else {
         // Запускаем видеоплеер рекламного ролика
         this._startVideoPlayer();
