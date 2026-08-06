@@ -213,14 +213,28 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы для начисления +5 💎 и авто-слияния!
+    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы!
+    // За просмотр даётся 5 💎, которые СРАЗУ СНИМАЮТСЯ за проведение авто-слияния!
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
       const adModal = new AdModal(this.app, this.economy, async () => {
+        // Игрок получил +5 💎 за рекламу -> списываем 5 💎 за оплату авто-слияния!
+        if (this.economy && this.economy.gems >= GEM_COST) {
+          try {
+            this.economy.spendGems(GEM_COST);
+          } catch (e) {}
+        }
         if (typeof this.onTriggerAutoMerge === 'function') {
           await this.onTriggerAutoMerge();
         }
+        try {
+          await saveProgress({
+            coins: this.economy ? this.economy.coins : undefined,
+            gems: this.economy ? this.economy.gems : undefined,
+            totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
+          });
+        } catch (err) {}
       }, 5);
       adModal.zIndex = 99999;
       stage.addChild(adModal);
