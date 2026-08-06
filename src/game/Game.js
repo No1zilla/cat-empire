@@ -19,7 +19,6 @@ import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { MainMenu } from '../ui/MainMenu.js';
 import { SettingsModal } from '../ui/SettingsModal.js';
-import { AnalyticsService } from '../services/AnalyticsService.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
@@ -242,7 +241,6 @@ export class Game {
     // 8. Движок Merge и Drag
     const onMerge = (newLevel, slotIndex) => {
       console.log(`✨ Merge! Новый котик уровня ${newLevel} в слоте ${slotIndex}`);
-      AnalyticsService.trackCatMerged(newLevel);
       if (this.economy) {
         this.economy.totalMerges++;
       }
@@ -250,7 +248,6 @@ export class Game {
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
-        AnalyticsService.trackCatUnlocked(newLevel);
         if (this.spawnSystem) this.spawnSystem._stopHold();
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
 

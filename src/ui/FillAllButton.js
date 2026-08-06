@@ -2,7 +2,6 @@ import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { AdModal } from './AdModal.js';
-import { AnalyticsService } from '../services/AnalyticsService.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -292,7 +291,6 @@ export class FillAllButton extends Container {
       if (stage) {
         stage.sortableChildren = true;
         const adModal = new AdModal(this.app, this.economy, async () => {
-          AnalyticsService.trackAdWatched('fill_all', 0);
           await this.onTriggerFillAll(freeSlotsCount, 0);
           this.updateLabel();
         }, 0);

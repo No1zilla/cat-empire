@@ -3,7 +3,6 @@ import { CONFIG } from '../config.js';
 import { showRewardedAd, saveProgress } from '../api/client.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { AnalyticsService } from '../services/AnalyticsService.js';
 
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
@@ -97,7 +96,6 @@ export class AdModal extends Container {
 
       if (adRes && adRes.success) {
         // Нативная реклама VK успешно просмотрена игроком!
-        AnalyticsService.trackAdWatched(this.rewardGems > 0 ? 'reward_gems' : 'automerge', this.rewardGems);
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
           try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
@@ -335,7 +333,6 @@ export class AdModal extends Container {
         clearInterval(this._interval);
         this._interval = null;
 
-        AnalyticsService.trackAdWatched(this.rewardGems > 0 ? 'reward_gems' : 'automerge', this.rewardGems);
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
           try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
