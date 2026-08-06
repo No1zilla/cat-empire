@@ -40,6 +40,7 @@
       padding-bottom: env(safe-area-inset-bottom, 0px);
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
+    }
     #hud-menu-btn-overlay {
       position: fixed;
       top: max(10px, env(safe-area-inset-top, 10px));
@@ -67,7 +68,7 @@
       opacity: 0.85;
     }
 
-    /* 🔥 Роскошный Экран Загрузки (Splash Screen) */
+    /* 🔥 Единый сочный Экран Загрузки в стиле MainMenu (TOKENS #0D0A1C) */
     #splash-screen {
       position: fixed;
       top: 0;
@@ -75,7 +76,7 @@
       width: 100vw;
       height: 100vh;
       z-index: 9999;
-      background: radial-gradient(ellipse at center, #2b1856 0%, #0d081d 100%);
+      background: #0d0a1c;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -85,60 +86,83 @@
       pointer-events: auto;
     }
 
-    /* Чистое отображение Иконки без золотой рамки и свечения */
+    /* Фоновое глянцевое фиолетовое свечение в центре (1-в-1 с MainMenu) */
+    #splash-screen::before {
+      content: '';
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: rgba(61, 35, 117, 0.35);
+      top: calc(50% - 40px);
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    /* Круглая карточка Маскота 1-в-1 как в MainMenu */
     .splash-icon-wrapper {
       position: relative;
+      width: 144px;
+      height: 144px;
+      border-radius: 50%;
+      background: #15102a;
+      border: 3px solid #271f4f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 2;
     }
     .splash-icon {
       width: 110px;
       height: 110px;
-      border-radius: 26px;
-      object-fit: cover;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      position: relative;
-      z-index: 2;
+      object-fit: contain;
     }
 
-    /* Заголовок с золотым градиентом */
+    /* Единый Заголовок 1-в-1 с MainMenu */
     .splash-title {
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      background: linear-gradient(180deg, #fff7ad 0%, #ffd700 50%, #ff8c00 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
-      margin-bottom: 6px;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #FFD15C !important;
+      -webkit-text-fill-color: #FFD15C !important;
+      text-shadow: 0 3px 10px rgba(0, 0, 0, 0.9);
+      margin-bottom: 4px;
+      z-index: 10;
     }
 
     .splash-subtitle {
       font-size: 13px;
-      color: #a8d8ff;
-      font-weight: 600;
-      opacity: 0.9;
-      margin-bottom: 32px;
+      color: #A855F7 !important;
+      -webkit-text-fill-color: #A855F7 !important;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 28px;
+      z-index: 10;
     }
 
-    /* Прогресс-бар */
+    /* Прогресс-бар в едином токены-стиле */
     .progress-bar-container {
       width: 240px;
       height: 14px;
-      background: rgba(255, 255, 255, 0.1);
+      background: #15102a;
       border-radius: 10px;
-      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border: 1.5px solid #271f4f;
       overflow: hidden;
       position: relative;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
       margin-bottom: 14px;
+      z-index: 2;
     }
     .progress-bar-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, #ff5e62 0%, #ffd700 100%);
+      background: linear-gradient(90deg, #ff6b6b 0%, #ffd15c 100%);
       border-radius: 8px;
       transition: width 0.3s ease;
-      box-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+      box-shadow: 0 0 12px rgba(255, 107, 107, 0.6);
       position: relative;
     }
     .progress-bar-fill::after {
@@ -151,15 +175,11 @@
 
     .splash-status {
       font-size: 12px;
-      color: #d1d5db;
-      font-weight: 600;
+      color: #6e6a8f;
+      font-weight: 700;
       letter-spacing: 0.5px;
       animation: fadeInOut 1.5s infinite alternate;
-    }
-
-    @keyframes pulseGlow {
-      0% { transform: scale(0.95); opacity: 0.6; }
-      100% { transform: scale(1.08); opacity: 1.0; }
+      z-index: 2;
     }
 
     @keyframes shimmer {
@@ -181,13 +201,13 @@
   </script>
 </head>
 <body>
-  <!-- 🔥 Роскошный Сплаш-Экран Загрузки -->
+  <!-- 🔥 Единый Сплаш-Экран Загрузки в стиле MainMenu -->
   <div id="splash-screen">
     <div class="splash-icon-wrapper">
-      <img class="splash-icon" src="./logo.jpg" alt="Империя Котиков">
+      <img class="splash-icon" src="./assets/cats/cat_12.png" alt="Империя Котиков">
     </div>
     <h1 class="splash-title">ИМПЕРИЯ КОТИКОВ</h1>
-    <p class="splash-subtitle">Королевский Merge-Кликер 👑</p>
+    <p class="splash-subtitle">IDLE MERGE KINGDOM</p>
     <div class="progress-bar-container">
       <div class="progress-bar-fill" id="splash-progress"></div>
     </div>
