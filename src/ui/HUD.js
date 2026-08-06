@@ -59,9 +59,9 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (Слева: W = 120px, X = 6px)
+    // 2. КАПСУЛА 1: Монеты (Слева: W = 112px, X = 6px)
     const cap1X = 6;
-    const cap1W = 120;
+    const cap1W = 112;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
     this._coinIcon = UIUtils.createCoinIcon(10);
@@ -69,7 +69,7 @@ export class HUD extends Container {
 
     const coinsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
@@ -79,9 +79,9 @@ export class HUD extends Container {
     this.addChild(this._coinsText);
     this._repositionCoinContent();
 
-    // 3. КАПСУЛА 2: Гемы (W = 68px, X = 130px)
-    const cap2X = 130;
-    const cap2W = 68;
+    // 3. КАПСУЛА 2: Гемы (W = 60px, X = 122px)
+    const cap2X = 122;
+    const cap2W = 60;
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
     this._gemIcon = UIUtils.createGemIcon(10);
@@ -89,7 +89,7 @@ export class HUD extends Container {
 
     const gemsStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: 'bold',
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
@@ -102,9 +102,9 @@ export class HUD extends Container {
     this._cap2W = cap2W;
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (W = 114px, X = 202px)
-    const cap3X = 202;
-    const cap3W = 114;
+    // 4. КАПСУЛА 3: Доход в секунду (W = 124px, X = 186px)
+    const cap3X = 186;
+    const cap3W = 124;
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
     const ipsStyle = new TextStyle({
@@ -119,9 +119,9 @@ export class HUD extends Container {
     this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: W = 48px, X = 320px — чистый PixiJS + HTML Оверлей)
-    const menuBtnX = 320;
-    const menuBtnW = 48;
+    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: W = 44px, X = 314px)
+    const menuBtnX = 314;
+    const menuBtnW = 44;
     const menuBtnContainer = new Container();
     menuBtnContainer.position.set(menuBtnX, capY);
 
@@ -170,29 +170,10 @@ export class HUD extends Container {
     menuBtnContainer.on('touchstart', handleMenuTrigger);
 
     this.addChild(menuBtnContainer);
-
-    // Связка с HTML DOM Оверлеем для 100% отклика на сенсорных экранах Android
-    this._bindHtmlOverlayMenu(handleMenuTrigger);
   }
 
-  _bindHtmlOverlayMenu(triggerFn) {
-    const htmlBtn = document.getElementById('hud-menu-btn-overlay');
-    if (!htmlBtn) return;
-
-    htmlBtn.style.display = 'flex';
-    htmlBtn.onclick = (e) => triggerFn(e);
-    htmlBtn.ontouchstart = (e) => triggerFn(e);
-  }
-
-  showMenuOverlay() {
-    const htmlBtn = document.getElementById('hud-menu-btn-overlay');
-    if (htmlBtn) htmlBtn.style.display = 'flex';
-  }
-
-  hideMenuOverlay() {
-    const htmlBtn = document.getElementById('hud-menu-btn-overlay');
-    if (htmlBtn) htmlBtn.style.display = 'none';
-  }
+  showMenuOverlay() {}
+  hideMenuOverlay() {}
 
   _repositionCoinContent() {
     if (!this._coinsText || !this._coinIcon) return;
