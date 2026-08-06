@@ -59,21 +59,20 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // Автоматический расчёт позиций капсул с равными промежутками
-    // Ширины 4-х элементов (фиксированные пропорции)
-    const cap1W = 126;   // 🪙 Монеты
-    const cap2W = 60;    // 💎 Гемы
-    const cap3W = 128;   // 📈 Доход
-    const menuBtnW = 50; // 🐾 Меню
-    const totalContentW = cap1W + cap2W + cap3W + menuBtnW; // = 364px
-    const totalGapSpace = hudWidth - totalContentW;          // = 46px
-    const gap = Math.floor(totalGapSpace / 5);               // = 9px (5 промежутков: по краям + между)
-    const extraPx = totalGapSpace - gap * 5;                 // = 1px остаток → добавим к первому отступу
+    // Симметричный расчёт позиций HUD точно по краям игрового поля (409px)
+    // Левый край поля = 0px, правый = 409px. 
+    // Отступы по краям делаем одинаковыми по 5px:
+    const cap1X = 5;
+    const cap1W = 128; // 🪙 Монеты (5..133)
 
-    const cap1X = gap + extraPx;
-    const cap2X = cap1X + cap1W + gap;
-    const cap3X = cap2X + cap2W + gap;
-    const menuBtnX = cap3X + cap3W + gap;
+    const cap2X = 139;
+    const cap2W = 60;  // 💎 Гемы (139..199)
+
+    const cap3X = 205;
+    const cap3W = 128; // 📈 Доход (205..333)
+
+    const menuBtnX = 339;
+    const menuBtnW = 65; // 🐾 Меню (339..404 -> ровно 5px до края 409px!)
 
     this._cap1X = cap1X;
     this._cap1W = cap1W;
