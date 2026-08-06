@@ -63,8 +63,12 @@ export class AdModal extends Container {
       align: 'center',
       lineHeight: 20
     });
+    const descText = this.rewardGems > 0
+      ? `Посмотри 5-секундный видеоролик,\nчтобы получить +${this.rewardGems} 💎 и мгновенно\nобъединить всех котиков на поле!`
+      : 'Посмотри 5-секундный видеоролик,\nчтобы бесплатно объединить\nвсех котиков на поле!';
+
     const desc = new Text({
-      text: 'Посмотри 5-секундный видеоролик,\nчтобы получить +5 💎 и мгновенно\nобъединить всех котиков на поле!',
+      text: descText,
       style: descStyle
     });
     desc.anchor.set(0.5, 0);
@@ -115,7 +119,8 @@ export class AdModal extends Container {
       fill: '#ffffff',
       align: 'center'
     });
-    const btnText = new Text({ text: '🎬 Смотреть Видео (+5 💎)', style: btnTextStyle });
+    const labelText = this.rewardGems > 0 ? `🎬 Смотреть Видео (+${this.rewardGems} 💎)` : '🎬 Смотреть Видео (Бесплатно)';
+    const btnText = new Text({ text: labelText, style: btnTextStyle });
     btnText.anchor.set(0.5, 0.5);
     btnText.position.set(W / 2, btnY + btnH / 2);
     btnText.eventMode = 'none';

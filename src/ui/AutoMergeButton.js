@@ -214,13 +214,15 @@ export class AutoMergeButton extends Container {
     }
 
     // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы!
-    // За просмотр РЕКЛАМЫ ПРОСТО НАЧИСЛЯЮТСЯ +5 💎 в баланс игрока!
+    // За просмотр рекламы выполняется АВТО-ОБЪЕДИНЕНИЕ (без начисления гемов в баланс)!
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
       const adModal = new AdModal(this.app, this.economy, async () => {
-        // Реклама просмотрена -> +5 💎 зачислены в баланс игрока!
-        this._showWarning('+5 💎 получено! 💎');
+        // Просмотр рекламы завершён -> выполняем авто-слияние котиков!
+        if (typeof this.onTriggerAutoMerge === 'function') {
+          await this.onTriggerAutoMerge();
+        }
         try {
           await saveProgress({
             coins: this.economy ? this.economy.coins : undefined,
@@ -228,7 +230,7 @@ export class AutoMergeButton extends Container {
             totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
           });
         } catch (err) {}
-      }, 5);
+      }, 0); // rewardGems = 0 !
       adModal.zIndex = 99999;
       stage.addChild(adModal);
     } else {
