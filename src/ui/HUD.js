@@ -22,7 +22,7 @@ export class HUD extends Container {
 
   _draw() {
     this.removeChildren();
-    const hudWidth = CONFIG.GAME_WIDTH || 375;
+    const hudWidth = CONFIG.GAME_WIDTH || 410;
     const hudHeight = 54;
 
     // 1. Главная плашка шапки (использование токена background)
@@ -59,9 +59,11 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (Слева: W = 112px, X = 6px)
+    // 2. КАПСУЛА 1: Монеты (X = 6px, W = 130px)
     const cap1X = 6;
-    const cap1W = 112;
+    const cap1W = 130;
+    this._cap1X = cap1X;
+    this._cap1W = cap1W;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
 
     this._coinIcon = UIUtils.createCoinIcon(10);
@@ -79,8 +81,8 @@ export class HUD extends Container {
     this.addChild(this._coinsText);
     this._repositionCoinContent();
 
-    // 3. КАПСУЛА 2: Гемы (W = 60px, X = 122px)
-    const cap2X = 122;
+    // 3. КАПСУЛА 2: Гемы (X = 140px, W = 60px)
+    const cap2X = 140;
     const cap2W = 60;
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
@@ -102,9 +104,9 @@ export class HUD extends Container {
     this._cap2W = cap2W;
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (W = 124px, X = 186px)
-    const cap3X = 186;
-    const cap3W = 124;
+    // 4. КАПСУЛА 3: Доход в секунду (X = 204px, W = 128px)
+    const cap3X = 204;
+    const cap3W = 128;
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
     const ipsStyle = new TextStyle({
@@ -119,9 +121,9 @@ export class HUD extends Container {
     this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: W = 44px, X = 314px)
-    const menuBtnX = 314;
-    const menuBtnW = 44;
+    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: X = 336px, W = 68px)
+    const menuBtnX = 336;
+    const menuBtnW = 68;
     const menuBtnContainer = new Container();
     menuBtnContainer.position.set(menuBtnX, capY);
 
@@ -142,7 +144,7 @@ export class HUD extends Container {
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';
-    menuBtnContainer.hitArea = new Rectangle(-10, -10, menuBtnW + 20, capH + 20);
+    menuBtnContainer.hitArea = new Rectangle(-5, -5, menuBtnW + 10, capH + 10);
 
     let lastMenuTapTime = 0;
     const handleMenuTrigger = (e) => {
@@ -185,8 +187,8 @@ export class HUD extends Container {
 
   _repositionCoinContent() {
     if (!this._coinsText || !this._coinIcon) return;
-    const cap1X = 6;
-    const cap1W = this._cap1W || 112;
+    const cap1X = this._cap1X || 6;
+    const cap1W = this._cap1W || 130;
     const capY = 10;
     const capH = 34;
 
@@ -202,7 +204,7 @@ export class HUD extends Container {
   _repositionGemContent() {
     if (!this._gemsText || !this._gemIcon) return;
     const cap2W = this._cap2W || 60;
-    const cap2X = this._cap2X || 122;
+    const cap2X = this._cap2X || 140;
     const capY = 10;
     const capH = 34;
 
