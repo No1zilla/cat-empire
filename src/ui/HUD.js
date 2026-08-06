@@ -59,9 +59,9 @@ export class HUD extends Container {
       return cContainer;
     };
 
-    // 2. КАПСУЛА 1: Монеты (X = 6px, W = 130px)
-    const cap1X = 6;
-    const cap1W = 130;
+    // 2. КАПСУЛА 1: Монеты (X = 8px, W = 126px)
+    const cap1X = 8;
+    const cap1W = 126;
     this._cap1X = cap1X;
     this._cap1W = cap1W;
     this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
@@ -104,8 +104,8 @@ export class HUD extends Container {
     this._cap2W = cap2W;
     this._repositionGemContent();
 
-    // 4. КАПСУЛА 3: Доход в секунду (X = 204px, W = 128px)
-    const cap3X = 204;
+    // 4. КАПСУЛА 3: Доход в секунду (X = 206px, W = 128px)
+    const cap3X = 206;
     const cap3W = 128;
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
 
@@ -121,9 +121,9 @@ export class HUD extends Container {
     this._ipsText.position.set(cap3X + cap3W / 2, capY + capH / 2);
     this.addChild(this._ipsText);
 
-    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: X = 336px, W = 68px)
-    const menuBtnX = 336;
-    const menuBtnW = 68;
+    // 5. КНОПКА «🐾» (Вернуться в Главное Меню: X = 340px, W = 62px -> заканч на 402px, отступ справа 8px!)
+    const menuBtnX = 340;
+    const menuBtnW = 62;
     const menuBtnContainer = new Container();
     menuBtnContainer.position.set(menuBtnX, capY);
 
