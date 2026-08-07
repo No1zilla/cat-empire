@@ -112,18 +112,27 @@ export async function fetchLeaderboard() {
 export async function showRewardedAd() {
   try {
     if (window.vkBridge && typeof window.vkBridge.send === 'function') {
-      // 1. Пробуем Rewarded Видео
+      // 1. Официальный формат VK Rewarded рекламы ('reward')
       try {
-        const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
+        const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
         console.log('VK Rewarded result:', res);
         if (res && (res.result === true || res.success === true)) {
           return { success: true };
         }
       } catch (e1) {
-        console.warn('VK Rewarded format not supported, trying Interstitial:', e1);
+        console.warn('VK Rewarded (reward) format error:', e1);
       }
 
-      // 2. Запасной нативный формат Interstitial (работает в Десктоп VK Web)
+      // 2. Альтернативный формат ('rewarded') для совместимости
+      try {
+        const resOld = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
+        console.log('VK Rewarded (rewarded) result:', resOld);
+        if (resOld && (resOld.result === true || resOld.success === true)) {
+          return { success: true };
+        }
+      } catch (eOld) {}
+
+      // 3. Запасной нативный формат Interstitial
       try {
         const res2 = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
         console.log('VK Interstitial result:', res2);
