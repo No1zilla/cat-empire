@@ -112,39 +112,44 @@ export async function fetchLeaderboard() {
 export async function showRewardedAd() {
   try {
     if (window.vkBridge && typeof window.vkBridge.send === 'function') {
-      // 1. Официальный формат VK Rewarded рекламы ('reward')
+      // 1. Предварительный чек доступности нативной вознаграждаемой рекламы VK ('reward')
+      try {
+        const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' });
+        console.log('🔍 VKWebAppCheckNativeAds (reward) check:', checkRes);
+      } catch (checkErr) {
+        console.warn('⚠️ VKWebAppCheckNativeAds (reward) check failed:', checkErr);
+      }
+
+      // 2. Вызов нативной вознаграждаемой рекламы VK ('reward')
       try {
         const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
-        console.log('VK Rewarded result:', res);
+        console.log('🎬 VK Rewarded result:', res);
         if (res && (res.result === true || res.success === true)) {
           return { success: true };
         }
       } catch (e1) {
-        console.warn('VK Rewarded (reward) format error:', e1);
+        console.warn('⚠️ VK Rewarded (reward) format error:', e1);
       }
 
-      // 2. Альтернативный формат ('rewarded') для совместимости
+      // 3. Предварительный чек доступности межстраничной рекламы VK ('interstitial')
       try {
-        const resOld = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'rewarded' });
-        console.log('VK Rewarded (rewarded) result:', resOld);
-        if (resOld && (resOld.result === true || resOld.success === true)) {
-          return { success: true };
-        }
-      } catch (eOld) {}
+        const checkInt = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' });
+        console.log('🔍 VKWebAppCheckNativeAds (interstitial) check:', checkInt);
+      } catch (e) {}
 
-      // 3. Запасной нативный формат Interstitial
+      // 4. Вызов межстраничной рекламы VK ('interstitial')
       try {
         const res2 = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' });
-        console.log('VK Interstitial result:', res2);
+        console.log('🎬 VK Interstitial result:', res2);
         if (res2 && (res2.result === true || res2.success === true)) {
           return { success: true };
         }
       } catch (e2) {
-        console.warn('VK Interstitial error:', e2);
+        console.warn('⚠️ VK Interstitial error:', e2);
       }
     }
   } catch (err) {
-    console.error('VK Rewarded Ads error:', err);
+    console.error('❌ VK Rewarded Ads error:', err);
     return { success: false, error: err };
   }
   return { success: false, error: 'Ads not shown' };

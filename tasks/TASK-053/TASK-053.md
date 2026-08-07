@@ -1,8 +1,8 @@
-# 📌 TASK-053: БАГ — Интеграция нативной рекламы VK (VKWebAppShowNativeAds) для кнопки «Соединить»
+# 📌 TASK-053: Интеграция нативной рекламы VK (VKWebAppShowNativeAds) для кнопки «Соединить»
 
-> **Статус:** 🟡 В РАБОТЕ
+> **Статус:** 🟢 ЗАКРЫТА / ВЫПОЛНЕНА
 > **Приоритет:** P0 — монетизация и функционал рекламных бонусов VK Mini Apps
-> **Затронутые файлы:** `src/api/client.js`, `src/ui/AdModal.js`, `src/ui/AutoMergeButton.js`
+> **Затронутые файлы:** `src/api/client.js`, `src/vk/VKBridge.js`, `src/ui/AdModal.js`, `src/ui/AutoMergeButton.js`
 
 ---
 

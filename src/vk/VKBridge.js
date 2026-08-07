@@ -28,6 +28,18 @@ export class VKService {
   // Инициализация VK Bridge
   async init() {
     try {
+      if (this.bridge && typeof this.bridge.subscribe === 'function') {
+        this.bridge.subscribe((e) => {
+          if (!e || !e.detail) return;
+          const { type, data } = e.detail;
+          if (type === 'VKWebAppShowNativeAdsResult') {
+            console.log('🎬 VK Native Ad Event Result:', data);
+          } else if (type === 'VKWebAppShowNativeAdsFailed') {
+            console.warn('⚠️ VK Native Ad Event Failed:', data);
+          }
+        });
+      }
+
       const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
