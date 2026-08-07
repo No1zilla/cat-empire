@@ -174,10 +174,9 @@ export class HUD extends Container {
     };
 
     menuBtnContainer.on('pointertap', handleMenuTrigger);
-    menuBtnContainer.on('pointerdown', handleMenuTrigger);
-    menuBtnContainer.on('tap', handleMenuTrigger);
-    menuBtnContainer.on('click', handleMenuTrigger);
-    menuBtnContainer.on('touchstart', handleMenuTrigger);
+    menuBtnContainer.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
 
     this.addChild(menuBtnContainer);
   }

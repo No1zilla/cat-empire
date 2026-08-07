@@ -23,7 +23,14 @@ export class SettingsModal extends Container {
     const overlay = new Graphics();
     overlay.rect(0, 0, width, height);
     overlay.fill({ color: 0x07040d, alpha: 0.88 });
-    overlay.interactive = true;
+    overlay.eventMode = 'static';
+    const stopEvt = (e) => { if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); };
+    overlay.on('pointerdown', stopEvt);
+    overlay.on('pointerup', stopEvt);
+    overlay.on('pointertap', stopEvt);
+    overlay.on('tap', stopEvt);
+    overlay.on('click', stopEvt);
+    overlay.on('touchstart', stopEvt);
     this.addChild(overlay);
 
     // 2. Модальная плашка Glassmorphism

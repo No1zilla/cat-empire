@@ -195,10 +195,9 @@ export class FillAllButton extends Container {
     };
 
     this.on('pointertap', triggerFillAllClick);
-    this.on('pointerdown', triggerFillAllClick);
-    this.on('tap', triggerFillAllClick);
-    this.on('click', triggerFillAllClick);
-    this.on('touchstart', triggerFillAllClick);
+    this.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
 
     const onPointerRelease = () => {
       this.alpha = 1.0;

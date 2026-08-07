@@ -47,9 +47,13 @@ export class OfflineModal extends Container {
     overlay.rect(0, 0, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT);
     overlay.fill({ color: 0x07040d, alpha: 0.88 });
     overlay.eventMode = 'static';
-    overlay.on('pointerdown', (e) => e.stopPropagation());
-    overlay.on('pointerup', (e) => e.stopPropagation());
-    overlay.on('pointertap', (e) => e.stopPropagation());
+    const stopEvt = (e) => { if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); };
+    overlay.on('pointerdown', stopEvt);
+    overlay.on('pointerup', stopEvt);
+    overlay.on('pointertap', stopEvt);
+    overlay.on('tap', stopEvt);
+    overlay.on('click', stopEvt);
+    overlay.on('touchstart', stopEvt);
     this.addChild(overlay);
 
     // 2. Карточка модального окна по центру

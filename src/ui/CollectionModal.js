@@ -55,6 +55,13 @@ export class CollectionModal extends Container {
     overlay.rect(0, 0, W, H);
     overlay.fill({ color: 0x07040d, alpha: 0.88 });
     overlay.eventMode = 'static';
+    const stopEvt = (e) => { if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); };
+    overlay.on('pointerdown', stopEvt);
+    overlay.on('pointerup', stopEvt);
+    overlay.on('pointertap', stopEvt);
+    overlay.on('tap', stopEvt);
+    overlay.on('click', stopEvt);
+    overlay.on('touchstart', stopEvt);
     this.addChild(overlay);
 
     // 2. Карточка Котопедии

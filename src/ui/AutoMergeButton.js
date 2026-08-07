@@ -128,10 +128,9 @@ export class AutoMergeButton extends Container {
     };
 
     this.on('pointertap', triggerAutoMergeClick);
-    this.on('pointerdown', triggerAutoMergeClick);
-    this.on('tap', triggerAutoMergeClick);
-    this.on('click', triggerAutoMergeClick);
-    this.on('touchstart', triggerAutoMergeClick);
+    this.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
 
     const onPointerRelease = () => {
       this.alpha = 1.0;

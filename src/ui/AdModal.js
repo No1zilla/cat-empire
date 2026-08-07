@@ -18,128 +18,38 @@ export class AdModal extends Container {
     this._videoTicker = null;
 
     this.eventMode = 'static';
+    
+    // Блокирующий экран-оверлей при инициализации
+    this._drawOverlayShield();
     this._startVideoPlayer();
   }
 
-  // 1. Экран запроса подтверждения просмотра
-  _drawConfirmState() {
-    this.removeChildren();
-
-    const W = CONFIG.GAME_WIDTH;
-    const H = CONFIG.GAME_HEIGHT;
+  // Защитный экранирующий оверлей — предотвращает «проклик» в игровое поле
+  _drawOverlayShield() {
+    const W = CONFIG.GAME_WIDTH || 375;
+    const H = CONFIG.GAME_HEIGHT || 667;
 
     const overlay = new Graphics();
     overlay.rect(0, 0, W, H);
-    overlay.fill({ color: 0x000000, alpha: 0.85 });
+    overlay.fill({ color: 0x07040d, alpha: 0.92 });
+    overlay.eventMode = 'static';
+
+    const stopEvt = (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    };
+
+    overlay.on('pointerdown', stopEvt);
+    overlay.on('pointerup', stopEvt);
+    overlay.on('pointertap', stopEvt);
+    overlay.on('tap', stopEvt);
+    overlay.on('click', stopEvt);
+    overlay.on('touchstart', stopEvt);
+
     this.addChild(overlay);
-
-    const cardW = 330;
-    const cardH = 230;
-    const cardX = (W - cardW) / 2;
-    const cardY = (H - cardH) / 2;
-
-    const card = new Graphics();
-    card.roundRect(cardX, cardY, cardW, cardH, 20);
-    card.fill(0x15102A);  // TOKENS.panelBg — единый фон
-    card.stroke({ color: 0xffd700, width: 2.0 });
-    this.addChild(card);
-
-    const titleStyle = new TextStyle({
-      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 18,
-      fontWeight: 'bold',
-      fill: '#ffd700',
-      align: 'center'
-    });
-    const title = new Text({ text: '🎬 Просмотр Рекламы', style: titleStyle });
-    title.anchor.set(0.5, 0);
-    title.position.set(W / 2, cardY + 20);
-    this.addChild(title);
-
-    const descStyle = new TextStyle({
-      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 13,
-      fill: '#ffffff',
-      align: 'center',
-      lineHeight: 20
-    });
-    const descText = this.rewardGems > 0
-      ? `Посмотри 5-секундный видеоролик,\nчтобы получить +${this.rewardGems} 💎 и мгновенно\nобъединить всех котиков на поле!`
-      : 'Посмотри 5-секундный видеоролик,\nчтобы бесплатно объединить\nвсех котиков на поле!';
-
-    const desc = new Text({
-      text: descText,
-      style: descStyle
-    });
-    desc.anchor.set(0.5, 0);
-    desc.position.set(W / 2, cardY + 62);
-    this.addChild(desc);
-
-    const btnW = 230;
-    const btnH = 46;
-    const btnX = (W - btnW) / 2;
-    const btnY = cardY + 150;
-
-    const watchBtn = new Graphics();
-    watchBtn.roundRect(btnX, btnY, btnW, btnH, 14);
-    watchBtn.fill(0x2ecc71);
-    watchBtn.stroke({ color: '#ffffff', alpha: 0.5, width: 1.5 });
-    watchBtn.eventMode = 'static';
-    watchBtn.cursor = 'pointer';
-
-    watchBtn.on('pointerdown', async (e) => {
-      e.stopPropagation();
-      watchBtn.scale.set(0.95);
-
-      // 1. Вызываем настоящую полноэкранную нативную рекламу VK
-      const adRes = await showRewardedAd();
-
-      if (adRes && adRes.success) {
-        // Нативная реклама VK успешно просмотрена игроком!
-        if (this.economy && this.rewardGems > 0) {
-          this.economy.addGems(this.rewardGems);
-          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
-        }
-        this._close();
-        if (typeof this.onRewardGranted === 'function') {
-          this.onRewardGranted();
-        }
-      } else {
-        // Запускаем видеоплеер рекламного ролика
-        this._startVideoPlayer();
-      }
-    });
-
-    this.addChild(watchBtn);
-
-    const btnTextStyle = new TextStyle({
-      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 14,
-      fontWeight: 'bold',
-      fill: '#ffffff',
-      align: 'center'
-    });
-    const labelText = this.rewardGems > 0 ? `🎬 Смотреть Видео (+${this.rewardGems} 💎)` : '🎬 Смотреть Видео (Бесплатно)';
-    const btnText = new Text({ text: labelText, style: btnTextStyle });
-    btnText.anchor.set(0.5, 0.5);
-    btnText.position.set(W / 2, btnY + btnH / 2);
-    btnText.eventMode = 'none';
-    this.addChild(btnText);
-
-    const closeBtnStyle = new TextStyle({ fontSize: 18, fill: '#aaaaaa' });
-    const closeBtn = new Text({ text: '✕', style: closeBtnStyle });
-    closeBtn.anchor.set(0.5, 0.5);
-    closeBtn.position.set(cardX + cardW - 20, cardY + 20);
-    closeBtn.eventMode = 'static';
-    closeBtn.cursor = 'pointer';
-    closeBtn.on('pointerdown', (e) => {
-      e.stopPropagation();
-      this._close();
-    });
-    this.addChild(closeBtn);
   }
 
   async _startVideoPlayer() {
+    // 1. Попытка запустить нативную VK рекламу
     const realAdRes = await showRewardedAd().catch(() => null);
     if (realAdRes && realAdRes.success) {
       if (this.economy && this.rewardGems > 0) {
@@ -153,15 +63,12 @@ export class AdModal extends Container {
       return;
     }
 
+    // 2. Если нативная реклама недоступна (например, в Android APK или веб-клиенте) — включаем анимированный симулятор плеера
     this.removeChildren();
+    this._drawOverlayShield();
 
-    const W = CONFIG.GAME_WIDTH;
-    const H = CONFIG.GAME_HEIGHT;
-
-    const bg = new Graphics();
-    bg.rect(0, 0, W, H);
-    bg.fill(0x05030a);
-    this.addChild(bg);
+    const W = CONFIG.GAME_WIDTH || 375;
+    const H = CONFIG.GAME_HEIGHT || 667;
 
     // Рамка экрана видеоплеера
     const screenW = 340;
@@ -175,7 +82,23 @@ export class AdModal extends Container {
     screenBox.stroke({ color: 0xffd700, width: 2.5 });
     this.addChild(screenBox);
 
-    // 1. Динамический анимированный сцен-контейнер рекламного видеоролика
+    // Кнопка Закрыть ✕ в углу экрана видеоплеера
+    const closeBtnStyle = new TextStyle({ fontSize: 20, fill: '#aaaaaa' });
+    const closeBtn = new Text({ text: '✕', style: closeBtnStyle });
+    closeBtn.anchor.set(0.5, 0.5);
+    closeBtn.position.set(screenX + screenW - 16, screenY + 16);
+    closeBtn.eventMode = 'static';
+    closeBtn.cursor = 'pointer';
+    closeBtn.on('pointertap', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      this._close();
+    });
+    closeBtn.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
+    this.addChild(closeBtn);
+
+    // Динамический сцен-контейнер рекламного видеоролика
     const videoScene = new Container();
     
     // Внутренняя маска видеоэкрана
@@ -247,21 +170,18 @@ export class AdModal extends Container {
     let frame = 0;
     const animVideo = () => {
       frame++;
-      // Неоновый фон
       adBg.clear();
       adBg.rect(screenX, screenY, screenW, screenH);
       const color1 = 0x110b29;
       const color2 = 0x241147;
       adBg.fill(frame % 30 < 15 ? color1 : color2);
 
-      // Анимация котика (прыжки и покачивание в видеоклипе)
       if (catSprite) {
         catSprite.y = screenY + 110 + Math.sin(frame * 0.15) * 12;
         catSprite.rotation = Math.sin(frame * 0.1) * 0.15;
         catSprite.scale.set(1.0 + Math.sin(frame * 0.2) * 0.08);
       }
 
-      // Падение сверкающих гемов
       gems.forEach((gem) => {
         gem.y += gem.speedY;
         if (gem.y > screenY + screenH - 20) {
@@ -271,7 +191,7 @@ export class AdModal extends Container {
       });
     };
 
-    // 2. Нижняя плашка отсчета
+    // Нижняя плашка отсчета
     let secondsLeft = 5;
     const timerStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
@@ -280,7 +200,6 @@ export class AdModal extends Container {
       fill: '#ffd700',
       align: 'center'
     });
-    // Текст таймера зависит от типа награды
     const timerLabel = this.rewardGems > 0 ? 'Вознаграждение через:' : 'Авто-соединение через:';
     const timerText = new Text({ text: `${timerLabel} ${secondsLeft} сек`, style: timerStyle });
     timerText.anchor.set(0.5, 0);
@@ -321,7 +240,6 @@ export class AdModal extends Container {
       const progress = Math.min(1.0, elapsed / totalDuration);
       secondsLeft = Math.max(0, Math.ceil(totalDuration - elapsed));
 
-      // Текст таймера зависит от типа награды
       if (this.rewardGems > 0) {
         timerText.text = secondsLeft > 0 ? `Вознаграждение через: ${secondsLeft} сек` : 'Начисляем награду... 🎉';
       } else {
@@ -357,3 +275,5 @@ export class AdModal extends Container {
     this.destroy();
   }
 }
+
+export default AdModal;

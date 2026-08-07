@@ -260,10 +260,29 @@ export const UIUtils = {
 
     container.eventMode = 'static';
     container.cursor = 'pointer';
-    container.on('pointerdown', onClick);
-    container.on('pointertap', onClick);
-    container.on('tap', onClick);
-    container.on('click', onClick);
+
+    let lastClickTime = 0;
+    const handleTap = (e) => {
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      }
+      const now = Date.now();
+      if (now - lastClickTime < 350) return;
+      lastClickTime = now;
+
+      // Визуальный отклик нажатия
+      container.scale.set(0.95);
+      setTimeout(() => {
+        if (!container.destroyed) container.scale.set(1.0);
+      }, 100);
+
+      onClick(e);
+    };
+
+    container.on('pointertap', handleTap);
+    container.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
 
     return container;
   }
