@@ -114,14 +114,14 @@ export async function showRewardedAd() {
     return { success: false, reason: 'NO_VK_BRIDGE' };
   }
 
-  const callWithTimeout = (promise, ms = 2500) => {
+  const callWithTimeout = (promise, ms = 1500) => {
     const timeout = new Promise((resolve) => setTimeout(() => resolve({ result: false, timeout: true }), ms));
     return Promise.race([promise, timeout]);
   };
 
   // 1. Попытка через VKWebAppCheckNativeAds + VKWebAppShowNativeAds ('reward')
   try {
-    const checkRewarded = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' })).catch(() => null);
+    const checkRewarded = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }), 1500).catch(() => null);
     console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRewarded);
 
     if (checkRewarded && checkRewarded.result === true) {
@@ -137,7 +137,7 @@ export async function showRewardedAd() {
 
   // 2. Попытка через Interstitial ('interstitial')
   try {
-    const checkInt = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' })).catch(() => null);
+    const checkInt = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }), 1500).catch(() => null);
     console.log('🔍 VKWebAppCheckNativeAds (interstitial):', checkInt);
 
     if (checkInt && checkInt.result === true) {
@@ -151,9 +151,9 @@ export async function showRewardedAd() {
     console.warn('⚠️ VK Interstitial error:', e);
   }
 
-  // 3. Прямой вызов VKWebAppShowNativeAds с тайм-аутом 3с
+  // 3. Прямой вызов VKWebAppShowNativeAds с тайм-аутом 1.5с
   try {
-    const directRes = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 3000).catch(() => null);
+    const directRes = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 1500).catch(() => null);
     console.log('🎬 Direct VKWebAppShowNativeAds result:', directRes);
     if (directRes && (directRes.result === true || directRes.success === true)) {
       return { success: true };
