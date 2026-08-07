@@ -111,7 +111,7 @@ export class Economy {
   // Списание гемов
   spendGems(amount = 0) {
     if (this.gems < amount) {
-      throw new Error('Недостаточно гемов');
+      throw new Error('Недостаточно рубинов');
     }
     this.gems -= Number(amount);
     this._notify();

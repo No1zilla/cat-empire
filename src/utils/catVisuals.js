@@ -14,7 +14,7 @@ const CAT_DATA_MAP = {
   11: { name: 'Котик-дракон',       emoji: '🐉',   color: '#922b21' },
   12: { name: 'Космический котик',  emoji: '🚀',   color: '#1a5276' },
   13: { name: 'Котик-феникс',       emoji: '🦅',   color: '#b7950b' },
-  14: { name: 'Котик-легенда',      emoji: '💎',   color: '#148f77' },
+  14: { name: 'Котик-легенда',      emoji: '🔻',   color: '#148f77' },
   15: { name: 'Кото-Бог',           emoji: '🏆',   color: '#1a1a1a' },
 };
 

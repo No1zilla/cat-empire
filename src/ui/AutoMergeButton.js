@@ -274,9 +274,9 @@ export class AutoMergeButton extends Container {
     if (this.economy && this.economy.gems >= GEM_COST) {
       try {
         this.economy.spendGems(GEM_COST);
-        this._showWarning('-5 💎 списано! ⚡');
+        this._showWarning('-5 рубинов списано! ⚡');
       } catch (e) {
-        this._showWarning('Мало 💎 гемов!');
+        this._showWarning('Мало рубинов!');
         return;
       }
 
