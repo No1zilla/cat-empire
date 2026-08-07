@@ -310,9 +310,9 @@ export class AutoMergeButton extends Container {
     }
 
     // 3. Если VK Ads не выдала ролик -> показываем открытый информативный модальный диалог с подсказкой и тестовым начислением!
-    const targetParent = (window.game && window.game.gameContainer) ? window.game.gameContainer : (this.app ? this.app.stage : this.parent);
-    if (targetParent) {
-      targetParent.sortableChildren = true;
+    const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+    if (appStage) {
+      appStage.sortableChildren = true;
       const modal = new VKAdNoticeModal(this.app, () => {
         if (this.economy) {
           this.economy.addGems(5);
@@ -321,8 +321,8 @@ export class AutoMergeButton extends Container {
         this.updateLabel();
         this._showWarning('+5 💎 (Тест) 🎉');
       });
-      modal.zIndex = 999999;
-      targetParent.addChild(modal);
+      modal.zIndex = 9999999;
+      appStage.addChild(modal);
     }
   }
 
