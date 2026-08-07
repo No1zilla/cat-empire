@@ -1,6 +1,7 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { saveProgress, showRewardedAd } from '../api/client.js';
+import { AdModal } from './AdModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
 /**
@@ -294,24 +295,16 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Вызов 100% НАСТОЯЩЕЙ нативной рекламы VK (VKWebAppShowNativeAds)
-    const adRes = await showRewardedAd();
-    if (adRes && adRes.success) {
-      if (this.economy) {
-        this.economy.addGems(5);
-        try {
-          await saveProgress({ gems: this.economy.gems });
-        } catch (err) {}
-      }
-      this.updateLabel();
-      const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-      UIUtils.showToast(appStage, '+5 💎 получено! 🎉');
-      return;
-    }
-
-    // 3. Если реклама VK временно не выдалась -> показываем аккуратный нейтральный тост вверху экрана
+    // 2. Запуск рекламного плеера (Сначала нативная реклама VK, если недоступна — живой анимированный котик LIVE AD)
     const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-    UIUtils.showToast(appStage, '⚠️ В VK нет доступной рекламы. Попробуйте чуть позже!');
+    if (appStage) {
+      appStage.sortableChildren = true;
+      const modal = new AdModal(this.app, this.economy, () => {
+        this.updateLabel();
+      }, 5);
+      modal.zIndex = 9999999;
+      appStage.addChild(modal);
+    }
   }
 
   destroy(options) {
