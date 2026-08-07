@@ -232,9 +232,7 @@ export class AutoMergeButton extends Container {
       this._subContainer.position.set(btnWidth / 2, 33);
     } else {
       if (this._btnText) {
-        this._btnText.text = '🎬 +5 💎';
-        this._btnText.style.fontSize = 15;
-        this._btnText.position.set(btnWidth / 2, 14);
+        this._btnText.text = '';
       }
       if (this._btnBg) {
         this._btnBg.fill(0x2ecc71);
@@ -243,6 +241,29 @@ export class AutoMergeButton extends Container {
       if (this._shadowBg) this._shadowBg.fill(0x1e8449);
 
       this._subContainer.removeChildren();
+
+      const btnStyle = new TextStyle({
+        fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+        fontSize: 15,
+        fontWeight: 'bold',
+        fill: '#ffffff',
+        dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
+      });
+
+      const titleObj = new Text({ text: '🎬 +5 ', style: btnStyle });
+      titleObj.anchor.set(0, 0.5);
+      titleObj.position.set(0, 0);
+
+      const gemSize = 10;
+      const gemIcon = UIUtils.createGemIcon(gemSize);
+      gemIcon.position.set(titleObj.width + gemSize, 0);
+
+      this._subContainer.addChild(titleObj);
+      this._subContainer.addChild(gemIcon);
+
+      const totalWidth = titleObj.width + (gemSize * 2);
+      this._subContainer.pivot.set(totalWidth / 2, 0);
+      this._subContainer.position.set(btnWidth / 2, 25);
     }
   }
 
