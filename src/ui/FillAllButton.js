@@ -86,21 +86,18 @@ export class FillAllButton extends Container {
       this._subContainer.pivot.set(0, 0);
       this._subContainer.position.set(btnWidth / 2, 33);
     } else if (count === 0) {
-      if (this._btnText) this._btnText.text = '🎬 Заполнить';
+      if (this._btnText) {
+        this._btnText.text = '🎬 БЕСПЛАТНО';
+        this._btnText.style.fontSize = 13;
+        this._btnText.position.set(btnWidth / 2, 14);
+      }
       if (this._btnBg) {
         this._btnBg.fill(0x2ecc71);
         this._btnBg.stroke({ color: '#ffffff', alpha: 0.8, width: 2 });
       }
       if (this._shadowBg) this._shadowBg.fill(0x1e8449);
 
-      const textStyle = new TextStyle({ ...subStyle, fill: '#ffffff', fontSize: 12 });
-      const textObj = new Text({ text: 'За рекламу', style: textStyle });
-      textObj.anchor.set(0.5, 0.5);
-      textObj.position.set(0, 0);
-
-      this._subContainer.addChild(textObj);
-      this._subContainer.pivot.set(0, 0);
-      this._subContainer.position.set(btnWidth / 2, 33);
+      this._subContainer.removeChildren();
     } else {
       const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
       const text1Obj = new Text({ text: `${count} шт (${formattedCost} `, style: subStyle });

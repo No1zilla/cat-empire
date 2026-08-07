@@ -204,7 +204,11 @@ export class AutoMergeButton extends Container {
     });
 
     if (hasEnoughGems) {
-      if (this._btnText) this._btnText.text = '⚡ Соединить';
+      if (this._btnText) {
+        this._btnText.text = '⚡ Соединить';
+        this._btnText.style.fontSize = 13;
+        this._btnText.position.set(btnWidth / 2, 6);
+      }
       if (this._btnBg) {
         this._btnBg.fill(0x8e44ad);
         this._btnBg.stroke({ color: '#ffffff', alpha: 0.6, width: 2 });
@@ -227,27 +231,25 @@ export class AutoMergeButton extends Container {
       this._subContainer.pivot.set(totalSubWidth / 2, 0);
       this._subContainer.position.set(btnWidth / 2, 33);
     } else {
-      if (this._btnText) this._btnText.text = '🎬 Соединить';
+      if (this._btnText) {
+        this._btnText.text = '🎬 +5 💎';
+        this._btnText.style.fontSize = 15;
+        this._btnText.position.set(btnWidth / 2, 14);
+      }
       if (this._btnBg) {
         this._btnBg.fill(0x2ecc71);
         this._btnBg.stroke({ color: '#ffffff', alpha: 0.8, width: 2 });
       }
       if (this._shadowBg) this._shadowBg.fill(0x1e8449);
 
-      const textObj = new Text({ text: 'За рекламу', style: subStyle });
-      textObj.anchor.set(0.5, 0.5);
-      textObj.position.set(0, 0);
-
-      this._subContainer.addChild(textObj);
-      this._subContainer.pivot.set(0, 0);
-      this._subContainer.position.set(btnWidth / 2, 33);
+      this._subContainer.removeChildren();
     }
   }
 
   async _handleClick() {
     const GEM_COST = 5;
 
-    // 1. Если у игрока ХВАТАЕТ гемов (gems >= 5) -> списываем 5 гемов и соединяем БЕЗ ВИДЕО!
+    // 1. Если у игрока ХВАТАЕТ гемов (gems >= 5) -> списываем 5 гемов и соединяем!
     if (this.economy && this.economy.gems >= GEM_COST) {
       try {
         this.economy.spendGems(GEM_COST);
@@ -272,24 +274,15 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> открываем просмотр рекламы!
-    // За просмотр рекламы выполняется АВТО-ОБЪЕДИНЕНИЕ (без начисления гемов в баланс)!
+    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> за просмотр рекламы начисляется +5 💎 на счёт!
+    // Игрок сам решает, когда их потратить на авто-слияние.
     const stage = this.app ? this.app.stage : (this.parent || this.stage);
     if (stage) {
       stage.sortableChildren = true;
-      const adModal = new AdModal(this.app, this.economy, async () => {
-        // Просмотр рекламы завершён -> выполняем авто-слияние котиков!
-        if (typeof this.onTriggerAutoMerge === 'function') {
-          await this.onTriggerAutoMerge();
-        }
-        try {
-          await saveProgress({
-            coins: this.economy ? this.economy.coins : undefined,
-            gems: this.economy ? this.economy.gems : undefined,
-            totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
-          });
-        } catch (err) {}
-      }, 0); // rewardGems = 0 !
+      const adModal = new AdModal(this.app, this.economy, () => {
+        this.updateLabel();
+        this._showWarning('+5 💎 получено! 🎉');
+      }, 5); // rewardGems = 5 !
       adModal.zIndex = 99999;
       stage.addChild(adModal);
     } else {
