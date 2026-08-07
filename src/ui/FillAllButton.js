@@ -292,15 +292,15 @@ export class FillAllButton extends Container {
         return;
       }
 
-      const stage = this.app ? this.app.stage : (this.parent || this.stage);
-      if (stage) {
-        stage.sortableChildren = true;
+      const targetParent = (window.game && window.game.gameContainer) ? window.game.gameContainer : (this.app ? this.app.stage : this.parent);
+      if (targetParent) {
+        targetParent.sortableChildren = true;
         const modal = new VKAdNoticeModal(this.app, async () => {
           await this.onTriggerFillAll(freeSlotsCount, 0);
           this.updateLabel();
         });
         modal.zIndex = 999999;
-        stage.addChild(modal);
+        targetParent.addChild(modal);
       }
       return;
     }
