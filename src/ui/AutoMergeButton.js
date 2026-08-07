@@ -1,7 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { saveProgress } from '../api/client.js';
-import { AdModal } from './AdModal.js';
+import { saveProgress, showRewardedAd } from '../api/client.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
 /**
@@ -295,19 +294,19 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов НЕ ХВАТАЕТ (gems < 5) -> за просмотр рекламы начисляется +5 💎 на счёт!
-    // Игрок сам решает, когда их потратить на авто-слияние.
-    const stage = this.app ? this.app.stage : (this.parent || this.stage);
-    if (stage) {
-      stage.sortableChildren = true;
-      const adModal = new AdModal(this.app, this.economy, () => {
-        this.updateLabel();
-        this._showWarning('+5 💎 получено! 🎉');
-      }, 5); // rewardGems = 5 !
-      adModal.zIndex = 99999;
-      stage.addChild(adModal);
+    // 2. Если гемов НЕ ХВАТАЕТ -> вызов НАСТОЯЩЕЙ нативной рекламы VK (VKWebAppShowNativeAds)
+    const adRes = await showRewardedAd();
+    if (adRes && adRes.success) {
+      if (this.economy) {
+        this.economy.addGems(5);
+        try {
+          await saveProgress({ gems: this.economy.gems });
+        } catch (err) {}
+      }
+      this.updateLabel();
+      this._showWarning('+5 💎 получено! 🎉');
     } else {
-      this._showWarning('Ошибка запуска 🚫');
+      this._showWarning('⚠️ В VK нет доступной рекламы');
     }
   }
 
