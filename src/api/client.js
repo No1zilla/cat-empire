@@ -114,13 +114,18 @@ export async function showRewardedAd() {
     return { success: false, reason: 'NO_VK_BRIDGE' };
   }
 
+  const callWithTimeout = (promise, ms = 2500) => {
+    const timeout = new Promise((resolve) => setTimeout(() => resolve({ result: false, timeout: true }), ms));
+    return Promise.race([promise, timeout]);
+  };
+
   // 1. Попытка через VKWebAppCheckNativeAds + VKWebAppShowNativeAds ('reward')
   try {
-    const checkRewarded = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }).catch(() => null);
+    const checkRewarded = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' })).catch(() => null);
     console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRewarded);
 
     if (checkRewarded && checkRewarded.result === true) {
-      const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
+      const res = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 60000).catch(() => null);
       console.log('🎬 VKWebAppShowNativeAds (reward) result:', res);
       if (res && (res.result === true || res.success === true)) {
         return { success: true };
@@ -132,11 +137,11 @@ export async function showRewardedAd() {
 
   // 2. Попытка через Interstitial ('interstitial')
   try {
-    const checkInt = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }).catch(() => null);
+    const checkInt = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' })).catch(() => null);
     console.log('🔍 VKWebAppCheckNativeAds (interstitial):', checkInt);
 
     if (checkInt && checkInt.result === true) {
-      const res2 = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }).catch(() => null);
+      const res2 = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }), 60000).catch(() => null);
       console.log('🎬 VKWebAppShowNativeAds (interstitial) result:', res2);
       if (res2 && (res2.result === true || res2.success === true)) {
         return { success: true };
@@ -146,9 +151,9 @@ export async function showRewardedAd() {
     console.warn('⚠️ VK Interstitial error:', e);
   }
 
-  // 3. Прямой вызов VKWebAppShowNativeAds (для окружений, где CheckNativeAds возвращает false, но реклама доступна)
+  // 3. Прямой вызов VKWebAppShowNativeAds с тайм-аутом 3с
   try {
-    const directRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
+    const directRes = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 3000).catch(() => null);
     console.log('🎬 Direct VKWebAppShowNativeAds result:', directRes);
     if (directRes && (directRes.result === true || directRes.success === true)) {
       return { success: true };
