@@ -119,7 +119,7 @@ export async function showRewardedAd() {
     return Promise.race([promise, timeout]);
   };
 
-  // 1. Попытка через VKWebAppCheckNativeAds + VKWebAppShowNativeAds ('reward')
+  // 1. Попытка через VKWebAppCheckNativeAds + VKWebAppShowNativeAds (СТРОГО 'reward')
   try {
     const checkRewarded = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }), 1500).catch(() => null);
     console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRewarded);
@@ -135,32 +135,16 @@ export async function showRewardedAd() {
     console.warn('⚠️ VK Rewarded format error:', e);
   }
 
-  // 2. Попытка через Interstitial ('interstitial')
+  // 2. Прямой вызов VKWebAppShowNativeAds с ad_format: 'reward'
   try {
-    const checkInt = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }), 1500).catch(() => null);
-    console.log('🔍 VKWebAppCheckNativeAds (interstitial):', checkInt);
-
-    if (checkInt && checkInt.result === true) {
-      const res2 = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }), 60000).catch(() => null);
-      console.log('🎬 VKWebAppShowNativeAds (interstitial) result:', res2);
-      if (res2 && (res2.result === true || res2.success === true)) {
-        return { success: true };
-      }
-    }
-  } catch (e) {
-    console.warn('⚠️ VK Interstitial error:', e);
-  }
-
-  // 3. Прямой вызов VKWebAppShowNativeAds с тайм-аутом 1.5с
-  try {
-    const directRes = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 1500).catch(() => null);
-    console.log('🎬 Direct VKWebAppShowNativeAds result:', directRes);
+    const directRes = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 2000).catch(() => null);
+    console.log('🎬 Direct VKWebAppShowNativeAds (reward) result:', directRes);
     if (directRes && (directRes.result === true || directRes.success === true)) {
       return { success: true };
     }
   } catch (e) {}
 
-  return { success: false, reason: 'NO_AD_AVAILABLE' };
+  return { success: false, reason: 'NO_REWARDED_AD_AVAILABLE' };
 }
 
 export default {
