@@ -295,7 +295,7 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов НЕ ХВАТАЕТ -> пробуем НАСТОЯЩУЮ нативную рекламу VK (VKWebAppShowNativeAds)
+    // 2. Вызов 100% НАСТОЯЩЕЙ нативной рекламы VK (VKWebAppShowNativeAds)
     const adRes = await showRewardedAd();
     if (adRes && adRes.success) {
       if (this.economy) {
@@ -306,19 +306,8 @@ export class AutoMergeButton extends Container {
       }
       this.updateLabel();
       this._showWarning('+5 💎 получено! 🎉');
-      return;
-    }
-
-    // 3. Запасной надежный плеер рекламы (если VK реклама не вернула ролик)
-    const stage = this.app ? this.app.stage : (this.parent || this.stage);
-    if (stage) {
-      stage.sortableChildren = true;
-      const adModal = new AdModal(this.app, this.economy, () => {
-        this.updateLabel();
-        this._showWarning('+5 💎 получено! 🎉');
-      }, 5);
-      adModal.zIndex = 99999;
-      stage.addChild(adModal);
+    } else {
+      this._showWarning('⚠️ В VK нет доступной рекламы');
     }
   }
 

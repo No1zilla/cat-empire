@@ -110,24 +110,24 @@ export async function fetchLeaderboard() {
 }
 
 export async function showRewardedAd() {
-  const callWithTimeout = (promise, ms = 4000) => {
+  const callWithTimeout = (promise, ms = 3000) => {
     const timeout = new Promise((resolve) => setTimeout(() => resolve({ result: false, timeout: true }), ms));
     return Promise.race([promise, timeout]);
   };
 
   try {
     if (window.vkBridge && typeof window.vkBridge.send === 'function') {
-      // 1. Предварительный чек доступности нативной вознаграждаемой рекламы VK ('reward')
+      // 1. Быстрая проверка доступности рекламы VK ('reward')
       try {
-        const checkRes = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }), 2000);
+        const checkRes = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }), 2500);
         console.log('🔍 VKWebAppCheckNativeAds (reward) check:', checkRes);
       } catch (checkErr) {
         console.warn('⚠️ VKWebAppCheckNativeAds (reward) check failed:', checkErr);
       }
 
-      // 2. Вызов нативной вознаграждаемой рекламы VK ('reward')
+      // 2. Вызов нативной вознаграждаемой видеорекламы VK ('reward') с тайм-аутом 90 секунд (на время показа видеоролика)
       try {
-        const res = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 4000);
+        const res = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 90000);
         console.log('🎬 VK Rewarded result:', res);
         if (res && (res.result === true || res.success === true)) {
           return { success: true };
@@ -136,15 +136,15 @@ export async function showRewardedAd() {
         console.warn('⚠️ VK Rewarded (reward) format error:', e1);
       }
 
-      // 3. Предварительный чек доступности межстраничной рекламы VK ('interstitial')
+      // 3. Быстрая проверка доступности межстраничной рекламы VK ('interstitial')
       try {
-        const checkInt = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }), 2000);
+        const checkInt = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }), 2500);
         console.log('🔍 VKWebAppCheckNativeAds (interstitial) check:', checkInt);
       } catch (e) {}
 
       // 4. Вызов межстраничной рекламы VK ('interstitial')
       try {
-        const res2 = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }), 4000);
+        const res2 = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }), 90000);
         console.log('🎬 VK Interstitial result:', res2);
         if (res2 && (res2.result === true || res2.success === true)) {
           return { success: true };
