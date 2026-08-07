@@ -285,5 +285,49 @@ export const UIUtils = {
     });
 
     return container;
+  },
+
+  /**
+   * Показывает аккуратный неплавучий тост-уведомление вверху экрана
+   */
+  showToast: (stage, text) => {
+    if (!stage) return;
+
+    const gameWidth = CONFIG.GAME_WIDTH || 410;
+    const toastW = 320;
+    const toastH = 42;
+    const toastX = (gameWidth - toastW) / 2;
+    const toastY = 72;
+
+    const toast = new Container();
+    toast.position.set(toastX, toastY);
+    toast.zIndex = 9999999;
+
+    const bg = new Graphics();
+    bg.roundRect(0, 0, toastW, toastH, 12);
+    bg.fill({ color: 0x1e272c, alpha: 0.95 });
+    bg.stroke({ color: 0xffa500, width: 1.5 });
+    toast.addChild(bg);
+
+    const style = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 13,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.8, blur: 2 }
+    });
+
+    const label = new Text({ text, style });
+    label.anchor.set(0.5);
+    label.position.set(toastW / 2, toastH / 2);
+    toast.addChild(label);
+
+    stage.sortableChildren = true;
+    stage.addChild(toast);
+
+    setTimeout(() => {
+      if (toast.parent) toast.parent.removeChild(toast);
+      toast.destroy();
+    }, 2200);
   }
 };

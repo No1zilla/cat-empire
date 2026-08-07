@@ -2,7 +2,6 @@ import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { showRewardedAd } from '../api/client.js';
-import { VKAdNoticeModal } from './VKAdNoticeModal.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -288,20 +287,13 @@ export class FillAllButton extends Container {
       if (adRes && adRes.success) {
         await this.onTriggerFillAll(freeSlotsCount, 0);
         this.updateLabel();
-        this._showWarning('Слоты заполнены! 📦');
+        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+        UIUtils.showToast(appStage, 'Слоты заполнены! 📦');
         return;
       }
 
       const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-      if (appStage) {
-        appStage.sortableChildren = true;
-        const modal = new VKAdNoticeModal(this.app, async () => {
-          await this.onTriggerFillAll(freeSlotsCount, 0);
-          this.updateLabel();
-        });
-        modal.zIndex = 9999999;
-        appStage.addChild(modal);
-      }
+      UIUtils.showToast(appStage, '⚠️ В VK нет доступной рекламы. Попробуйте чуть позже!');
       return;
     }
 

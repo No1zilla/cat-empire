@@ -1,7 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { saveProgress, showRewardedAd } from '../api/client.js';
-import { VKAdNoticeModal } from './VKAdNoticeModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
 /**
@@ -305,25 +304,14 @@ export class AutoMergeButton extends Container {
         } catch (err) {}
       }
       this.updateLabel();
-      this._showWarning('+5 💎 получено! 🎉');
+      const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+      UIUtils.showToast(appStage, '+5 💎 получено! 🎉');
       return;
     }
 
-    // 3. Если VK Ads не выдала ролик -> показываем открытый информативный модальный диалог с подсказкой и тестовым начислением!
+    // 3. Если реклама VK временно не выдалась -> показываем аккуратный нейтральный тост вверху экрана
     const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-    if (appStage) {
-      appStage.sortableChildren = true;
-      const modal = new VKAdNoticeModal(this.app, () => {
-        if (this.economy) {
-          this.economy.addGems(5);
-          try { saveProgress({ gems: this.economy.gems }); } catch (err) {}
-        }
-        this.updateLabel();
-        this._showWarning('+5 💎 (Тест) 🎉');
-      });
-      modal.zIndex = 9999999;
-      appStage.addChild(modal);
-    }
+    UIUtils.showToast(appStage, '⚠️ В VK нет доступной рекламы. Попробуйте чуть позже!');
   }
 
   destroy(options) {
