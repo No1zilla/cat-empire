@@ -1,7 +1,7 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { saveProgress, showRewardedAd } from '../api/client.js';
-import { AdModal } from './AdModal.js';
+import { VKAdNoticeModal } from './VKAdNoticeModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
 /**
@@ -306,8 +306,23 @@ export class AutoMergeButton extends Container {
       }
       this.updateLabel();
       this._showWarning('+5 💎 получено! 🎉');
-    } else {
-      this._showWarning('⚠️ В VK нет доступной рекламы');
+      return;
+    }
+
+    // 3. Если VK Ads не выдала ролик -> показываем открытый информативный модальный диалог с подсказкой и тестовым начислением!
+    const stage = this.app ? this.app.stage : (this.parent || this.stage);
+    if (stage) {
+      stage.sortableChildren = true;
+      const modal = new VKAdNoticeModal(this.app, () => {
+        if (this.economy) {
+          this.economy.addGems(5);
+          try { saveProgress({ gems: this.economy.gems }); } catch (err) {}
+        }
+        this.updateLabel();
+        this._showWarning('+5 💎 (Тест) 🎉');
+      });
+      modal.zIndex = 999999;
+      stage.addChild(modal);
     }
   }
 
