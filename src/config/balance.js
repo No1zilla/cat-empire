@@ -14,10 +14,9 @@ export const BALANCE = {
     return Math.floor(10 * Math.pow(1.07, n));
   },
 
-  // Автоматическое повышение уровня спавна при прокачке: max(1, maxUnlockedLevel - 3)
+  // Базовая кнопка покупки всегда спавнит котика 1-го уровня
   getSpawnCatLevel(maxUnlockedLevel = 1) {
-    const maxLvl = Math.max(1, Number(maxUnlockedLevel) || 1);
-    return Math.max(1, maxLvl - 3);
+    return 1;
   },
 
   // Пассивный доход котика уровня N = 2^(level - 1)
