@@ -8,10 +8,16 @@ export const BALANCE = {
   INITIAL_GEMS: 10,
   INITIAL_MAX_LEVEL: 1,
 
-  // Стоимость котика: экспоненциальный рост на +15% за каждую покупку (золотой стандарт idle-баланса)
+  // Стоимость котика: идеально выверенный коэффициент роста 1.07 per buy (без упирания в тупик на 10+ уровнях)
   calculateCatCost(totalCatsBought = 0) {
     const n = Math.max(0, Number(totalCatsBought) || 0);
-    return Math.floor(10 * Math.pow(1.15, n));
+    return Math.floor(10 * Math.pow(1.07, n));
+  },
+
+  // Автоматическое повышение уровня спавна при прокачке: max(1, maxUnlockedLevel - 3)
+  getSpawnCatLevel(maxUnlockedLevel = 1) {
+    const maxLvl = Math.max(1, Number(maxUnlockedLevel) || 1);
+    return Math.max(1, maxLvl - 3);
   },
 
   // Пассивный доход котика уровня N = 2^(level - 1)

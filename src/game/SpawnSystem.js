@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { BALANCE } from '../config/balance.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 import { UIUtils } from '../utils/UIUtils.js';
@@ -240,7 +241,9 @@ export class SpawnSystem extends Container {
       this.economy.totalCatsCreated++;
     }
 
-    const cat = new Cat(1, emptySlot);
+    const maxCatLvl = (window.game && window.game.maxCatLevel) ? window.game.maxCatLevel : 1;
+    const spawnLevel = BALANCE.getSpawnCatLevel(maxCatLvl);
+    const cat = new Cat(spawnLevel, emptySlot);
     cat.scale.set(0);
     this.grid.addCat(cat, emptySlot);
     cat.playJumpAnimation();
