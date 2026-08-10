@@ -63,7 +63,12 @@ export class AdModal extends Container {
       return;
     }
 
-    // 2. Если нативная реклама недоступна (например, в Android APK или веб-клиенте) — включаем анимированный симулятор плеера
+    // 2. Если нативная реклама недоступна — выводим отладочный тост с ошибкой VK SDK и включаем анимированный симулятор плеера
+    const stage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+    if (stage && realAdRes && realAdRes.reason) {
+      UIUtils.showToast(stage, `⚠️ VK SDK: ${realAdRes.reason}`);
+    }
+
     this.removeChildren();
     this._drawOverlayShield();
 

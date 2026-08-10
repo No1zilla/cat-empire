@@ -111,53 +111,56 @@ export async function fetchLeaderboard() {
 
 export async function showRewardedAd() {
   if (typeof window === 'undefined' || !window.vkBridge || typeof window.vkBridge.send !== 'function') {
-    return { success: false, reason: 'NO_VK_BRIDGE' };
+    return { success: false, reason: 'VK_BRIDGE_NOT_FOUND' };
   }
 
-  // 1. Попытка вызвать настоящую нативную коммерческую рекламу VK Rewarded
-  try {
-    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }).catch(() => null);
-    console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRes);
+  let lastErrorReason = 'NO_REWARDED_AD_AVAILABLE';
 
-    if (checkRes && checkRes.result === true) {
-      const showRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
-      console.log('🎬 VKWebAppShowNativeAds (reward) result:', showRes);
-      if (showRes && (showRes.result === true || showRes.success === true)) {
-        return { success: true };
-      }
-    }
-  } catch (e) {}
-
-  // 2. Прямой вызов VKWebAppShowNativeAds ('reward')
+  // 1. Нативный вызов VKWebAppShowNativeAds ('reward')
   try {
-    const directRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
-    console.log('🎬 Direct VKWebAppShowNativeAds (reward) result:', directRes);
-    if (directRes && (directRes.result === true || directRes.success === true)) {
+    const showRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
+    console.log('🎬 VKWebAppShowNativeAds (reward) result:', showRes);
+    if (showRes && (showRes.result === true || showRes.success === true)) {
       return { success: true };
     }
-  } catch (e) {}
+    if (showRes && showRes.error_data) {
+      lastErrorReason = showRes.error_data.error_reason || `Code ${showRes.error_data.error_code}`;
+    }
+  } catch (err) {
+    console.warn('⚠️ VKWebAppShowNativeAds reward error:', err);
+    if (err && err.error_data) {
+      lastErrorReason = err.error_data.error_reason || `Code ${err.error_data.error_code}`;
+    } else if (err && err.message) {
+      lastErrorReason = err.message;
+    }
+  }
 
-  // 3. Вызов нативной VK рекламы с флагом use_test_ads: 1 (гарантирует открывание нативного видеоплеера VK в режиме разработки)
+  // 2. Тестовый показ VKWebAppShowNativeAds с флагом use_test_ads: 1
   try {
-    const testRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_test_ads: 1 }).catch(() => null);
+    const testRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_test_ads: 1 });
     console.log('🧪 VKWebAppShowNativeAds testRes:', testRes);
     if (testRes && (testRes.result === true || testRes.success === true)) {
       return { success: true };
     }
-  } catch (e) {}
+  } catch (err) {
+    console.warn('⚠️ VKWebAppShowNativeAds test error:', err);
+    if (err && err.error_data && !lastErrorReason) {
+      lastErrorReason = err.error_data.error_reason || `Code ${err.error_data.error_code}`;
+    }
+  }
 
-  // 4. Попытка через Interstitial рекламу VK
+  // 3. Предварительная проверка VKWebAppCheckNativeAds + VKWebAppShowNativeAds
   try {
-    const checkInt = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }).catch(() => null);
-    if (checkInt && checkInt.result === true) {
-      const showInt = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }).catch(() => null);
-      if (showInt && (showInt.result === true || showInt.success === true)) {
+    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' });
+    if (checkRes && checkRes.result === true) {
+      const showRes2 = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
+      if (showRes2 && (showRes2.result === true || showRes2.success === true)) {
         return { success: true };
       }
     }
-  } catch (e) {}
+  } catch (err) {}
 
-  return { success: false, reason: 'NO_REWARDED_AD_AVAILABLE' };
+  return { success: false, reason: lastErrorReason };
 }
 
 export default {
