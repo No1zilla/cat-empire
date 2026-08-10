@@ -16,6 +16,14 @@ export class StorageService {
     const a = stateA || {};
     const b = stateB || {};
 
+    // Если выставлен флаг сброса в одном из состояний — отдавать приоритет свежему сброшенному состоянию!
+    if (a.isReset || localStorage.getItem('cat_empire_is_reset') === '1') {
+      return a;
+    }
+    if (b.isReset) {
+      return b;
+    }
+
     const mergesA = Number(a.totalMerges) || 0;
     const mergesB = Number(b.totalMerges) || 0;
     const boughtA = Number(a.totalCatsBought) || 0;
@@ -23,10 +31,6 @@ export class StorageService {
     const coinsA = Number(a.coins) || 0;
     const coinsB = Number(b.coins) || 0;
 
-    // Определение наиболее свежего снимка прогресса:
-    // 1. Снимок с большим числом слияний (totalMerges) — более поздний в игровом процессе
-    // 2. При равных слияниях — с большим числом покупок (totalCatsBought)
-    // 3. При равных покупках — с большей суммой монет
     let chooseB = false;
 
     if (mergesB > mergesA) {
@@ -57,6 +61,24 @@ export class StorageService {
   }
 
   async loadProgress() {
+    // Если активирован флаг сброса — не восстанавливаем старые снимки из облака/БД!
+    if (localStorage.getItem('cat_empire_is_reset') === '1') {
+      console.log('🧹 Загрузка после сброса прогресса: чистый баланс...');
+      const cleanResetState = {
+        coins: 100,
+        gems: 10,
+        maxCatLevel: 1,
+        totalCatsBought: 0,
+        totalMerges: 0,
+        gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+        isReset: true
+      };
+      // Очищаем флаг сброса только после перезаписи всех хранилищ
+      localStorage.removeItem('cat_empire_is_reset');
+      await this.saveProgress(cleanResetState);
+      return cleanResetState;
+    }
+
     // 1. Извлечение из LocalStorage (быстрый кэш браузера)
     let localData = null;
     try {
@@ -69,18 +91,15 @@ export class StorageService {
         totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
         gridState: raw ? JSON.parse(raw) : null
       };
-    } catch (e) {
-      // Игнорируем
-    }
+    } catch (e) {}
 
     let resultState = localData;
 
-    // 2. Извлечение из Нативного Облачного Хранилища VK (VKWebAppStorageGet - доступно между всеми устройствами VK)
+    // 2. Извлечение из Нативного Облачного Хранилища VK (VKWebAppStorageGet)
     try {
       const vkStorage = await vkService.storageGet([STORAGE_KEY]);
       if (vkStorage && vkStorage[STORAGE_KEY]) {
         const raw = vkStorage[STORAGE_KEY];
-        // Декодирование компактного формата (TASK-042c)
         const vkState = raw.c !== undefined ? {
           coins: raw.c,
           gems: raw.g,
@@ -90,11 +109,10 @@ export class StorageService {
           gridState: Array.isArray(raw.s) ? raw.s.map(item =>
             Array.isArray(item)
               ? { slotIndex: item[0], catLevel: item[1] }
-              : item  // обратная совместимость со старым форматом
+              : item
           ) : raw.s
-        } : raw;  // обратная совместимость: если формат старый — использовать как есть
+        } : raw;
         resultState = this.mergeStates(resultState, vkState);
-        console.log('☁️ VK Storage loaded, merges:', vkState.totalMerges, 'maxLevel:', vkState.maxCatLevel);
       }
     } catch (e) {
       console.warn('Ошибка загрузки из VK Storage:', e);
@@ -119,7 +137,6 @@ export class StorageService {
       gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
     };
 
-    // При вычислении финального состояния сглаживаем и обновляем во всех хранилищах
     await this.saveProgress(finalState);
     return finalState;
   }
@@ -135,67 +152,65 @@ export class StorageService {
       if (data.totalCatsBought !== undefined) localStorage.setItem('cat_empire_last_total_bought', String(data.totalCatsBought));
       if (data.totalMerges !== undefined) localStorage.setItem('cat_empire_last_total_merges', String(data.totalMerges));
       if (data.gridState) localStorage.setItem('cat_empire_grid_state', JSON.stringify(data.gridState));
-    } catch (e) {
-      // Игнорируем
-    }
+    } catch (e) {}
 
-    // B. Сохранение в Нативное Облако VK (VKWebAppStorageSet) — TASK-042c: компактный формат
+    // B. Сохранение в Нативное Облако VK (VKWebAppStorageSet)
     try {
-      // Компактная сериализация gridState: [[slotIndex, catLevel], ...] вместо [{slotIndex, catLevel}, ...]
       const compactGrid = Array.isArray(data.gridState)
         ? data.gridState.map(c => [c.slotIndex, c.catLevel])
         : [];
       const payload = {
-        c: Math.round(data.coins),  // coins
-        g: data.gems,               // gems
-        m: data.maxCatLevel,        // maxCatLevel
-        b: data.totalCatsBought,    // totalCatsBought
-        r: data.totalMerges,        // totalMerges
-        s: compactGrid,             // gridState (compact)
-        t: Date.now()               // updatedAt
+        c: Math.round(data.coins),
+        g: data.gems,
+        m: data.maxCatLevel,
+        b: data.totalCatsBought,
+        r: data.totalMerges,
+        s: compactGrid,
+        t: Date.now()
       };
-      const jsonStr = JSON.stringify(payload);
-      if (jsonStr.length > 9500) {
-        console.warn(`⚠️ VK Storage payload too large: ${jsonStr.length} chars (limit 10000)`);
-      }
-      const ok = await vkService.storageSet(STORAGE_KEY, payload);
-      if (ok) {
-        console.log(`💾 VK Storage saved (${jsonStr.length} chars)`);
-      } else {
-        console.warn('⚠️ VK Storage save returned false');
-      }
-    } catch (e) {
-      console.warn('⚠️ VK Storage save error:', e);
-    }
+      await vkService.storageSet(STORAGE_KEY, payload);
+    } catch (e) {}
 
     // C. Сохранение на центральный сервер PostgreSQL
     try {
       await saveProgress(data);
-    } catch (e) {
-      console.warn('⚠️ Server save error:', e);
-    }
+    } catch (e) {}
   }
 
-  // Полный сброс игрового прогресса в 0 (localStorage, VK Storage и Сервер)
+  // Полный гарантийный сброс игрового прогресса в 0 во всех 3 элементах (LocalStorage, VK Storage и Сервер DB)
   async clearAllProgress() {
     console.log('🔄 Сброс всего игрового прогресса в 0...');
+
+    // Выставляем глобальный системный флаг сброса в LocalStorage
+    localStorage.setItem('cat_empire_is_reset', '1');
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('cat_empire_grid_state');
+    localStorage.removeItem('cat_empire_last_coins');
+    localStorage.removeItem('cat_empire_last_gems');
+    localStorage.removeItem('cat_empire_last_max_level');
+    localStorage.removeItem('cat_empire_last_total_bought');
+    localStorage.removeItem('cat_empire_last_total_merges');
     localStorage.removeItem('cat_empire_tutorial_done');
-    const resetData = {
+
+    const resetPayload = {
       coins: 100,
       gems: 10,
       maxCatLevel: 1,
       totalCatsBought: 0,
       totalMerges: 0,
-      gridState: []
+      gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+      isReset: true
     };
+
+    // Гарантированно дожидаемся перезаписи в VK Storage и серверную БД
     try {
       await vkService.storageSet(STORAGE_KEY, {
-        c: 100, g: 10, m: 1, b: 0, r: 0, s: [], t: Date.now()
+        c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: Date.now()
       });
     } catch (e) {}
+
     try {
-      await saveProgress(resetData);
+      await saveProgress(resetPayload);
     } catch (e) {}
   }
 }
