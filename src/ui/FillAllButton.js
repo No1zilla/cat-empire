@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { BALANCE } from '../config/balance.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { showRewardedAd } from '../api/client.js';
 import { AdModal } from './AdModal.js';
@@ -43,7 +44,7 @@ export class FillAllButton extends Container {
     const currentBought = this.economy.totalCatsBought || 0;
 
     for (let i = 0; i < freeSlotsCount; i++) {
-      const catCost = 10 + (currentBought + i);
+      const catCost = BALANCE.calculateCatCost(currentBought + i);
       if (this.economy.coins >= totalCost + catCost) {
         totalCost += catCost;
         count++;

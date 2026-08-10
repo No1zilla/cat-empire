@@ -8,9 +8,10 @@ export const BALANCE = {
   INITIAL_GEMS: 10,
   INITIAL_MAX_LEVEL: 1,
 
-  // Стоимость котика: 10 монет + 1 монета за каждую покупку
+  // Стоимость котика: экспоненциальный рост на +15% за каждую покупку (золотой стандарт idle-баланса)
   calculateCatCost(totalCatsBought = 0) {
-    return 10 + (Number(totalCatsBought) || 0);
+    const n = Math.max(0, Number(totalCatsBought) || 0);
+    return Math.floor(10 * Math.pow(1.15, n));
   },
 
   // Пассивный доход котика уровня N = 2^(level - 1)
