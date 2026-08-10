@@ -25,22 +25,7 @@ export class Economy {
     this.gems = Number(gems) || 0;
     let bought = Number(totalCatsBought) || 0;
 
-    // УМНЫЙ ФОЛЛБЭК: Пересчитываем минимальное количество купленных котиков по котам на сетке
-    let minBoughtFromGrid = 0;
-    if (this.grid && Array.isArray(this.grid.slots)) {
-      this.grid.slots.forEach((cat) => {
-        if (cat && cat.level) {
-          minBoughtFromGrid += Math.pow(2, cat.level - 1);
-        }
-      });
-    }
-
-    // Точная калибровка: totalCatsBought должен строго соответствовать весу котиков на сетке
-    if (minBoughtFromGrid > 0) {
-      this.totalCatsBought = minBoughtFromGrid;
-    } else {
-      this.totalCatsBought = bought;
-    }
+    this.totalCatsBought = bought;
     this.totalMerges = Number(totalMerges) || 0;
 
     this._recalcIncome();
