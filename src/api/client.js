@@ -150,8 +150,8 @@ export async function showRewardedAd() {
       window.vkBridge.subscribe(onVkEvent);
     }
 
-    // 1. Первичная отправка VKWebAppShowNativeAds с use_test_ads: true
-    window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_test_ads: true })
+    // Отправка запроса нативной КОММЕРЧЕСКОЙ рекламы VKWebAppShowNativeAds ('reward')
+    window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
       .then((res) => {
         console.log('🎬 VKWebAppShowNativeAds send promise res:', res);
         if (res && (res.result === true || res.success === true)) {
@@ -161,17 +161,7 @@ export async function showRewardedAd() {
       .catch((err) => {
         console.warn('⚠️ VKWebAppShowNativeAds send promise err:', err);
         const errReason = err && err.error_data ? (err.error_data.error_reason || `Code ${err.error_data.error_code}`) : (err ? err.message : 'PROMISE_REJECT');
-        // 2. Фолбэк без use_test_ads
-        window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
-          .then((res2) => {
-            if (res2 && (res2.result === true || res2.success === true)) {
-              finish({ success: true });
-            }
-          })
-          .catch((err2) => {
-            const finalReason = err2 && err2.error_data ? (err2.error_data.error_reason || `Code ${err2.error_data.error_code}`) : errReason;
-            finish({ success: false, reason: finalReason });
-          });
+        finish({ success: false, reason: errReason });
       });
 
     // Тайм-аут предохранитель на 45 секунд
