@@ -111,10 +111,10 @@ export class SettingsModal extends Container {
       modalY + 205,
       modalW - 50,
       36,
-      '🗑️ СБРОСИТЬ ПРОГРЕСС В 0',
+      '🗑️ СБРОСИТЬ ПРОГРЕСС',
       0xd63031,
       async () => {
-        if (confirm('Вы уверены? Весь прогресс (монеты, рубины и открытые котики) будет полностью сброшен в 0!')) {
+        if (confirm('Вы уверены? Весь прогресс (монеты, рубины и открытые котики) будет полностью сброшен!')) {
           const { storageService } = await import('../services/StorageService.js');
           await storageService.clearAllProgress();
           location.reload();
