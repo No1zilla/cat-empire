@@ -284,6 +284,22 @@ export class FillAllButton extends Container {
     }
 
     if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
+      // 1. Запуск нативной рекламы VK в среде VK Mini Apps
+      if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
+        const adRes = await showRewardedAd();
+        if (adRes && adRes.success) {
+          await this.onTriggerFillAll(freeSlotsCount, 0);
+          this.updateLabel();
+        } else {
+          const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+          if (appStage) {
+            UIUtils.showToast(appStage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');
+          }
+        }
+        return;
+      }
+
+      // 2. Фолбэк плеера LiveAd только вне платформы ВКонтакте
       const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
       if (appStage) {
         appStage.sortableChildren = true;
