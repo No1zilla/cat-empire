@@ -114,53 +114,71 @@ export async function showRewardedAd() {
     return { success: false, reason: 'VK_BRIDGE_NOT_FOUND' };
   }
 
-  let lastErrorReason = 'NO_REWARDED_AD_AVAILABLE';
+  return new Promise((resolve) => {
+    let resolved = false;
 
-  // 1. Нативный вызов VKWebAppShowNativeAds ('reward')
-  try {
-    const showRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
-    console.log('🎬 VKWebAppShowNativeAds (reward) result:', showRes);
-    if (showRes && (showRes.result === true || showRes.success === true)) {
-      return { success: true };
-    }
-    if (showRes && showRes.error_data) {
-      lastErrorReason = showRes.error_data.error_reason || `Code ${showRes.error_data.error_code}`;
-    }
-  } catch (err) {
-    console.warn('⚠️ VKWebAppShowNativeAds reward error:', err);
-    if (err && err.error_data) {
-      lastErrorReason = err.error_data.error_reason || `Code ${err.error_data.error_code}`;
-    } else if (err && err.message) {
-      lastErrorReason = err.message;
-    }
-  }
-
-  // 2. Тестовый показ VKWebAppShowNativeAds с флагом use_test_ads: 1
-  try {
-    const testRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_test_ads: 1 });
-    console.log('🧪 VKWebAppShowNativeAds testRes:', testRes);
-    if (testRes && (testRes.result === true || testRes.success === true)) {
-      return { success: true };
-    }
-  } catch (err) {
-    console.warn('⚠️ VKWebAppShowNativeAds test error:', err);
-    if (err && err.error_data && !lastErrorReason) {
-      lastErrorReason = err.error_data.error_reason || `Code ${err.error_data.error_code}`;
-    }
-  }
-
-  // 3. Предварительная проверка VKWebAppCheckNativeAds + VKWebAppShowNativeAds
-  try {
-    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' });
-    if (checkRes && checkRes.result === true) {
-      const showRes2 = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' });
-      if (showRes2 && (showRes2.result === true || showRes2.success === true)) {
-        return { success: true };
+    const cleanup = () => {
+      if (typeof window.vkBridge.unsubscribe === 'function') {
+        window.vkBridge.unsubscribe(onVkEvent);
       }
-    }
-  } catch (err) {}
+    };
 
-  return { success: false, reason: lastErrorReason };
+    const finish = (result) => {
+      if (resolved) return;
+      resolved = true;
+      cleanup();
+      resolve(result);
+    };
+
+    const onVkEvent = (e) => {
+      if (!e || !e.detail) return;
+      const { type, data } = e.detail;
+      console.log('📡 VK Ad Subscriber Event:', type, data);
+      if (type === 'VKWebAppShowNativeAdsResult') {
+        if (data && (data.result === true || data.success === true)) {
+          finish({ success: true });
+        } else {
+          finish({ success: false, reason: data ? (data.error_reason || 'AD_CLOSED_EARLY') : 'AD_CLOSED' });
+        }
+      } else if (type === 'VKWebAppShowNativeAdsFailed') {
+        const errReason = data && data.error_data ? (data.error_data.error_reason || `Code ${data.error_data.error_code}`) : 'VK_AD_FAILED';
+        finish({ success: false, reason: errReason });
+      }
+    };
+
+    if (typeof window.vkBridge.subscribe === 'function') {
+      window.vkBridge.subscribe(onVkEvent);
+    }
+
+    // 1. Первичная отправка VKWebAppShowNativeAds с use_test_ads: true
+    window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_test_ads: true })
+      .then((res) => {
+        console.log('🎬 VKWebAppShowNativeAds send promise res:', res);
+        if (res && (res.result === true || res.success === true)) {
+          finish({ success: true });
+        }
+      })
+      .catch((err) => {
+        console.warn('⚠️ VKWebAppShowNativeAds send promise err:', err);
+        const errReason = err && err.error_data ? (err.error_data.error_reason || `Code ${err.error_data.error_code}`) : (err ? err.message : 'PROMISE_REJECT');
+        // 2. Фолбэк без use_test_ads
+        window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
+          .then((res2) => {
+            if (res2 && (res2.result === true || res2.success === true)) {
+              finish({ success: true });
+            }
+          })
+          .catch((err2) => {
+            const finalReason = err2 && err2.error_data ? (err2.error_data.error_reason || `Code ${err2.error_data.error_code}`) : errReason;
+            finish({ success: false, reason: finalReason });
+          });
+      });
+
+    // Тайм-аут предохранитель на 45 секунд
+    setTimeout(() => {
+      finish({ success: false, reason: 'TIMEOUT_NO_RESPONSE' });
+    }, 45000);
+  });
 }
 
 export default {
