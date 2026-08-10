@@ -114,35 +114,21 @@ export async function showRewardedAd() {
     return { success: false, reason: 'NO_VK_BRIDGE' };
   }
 
-  const callWithTimeout = (promise, ms = 1500) => {
-    const timeout = new Promise((resolve) => setTimeout(() => resolve({ result: false, timeout: true }), ms));
-    return Promise.race([promise, timeout]);
-  };
-
-  // 1. Попытка через VKWebAppCheckNativeAds + VKWebAppShowNativeAds (СТРОГО 'reward')
+  // Прямой вызов VKWebAppShowNativeAds ('reward') без короткого тайм-аута.
+  // VK SDK возвращает ошибку мгновенно, если нет инвентаря,
+  // или ждёт 15-30 секунд до успешного конца просмотра ролика пользователем.
   try {
-    const checkRewarded = await callWithTimeout(window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }), 1500).catch(() => null);
-    console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRewarded);
-
-    if (checkRewarded && checkRewarded.result === true) {
-      const res = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 60000).catch(() => null);
-      console.log('🎬 VKWebAppShowNativeAds (reward) result:', res);
-      if (res && (res.result === true || res.success === true)) {
-        return { success: true };
-      }
-    }
-  } catch (e) {
-    console.warn('⚠️ VK Rewarded format error:', e);
-  }
-
-  // 2. Прямой вызов VKWebAppShowNativeAds с ad_format: 'reward'
-  try {
-    const directRes = await callWithTimeout(window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }), 2000).catch(() => null);
-    console.log('🎬 Direct VKWebAppShowNativeAds (reward) result:', directRes);
-    if (directRes && (directRes.result === true || directRes.success === true)) {
+    const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch((err) => {
+      console.warn('⚠️ VKWebAppShowNativeAds reward reject:', err);
+      return null;
+    });
+    console.log('🎬 VKWebAppShowNativeAds (reward) result:', res);
+    if (res && (res.result === true || res.success === true)) {
       return { success: true };
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('⚠️ VK Rewarded error:', e);
+  }
 
   return { success: false, reason: 'NO_REWARDED_AD_AVAILABLE' };
 }
