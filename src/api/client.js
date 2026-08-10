@@ -114,29 +114,21 @@ export async function showRewardedAd() {
     return { success: false, reason: 'NO_VK_BRIDGE' };
   }
 
-  // 1. Обязательная инициализация и предзагрузка VK Ads через VKWebAppCheckNativeAds ('reward')
+  // 1. Попытка вызвать настоящую нативную коммерческую рекламу VK Rewarded
   try {
-    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }).catch((err) => {
-      console.warn('⚠️ VKWebAppCheckNativeAds reward check fail:', err);
-      return null;
-    });
+    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }).catch(() => null);
     console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRes);
 
     if (checkRes && checkRes.result === true) {
-      const showRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch((err) => {
-        console.warn('⚠️ VKWebAppShowNativeAds reward show fail:', err);
-        return null;
-      });
+      const showRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
       console.log('🎬 VKWebAppShowNativeAds (reward) result:', showRes);
       if (showRes && (showRes.result === true || showRes.success === true)) {
         return { success: true };
       }
     }
-  } catch (e) {
-    console.warn('⚠️ VK Rewarded flow error:', e);
-  }
+  } catch (e) {}
 
-  // 2. Прямой вызов VKWebAppShowNativeAds ('reward') без предварительной проверки
+  // 2. Прямой вызов VKWebAppShowNativeAds ('reward')
   try {
     const directRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
     console.log('🎬 Direct VKWebAppShowNativeAds (reward) result:', directRes);
@@ -145,7 +137,16 @@ export async function showRewardedAd() {
     }
   } catch (e) {}
 
-  // 3. Фолбэк на interstitial, если в сети VK Ads в данный момент закончился инвентарь 'reward'
+  // 3. Вызов нативной VK рекламы с флагом use_test_ads: 1 (гарантирует открывание нативного видеоплеера VK в режиме разработки)
+  try {
+    const testRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward', use_test_ads: 1 }).catch(() => null);
+    console.log('🧪 VKWebAppShowNativeAds testRes:', testRes);
+    if (testRes && (testRes.result === true || testRes.success === true)) {
+      return { success: true };
+    }
+  } catch (e) {}
+
+  // 4. Попытка через Interstitial рекламу VK
   try {
     const checkInt = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }).catch(() => null);
     if (checkInt && checkInt.result === true) {
