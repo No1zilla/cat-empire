@@ -12,6 +12,14 @@ window.resetTutorial = () => {
   location.reload();
 };
 
+window.setCoins = (val = 0) => {
+  if (window.game && window.game.economy) {
+    window.game.economy.coins = val;
+    if (window.game.hud) window.game.hud.update();
+    console.log('💰 Баланс монет установлен в:', val);
+  }
+};
+
 // Обновление прогресс-бара на экране загрузки (Splash Screen)
 function updateSplashProgress(percent, statusText) {
   const bar = document.getElementById('splash-progress');
