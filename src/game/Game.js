@@ -18,6 +18,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { MainMenu } from '../ui/MainMenu.js';
+import { OfflineEarningsModal } from '../ui/OfflineEarningsModal.js';
 import { SettingsModal } from '../ui/SettingsModal.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
@@ -319,15 +320,31 @@ export class Game {
       console.log('🔄 Туториал перезапущен!');
     };
 
-    const previousCoins = parseFloat(localStorage.getItem('cat_empire_last_coins') || '0');
-    const offlineEarned = Math.max(0, startCoins - previousCoins);
+    // TASK-058: Расчёт офлайн-дохода по времени отсутствия (до 8 часов, кап 28800 сек)
+    const lastTimestamp = parseInt(localStorage.getItem('cat_empire_last_timestamp') || '0', 10);
+    const now = Date.now();
+    let offlineSeconds = 0;
+    if (lastTimestamp > 0 && now > lastTimestamp) {
+      offlineSeconds = Math.min(28800, Math.floor((now - lastTimestamp) / 1000));
+    }
+    localStorage.setItem('cat_empire_last_timestamp', String(now));
+
+    const ips = this.economy ? this.economy.incomePerSecond : 0;
+    const baseOfflineCoins = Math.round(offlineSeconds * ips * 0.5); // 50% пассивный доход во время отсутствия
+    const offlineMinutes = Math.floor(offlineSeconds / 60);
 
     this._onMenuPlayCallback = () => {
-      if (previousCoins > 0 && offlineEarned > 1) {
-        const modal = new OfflineModal(this.app, offlineEarned, () => {
-          console.log('Оффлайн-доход получен:', offlineEarned);
-          showTutorialIfNeeded();
-        });
+      if (offlineSeconds >= 60 && baseOfflineCoins >= 10) {
+        const modal = new OfflineEarningsModal(
+          this.app,
+          this.economy,
+          baseOfflineCoins,
+          offlineMinutes,
+          () => {
+            console.log(`⏰ Офлайн-доход за ${offlineMinutes} мин забран!`);
+            showTutorialIfNeeded();
+          }
+        );
         modal.zIndex = 99999;
         this.app.stage.addChild(modal);
       } else {
