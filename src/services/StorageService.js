@@ -175,6 +175,29 @@ export class StorageService {
       console.warn('⚠️ Server save error:', e);
     }
   }
+
+  // Полный сброс игрового прогресса в 0 (localStorage, VK Storage и Сервер)
+  async clearAllProgress() {
+    console.log('🔄 Сброс всего игрового прогресса в 0...');
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('cat_empire_tutorial_done');
+    const resetData = {
+      coins: 100,
+      gems: 10,
+      maxCatLevel: 1,
+      totalCatsBought: 0,
+      totalMerges: 0,
+      gridState: []
+    };
+    try {
+      await vkService.storageSet(STORAGE_KEY, {
+        c: 100, g: 10, m: 1, b: 0, r: 0, s: [], t: Date.now()
+      });
+    } catch (e) {}
+    try {
+      await saveProgress(resetData);
+    } catch (e) {}
+  }
 }
 
 export const storageService = new StorageService();

@@ -105,22 +105,40 @@ export class SettingsModal extends Container {
 
     this.addChild(syncContainer);
 
-    // 6. Описание версии
+    // 6. Кнопка «🗑️ Сбросить прогресс»
+    const resetBtn = UIUtils.createButton(
+      modalX + 25,
+      modalY + 205,
+      modalW - 50,
+      36,
+      '🗑️ СБРОСИТЬ ПРОГРЕСС В 0',
+      0xd63031,
+      async () => {
+        if (confirm('Вы уверены? Весь прогресс (монеты, рубины и открытые котики) будет полностью сброшен в 0!')) {
+          const { storageService } = await import('../services/StorageService.js');
+          await storageService.clearAllProgress();
+          location.reload();
+        }
+      }
+    );
+    this.addChild(resetBtn);
+
+    // 7. Описание версии
     const verText = new Text({
-      text: 'Империя Котиков v1.0.0\nПлатформа: ' + PlatformService.platform.toUpperCase(),
-      style: new TextStyle({ fontFamily: font, fontSize: 12, fill: '#7f8c8d', align: 'center' })
+      text: 'Империя Котиков v1.0.0 | ' + PlatformService.platform.toUpperCase(),
+      style: new TextStyle({ fontFamily: font, fontSize: 11, fill: '#7f8c8d', align: 'center' })
     });
     verText.anchor.set(0.5);
-    verText.position.set(width / 2, modalY + 235);
+    verText.position.set(width / 2, modalY + 252);
     this.addChild(verText);
 
     const closeBtn = UIUtils.createButton(
-      modalX + (modalW - 160) / 2,
-      modalY + modalH - 55,
-      160,
-      40,
+      modalX + (modalW - 140) / 2,
+      modalY + modalH - 45,
+      140,
+      36,
       'ЗАКРЫТЬ',
-      0xFF6B6B,  // TOKENS.btnBuy — единый красный
+      0xFF6B6B,
       () => {
         this.onClose();
         if (this.parent) this.parent.removeChild(this);
