@@ -114,21 +114,47 @@ export async function showRewardedAd() {
     return { success: false, reason: 'NO_VK_BRIDGE' };
   }
 
-  // Прямой вызов VKWebAppShowNativeAds ('reward') без короткого тайм-аута.
-  // VK SDK возвращает ошибку мгновенно, если нет инвентаря,
-  // или ждёт 15-30 секунд до успешного конца просмотра ролика пользователем.
+  // 1. Обязательная инициализация и предзагрузка VK Ads через VKWebAppCheckNativeAds ('reward')
   try {
-    const res = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch((err) => {
-      console.warn('⚠️ VKWebAppShowNativeAds reward reject:', err);
+    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' }).catch((err) => {
+      console.warn('⚠️ VKWebAppCheckNativeAds reward check fail:', err);
       return null;
     });
-    console.log('🎬 VKWebAppShowNativeAds (reward) result:', res);
-    if (res && (res.result === true || res.success === true)) {
-      return { success: true };
+    console.log('🔍 VKWebAppCheckNativeAds (reward):', checkRes);
+
+    if (checkRes && checkRes.result === true) {
+      const showRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch((err) => {
+        console.warn('⚠️ VKWebAppShowNativeAds reward show fail:', err);
+        return null;
+      });
+      console.log('🎬 VKWebAppShowNativeAds (reward) result:', showRes);
+      if (showRes && (showRes.result === true || showRes.success === true)) {
+        return { success: true };
+      }
     }
   } catch (e) {
-    console.warn('⚠️ VK Rewarded error:', e);
+    console.warn('⚠️ VK Rewarded flow error:', e);
   }
+
+  // 2. Прямой вызов VKWebAppShowNativeAds ('reward') без предварительной проверки
+  try {
+    const directRes = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' }).catch(() => null);
+    console.log('🎬 Direct VKWebAppShowNativeAds (reward) result:', directRes);
+    if (directRes && (directRes.result === true || directRes.success === true)) {
+      return { success: true };
+    }
+  } catch (e) {}
+
+  // 3. Фолбэк на interstitial, если в сети VK Ads в данный момент закончился инвентарь 'reward'
+  try {
+    const checkInt = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' }).catch(() => null);
+    if (checkInt && checkInt.result === true) {
+      const showInt = await window.vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' }).catch(() => null);
+      if (showInt && (showInt.result === true || showInt.success === true)) {
+        return { success: true };
+      }
+    }
+  } catch (e) {}
 
   return { success: false, reason: 'NO_REWARDED_AD_AVAILABLE' };
 }
