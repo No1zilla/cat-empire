@@ -13,51 +13,38 @@ export class StorageService {
    * Слить состояния из разных источников по максимальным прогрессивным показателям
    */
   mergeStates(stateA, stateB) {
-    const a = stateA || {};
-    const b = stateB || {};
+    if (!stateA) return stateB || {};
+    if (!stateB) return stateA || {};
 
-    // Если выставлен флаг сброса в одном из состояний — отдавать приоритет свежему сброшенному состоянию!
-    if (a.isReset || (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1')) {
-      return a;
-    }
-    if (b.isReset) {
-      return b;
+    // 1. Приоритет флага жестокого сброса
+    if (stateA.isReset) return stateA;
+    if (stateB.isReset) return stateB;
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
+      if (stateA.coins === 100 && stateA.totalMerges === 0) return stateA;
+      if (stateB.coins === 100 && stateB.totalMerges === 0) return stateB;
     }
 
-    const mergesA = Number(a.totalMerges) || 0;
-    const mergesB = Number(b.totalMerges) || 0;
-    const boughtA = Number(a.totalCatsBought) || 0;
-    const boughtB = Number(b.totalCatsBought) || 0;
-    const coinsA = Number(a.coins) || 0;
-    const coinsB = Number(b.coins) || 0;
+    // 2. Векторная Временная Синхронизация (Vector Clock): Снимок с более свежим таймстемпом побеждает 100%!
+    const timeA = Number(stateA.updatedAt || stateA.t || stateA.updated_at) || 0;
+    const timeB = Number(stateB.updatedAt || stateB.t || stateB.updated_at) || 0;
+
+    // Если разница по времени между снимками превышает 2 секунды — забираем более свежий снимок целиком!
+    if (Math.abs(timeA - timeB) > 2000) {
+      console.log(`⏱️ Векторный выбор снимка по времени: timeA (${timeA}) vs timeB (${timeB}) -> победитель: ${timeA > timeB ? 'A (Local)' : 'B (Cloud)'}`);
+      return timeA > timeB ? stateA : stateB;
+    }
+
+    // 3. Фолбэк для одновременных снимков
+    const mergesA = Number(stateA.totalMerges) || 0;
+    const mergesB = Number(stateB.totalMerges) || 0;
+    const boughtA = Number(stateA.totalCatsBought) || 0;
+    const boughtB = Number(stateB.totalCatsBought) || 0;
 
     let chooseB = false;
+    if (mergesB > mergesA) chooseB = true;
+    else if (mergesB === mergesA && boughtB > boughtA) chooseB = true;
 
-    if (mergesB > mergesA) {
-      chooseB = true;
-    } else if (mergesB === mergesA) {
-      if (boughtB > boughtA) {
-        chooseB = true;
-      } else if (boughtB === boughtA) {
-        if (coinsB > coinsA) {
-          chooseB = true;
-        }
-      }
-    }
-
-    const chosenState = chooseB ? b : a;
-    const fallbackState = chooseB ? a : b;
-
-    return {
-      coins: Math.max(coinsA, coinsB),
-      gems: Math.max(Number(a.gems) || 0, Number(b.gems) || 0),
-      maxCatLevel: Math.max(Number(a.maxCatLevel) || 1, Number(b.maxCatLevel) || 1),
-      totalCatsBought: Math.max(boughtA, boughtB),
-      totalMerges: Math.max(mergesA, mergesB),
-      gridState: (chosenState.gridState && Array.isArray(chosenState.gridState))
-        ? chosenState.gridState
-        : (fallbackState.gridState || [])
-    };
+    return chooseB ? stateB : stateA;
   }
 
   async loadProgress() {
@@ -71,9 +58,9 @@ export class StorageService {
         totalCatsBought: 0,
         totalMerges: 0,
         gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+        updatedAt: Date.now(),
         isReset: true
       };
-      // Очищаем флаг сброса только после перезаписи всех хранилищ
       try {
         localStorage.removeItem('cat_empire_is_reset');
       } catch (e) {}
@@ -91,6 +78,7 @@ export class StorageService {
         maxCatLevel: parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10),
         totalCatsBought: parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10),
         totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
+        updatedAt: parseInt(localStorage.getItem('cat_empire_last_updated_at') || '0', 10),
         gridState: raw ? JSON.parse(raw) : null
       };
     } catch (e) {}
@@ -108,6 +96,7 @@ export class StorageService {
           maxCatLevel: raw.m,
           totalCatsBought: raw.b,
           totalMerges: raw.r,
+          updatedAt: raw.t || 0,
           gridState: Array.isArray(raw.s) ? raw.s.map(item =>
             Array.isArray(item)
               ? { slotIndex: item[0], catLevel: item[1] }
@@ -124,7 +113,12 @@ export class StorageService {
     try {
       const serverProfile = await fetchProfile();
       if (serverProfile && serverProfile.user) {
-        resultState = this.mergeStates(resultState, serverProfile.user);
+        const u = serverProfile.user;
+        const serverState = {
+          ...u,
+          updatedAt: u.updated_at ? Date.parse(u.updated_at) : (u.updatedAt || 0)
+        };
+        resultState = this.mergeStates(resultState, serverState);
       }
     } catch (e) {
       console.warn('Ошибка загрузки с бэкенда:', e);
@@ -136,6 +130,7 @@ export class StorageService {
       maxCatLevel: 1,
       totalCatsBought: 0,
       totalMerges: 0,
+      updatedAt: Date.now(),
       gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
     };
 
@@ -146,6 +141,8 @@ export class StorageService {
   async saveProgress(data) {
     if (!data) return;
 
+    const timestamp = Number(data.updatedAt) || Date.now();
+
     // A. Сохранение в LocalStorage
     try {
       if (data.coins !== undefined) localStorage.setItem('cat_empire_last_coins', String(data.coins));
@@ -154,6 +151,7 @@ export class StorageService {
       if (data.totalCatsBought !== undefined) localStorage.setItem('cat_empire_last_total_bought', String(data.totalCatsBought));
       if (data.totalMerges !== undefined) localStorage.setItem('cat_empire_last_total_merges', String(data.totalMerges));
       if (data.gridState) localStorage.setItem('cat_empire_grid_state', JSON.stringify(data.gridState));
+      localStorage.setItem('cat_empire_last_updated_at', String(timestamp));
     } catch (e) {}
 
     // B. Сохранение в Нативное Облако VK (VKWebAppStorageSet)
@@ -168,14 +166,17 @@ export class StorageService {
         b: data.totalCatsBought,
         r: data.totalMerges,
         s: compactGrid,
-        t: Date.now()
+        t: timestamp
       };
       await vkService.storageSet(STORAGE_KEY, payload);
     } catch (e) {}
 
     // C. Сохранение на центральный сервер PostgreSQL
     try {
-      await saveProgress(data);
+      await saveProgress({
+        ...data,
+        updatedAt: timestamp
+      });
     } catch (e) {}
   }
 
