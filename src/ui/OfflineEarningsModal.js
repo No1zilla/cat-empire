@@ -166,6 +166,9 @@ export class OfflineEarningsModal extends Container {
   }
 
   async _handleClaim(isTriple = false) {
+    if (this._isClaiming) return;
+    this._isClaiming = true;
+
     let earned = this.baseCoins;
 
     if (isTriple) {
@@ -175,7 +178,8 @@ export class OfflineEarningsModal extends Container {
         if (adRes && adRes.success) {
           earned = this.tripleCoins;
         } else {
-          // Если игрок отменил просмотр или произошёл сбой VK SDK — показываем тост и не выдаём x3
+          // Если игрок отменил просмотр или произошёл сбой VK SDK — показываем тост и разрешаем попробовать снова
+          this._isClaiming = false;
           const stage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
           if (stage) {
             UIUtils.showToast(stage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');

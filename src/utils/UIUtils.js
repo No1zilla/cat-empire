@@ -284,13 +284,16 @@ export const UIUtils = {
     container.cursor = 'pointer';
 
     let lastClickTime = 0;
-    const handleTap = (e) => {
+    let isProcessing = false;
+
+    const handleTap = async (e) => {
       if (e && typeof e.stopPropagation === 'function') {
         e.stopPropagation();
       }
       const now = Date.now();
-      if (now - lastClickTime < 300) return;
+      if (isProcessing || now - lastClickTime < 500) return;
       lastClickTime = now;
+      isProcessing = true;
 
       // Визуальный отклик нажатия
       container.scale.set(0.94);
@@ -299,17 +302,17 @@ export const UIUtils = {
       }, 90);
 
       try {
-        onClick(e);
+        await onClick(e);
       } catch (err) {
         console.error('Ошибка в обработчике кнопки:', err);
+      } finally {
+        setTimeout(() => {
+          isProcessing = false;
+        }, 500);
       }
     };
 
     container.on('pointertap', handleTap);
-    container.on('pointerup', handleTap);
-    container.on('tap', handleTap);
-    container.on('click', handleTap);
-    container.on('touchend', handleTap);
     container.on('pointerdown', (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     });
