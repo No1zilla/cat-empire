@@ -122,6 +122,37 @@ export class VKService {
     }
   }
 
+  // TASK-SHARE: Расшаривание ссылки друзьям или в сообщения (VKWebAppShare)
+  async shareLink(link = 'https://vk.com/app54702054') {
+    try {
+      if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
+        const res = await this.bridge.send('VKWebAppShare', { link });
+        console.log('📢 VKWebAppShare result:', res);
+        return { success: true, res };
+      }
+    } catch (e) {
+      console.warn('⚠️ VKWebAppShare error/cancelled:', e);
+    }
+    return { success: true, simulated: true };
+  }
+
+  // TASK-SHARE: Пост записи на стену пользователя VK (VKWebAppShowWallPostBox)
+  async sharePost(message = '🐱 Моя Империя Котиков растет! Присоединяйся к игре!') {
+    try {
+      if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
+        const res = await this.bridge.send('VKWebAppShowWallPostBox', {
+          message: message,
+          attachments: 'https://vk.com/app54702054'
+        });
+        console.log('📝 VKWebAppShowWallPostBox result:', res);
+        return { success: true, res };
+      }
+    } catch (e) {
+      console.warn('⚠️ VKWebAppShowWallPostBox error/cancelled:', e);
+    }
+    return { success: true, simulated: true };
+  }
+
   // TASK-015B: Тактильная отдача (вибрация VK Haptics)
   triggerHaptic(style = 'medium') {
     try {

@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { PlatformService } from '../services/PlatformService.js';
+import { VKService } from '../vk/VKBridge.js';
 import { storageService } from '../services/StorageService.js';
 
 /**
@@ -106,12 +107,44 @@ export class SettingsModal extends Container {
 
     this.addChild(syncContainer);
 
-    // 6. Кнопка «🗑️ Сбросить прогресс»
+    // 6. Кнопки Социального Расшаривания VK
+    const vkService = new VKService();
+    const shareBtn = UIUtils.createButton(
+      modalX + 25,
+      modalY + 200,
+      (modalW - 60) / 2,
+      36,
+      '📢 ПОДЕЛИТЬСЯ',
+      0x0077FF, // VK Brand Blue
+      async () => {
+        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+        if (appStage) UIUtils.showToast(appStage, '📢 Открываем VK Share...');
+        await vkService.shareLink('https://vk.com/app54702054');
+      }
+    );
+    this.addChild(shareBtn);
+
+    const wallBtn = UIUtils.createButton(
+      modalX + 35 + (modalW - 60) / 2,
+      modalY + 200,
+      (modalW - 60) / 2,
+      36,
+      '📝 НА СТЕНУ',
+      0x4A76A8, // VK Wall Post Blue
+      async () => {
+        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+        if (appStage) UIUtils.showToast(appStage, '📝 Публикуем на стену VK...');
+        await vkService.sharePost('👑 Моя Империя Котиков растет! Присоединяйся к игре: https://vk.com/app54702054');
+      }
+    );
+    this.addChild(wallBtn);
+
+    // 7. Кнопка «🗑️ Сбросить прогресс»
     const resetBtn = UIUtils.createButton(
       modalX + 25,
-      modalY + 205,
+      modalY + 248,
       modalW - 50,
-      36,
+      34,
       '🗑️ СБРОСИТЬ ПРОГРЕСС',
       0xd63031,
       async () => {
@@ -126,20 +159,20 @@ export class SettingsModal extends Container {
     );
     this.addChild(resetBtn);
 
-    // 7. Описание версии
+    // 8. Описание версии
     const verText = new Text({
       text: 'Империя Котиков v1.0.0 | ' + PlatformService.platform.toUpperCase(),
       style: new TextStyle({ fontFamily: font, fontSize: 11, fill: '#7f8c8d', align: 'center' })
     });
     verText.anchor.set(0.5);
-    verText.position.set(width / 2, modalY + 252);
+    verText.position.set(width / 2, modalY + 292);
     this.addChild(verText);
 
     const closeBtn = UIUtils.createButton(
       modalX + (modalW - 140) / 2,
-      modalY + modalH - 45,
+      modalY + modalH - 38,
       140,
-      36,
+      34,
       'ЗАКРЫТЬ',
       0xFF6B6B,
       () => {
