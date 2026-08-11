@@ -1,5 +1,6 @@
 import { Container, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { BALANCE } from '../config/balance.js';
 import { Grid } from './Grid.js';
 import { Cat } from './Cat.js';
 import { SpawnSystem } from './SpawnSystem.js';
@@ -142,7 +143,7 @@ export class Game {
     this.gameContainer.addChild(this.spawnSystem);
 
     // B) 📦 Заполнить (122px) — выкуп всех свободных слотов за 1 клик
-    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
+    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async (requestedCount, overrideCost) => {
       const freeSlots = [];
       for (let i = 0; i < 25; i++) {
         if (this.grid.slots[i] === null) {
@@ -159,13 +160,20 @@ export class Game {
       let spawnCount = 0;
       const currentBought = this.economy ? this.economy.totalCatsBought : 0;
 
-      for (let i = 0; i < freeSlots.length; i++) {
-        const catCost = 10 + (currentBought + i);
-        if (this.economy && this.economy.coins >= actualTotalCost + catCost) {
-          actualTotalCost += catCost;
-          spawnCount++;
-        } else {
-          break;
+      const isFree = (overrideCost === 0);
+
+      if (isFree) {
+        spawnCount = Math.min(freeSlots.length, requestedCount || freeSlots.length);
+        actualTotalCost = 0;
+      } else {
+        for (let i = 0; i < freeSlots.length; i++) {
+          const catCost = BALANCE.calculateCatCost(currentBought + i);
+          if (this.economy && this.economy.coins >= actualTotalCost + catCost) {
+            actualTotalCost += catCost;
+            spawnCount++;
+          } else {
+            break;
+          }
         }
       }
 
@@ -175,7 +183,9 @@ export class Game {
       }
 
       if (this.economy) {
-        this.economy.spend(actualTotalCost);
+        if (actualTotalCost > 0) {
+          this.economy.spend(actualTotalCost);
+        }
         this.economy.totalCatsBought += spawnCount;
         this.economy.totalCatsCreated += spawnCount;
       }

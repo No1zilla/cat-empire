@@ -62,8 +62,18 @@ export class FillAllButton extends Container {
     if (!this._subContainer) return;
     this._subContainer.removeChildren();
 
-    if (this._btnText) this._btnText.text = '📦 Заполнить';
-    if (this._btnBg) this._btnBg.fill(0xff9f43);
+    const btnWidth = 122;
+
+    if (this._btnText) {
+      this._btnText.text = '📦 Заполнить';
+      this._btnText.style.fontSize = 12;
+      this._btnText.position.set(btnWidth / 2, 6);
+    }
+    if (this._btnBg) {
+      this._btnBg.fill(0xff9f43);
+      this._btnBg.stroke({ color: '#ffffff', alpha: 0.6, width: 2.0 });
+    }
+    if (this._shadowBg) this._shadowBg.fill(0xb35400);
 
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
@@ -73,13 +83,7 @@ export class FillAllButton extends Container {
       dropShadow: { color: '#000000', alpha: 0.4, blur: 2, distance: 1 }
     });
 
-    const btnWidth = 122;
-
     if (freeSlotsCount === 0) {
-      if (this._btnText) this._btnText.text = '📦 Заполнить';
-      if (this._btnBg) this._btnBg.fill(0xff9f43);
-      if (this._shadowBg) this._shadowBg.fill(0xd35400);
-
       const textStyle = new TextStyle({ ...subStyle, fill: '#e5e7eb' });
       const textObj = new Text({ text: 'ЗАПОЛНЕНО', style: textStyle });
       textObj.anchor.set(0.5, 0.5);
@@ -277,45 +281,54 @@ export class FillAllButton extends Container {
   }
 
   async _handleClick() {
-    const { count, cost, freeSlotsCount } = this.getFillData();
+    if (this._isClickProcessing) return;
+    this._isClickProcessing = true;
 
-    if (freeSlotsCount === 0) {
-      this._showWarning('Нет свободных мест! 🚫');
-      return;
-    }
+    try {
+      const { count, cost, freeSlotsCount } = this.getFillData();
 
-    if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
-      // 1. Запуск нативной рекламы VK в среде VK Mini Apps
-      if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
-        const adRes = await showRewardedAd();
-        if (adRes && adRes.success) {
-          await this.onTriggerFillAll(freeSlotsCount, 0);
-          this.updateLabel();
-        } else {
-          const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-          if (appStage) {
-            UIUtils.showToast(appStage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');
+      if (freeSlotsCount === 0) {
+        this._showWarning('Нет свободных мест! 🚫');
+        return;
+      }
+
+      if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
+        // 1. Запуск нативной рекламы VK в среде VK Mini Apps
+        if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
+          const adRes = await showRewardedAd();
+          if (adRes && adRes.success) {
+            await this.onTriggerFillAll(freeSlotsCount, 0);
+            this.updateLabel();
+          } else {
+            const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+            if (appStage) {
+              UIUtils.showToast(appStage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');
+            }
           }
+          return;
+        }
+
+        // 2. Фолбэк плеера LiveAd только вне платформы ВКонтакте
+        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+        if (appStage) {
+          appStage.sortableChildren = true;
+          const modal = new AdModal(this.app, this.economy, async () => {
+            await this.onTriggerFillAll(freeSlotsCount, 0);
+            this.updateLabel();
+          }, 0);
+          modal.zIndex = 9999999;
+          appStage.addChild(modal);
         }
         return;
       }
 
-      // 2. Фолбэк плеера LiveAd только вне платформы ВКонтакте
-      const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-      if (appStage) {
-        appStage.sortableChildren = true;
-        const modal = new AdModal(this.app, this.economy, async () => {
-          await this.onTriggerFillAll(freeSlotsCount, 0);
-          this.updateLabel();
-        }, 0);
-        modal.zIndex = 9999999;
-        appStage.addChild(modal);
-      }
-      return;
+      await this.onTriggerFillAll(count, cost);
+      this.updateLabel();
+    } finally {
+      setTimeout(() => {
+        this._isClickProcessing = false;
+      }, 400);
     }
-
-    await this.onTriggerFillAll(count, cost);
-    this.updateLabel();
   }
 
   destroy(options) {
