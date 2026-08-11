@@ -302,7 +302,7 @@ export class FillAllButton extends Container {
             const freshFreeSlots = this.grid ? this.grid.slots.filter((slot) => slot === null).length : freeSlotsCount;
             await this.onTriggerFillAll(freshFreeSlots, 0);
             this.updateLabel();
-          }, 0);
+          }, 0, 'Заполнение слотов через:');
           modal.zIndex = 9999999;
           appStage.addChild(modal);
         }

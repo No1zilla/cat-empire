@@ -8,12 +8,13 @@ import { UIUtils } from '../utils/UIUtils.js';
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
  */
 export class AdModal extends Container {
-  constructor(app, economy, onRewardGranted, rewardGems = 5) {
+  constructor(app, economy, onRewardGranted, rewardGems = 5, customTitle = null) {
     super();
     this.app = app;
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
     this.rewardGems = rewardGems;
+    this.customTitle = customTitle;
     this._interval = null;
     this._videoTicker = null;
 
@@ -205,7 +206,7 @@ export class AdModal extends Container {
       fill: '#ffd700',
       align: 'center'
     });
-    const timerLabel = this.rewardGems > 0 ? 'Вознаграждение через:' : 'Авто-соединение через:';
+    const timerLabel = this.customTitle ? this.customTitle : (this.rewardGems > 0 ? 'Вознаграждение через:' : 'Авто-соединение через:');
     const timerText = new Text({ text: `${timerLabel} ${secondsLeft} сек`, style: timerStyle });
     timerText.anchor.set(0.5, 0);
     timerText.position.set(W / 2, screenY + screenH + 16);
@@ -245,7 +246,9 @@ export class AdModal extends Container {
       const progress = Math.min(1.0, elapsed / totalDuration);
       secondsLeft = Math.max(0, Math.ceil(totalDuration - elapsed));
 
-      if (this.rewardGems > 0) {
+      if (this.customTitle) {
+        timerText.text = secondsLeft > 0 ? `${this.customTitle} ${secondsLeft} сек` : 'Заполняем котиками... 📦';
+      } else if (this.rewardGems > 0) {
         timerText.text = secondsLeft > 0 ? `Вознаграждение через: ${secondsLeft} сек` : 'Начисляем награду... 🎉';
       } else {
         timerText.text = secondsLeft > 0 ? `Авто-соединение через: ${secondsLeft} сек` : 'Соединяем котиков... ⚡';
