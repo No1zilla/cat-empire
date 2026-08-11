@@ -293,32 +293,18 @@ export class FillAllButton extends Container {
       }
 
       if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
-        // 1. Попытка показа нативной рекламы VK Ads
-        let vkAdSuccess = false;
-        if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
-          const adRes = await showRewardedAd();
-          if (adRes && adRes.success) {
-            vkAdSuccess = true;
+        // Гарантированный показ внутриигровой модалки AdModal с таймером и анимацией.
+        // Исключает нативный вызов VK Ads, приводящий к вылету Safari в VK Mini Apps на iOS.
+        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+        if (appStage) {
+          appStage.sortableChildren = true;
+          const modal = new AdModal(this.app, this.economy, async () => {
             const freshFreeSlots = this.grid ? this.grid.slots.filter((slot) => slot === null).length : freeSlotsCount;
             await this.onTriggerFillAll(freshFreeSlots, 0);
             this.updateLabel();
-            return;
-          }
-        }
-
-        // 2. Фолбэк плеера AdModal если VK Ads недоступна или произошла ошибка загрузки сети VK
-        if (!vkAdSuccess) {
-          const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-          if (appStage) {
-            appStage.sortableChildren = true;
-            const modal = new AdModal(this.app, this.economy, async () => {
-              const freshFreeSlots = this.grid ? this.grid.slots.filter((slot) => slot === null).length : freeSlotsCount;
-              await this.onTriggerFillAll(freshFreeSlots, 0);
-              this.updateLabel();
-            }, 0);
-            modal.zIndex = 9999999;
-            appStage.addChild(modal);
-          }
+          }, 0);
+          modal.zIndex = 9999999;
+          appStage.addChild(modal);
         }
         return;
       }
