@@ -121,9 +121,7 @@ export class SettingsModal extends Container {
           UIUtils.showToast(appStage, '🔄 Сброс прогресса... Перезагрузка');
         }
         await storageService.clearAllProgress();
-        setTimeout(() => {
-          location.reload();
-        }, 300);
+        window.location.reload();
       }
     );
     this.addChild(resetBtn);

@@ -222,6 +222,7 @@ export class StorageService {
       } catch (e) {}
     }
 
+    const now = Date.now();
     const resetPayload = {
       coins: 100,
       gems: 10,
@@ -229,19 +230,23 @@ export class StorageService {
       totalCatsBought: 0,
       totalMerges: 0,
       gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+      updatedAt: now,
       isReset: true
     };
 
-    // Гарантированно дожидаемся перезаписи в VK Storage и серверную БД
-    try {
-      await vkService.storageSet(STORAGE_KEY, {
-        c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: Date.now()
-      });
-    } catch (e) {}
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('cat_empire_last_updated_at', String(now));
+      } catch (e) {}
+    }
 
-    try {
-      await saveProgress(resetPayload);
-    } catch (e) {}
+    // Гарантированно параллельно отправляем и дожидаемся перезаписи в VK Storage и серверную БД
+    await Promise.allSettled([
+      vkService.storageSet(STORAGE_KEY, {
+        c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: now
+      }),
+      saveProgress(resetPayload)
+    ]);
   }
 }
 
