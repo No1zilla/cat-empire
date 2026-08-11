@@ -219,7 +219,26 @@ export const UIUtils = {
   },
 
   /**
-   * Рисует сочную глянцевую 3D кнопку
+   * Универсальное безошибочное форматирование больших чисел (без е+107M экспоненциального оверфлоу)
+   */
+  formatNumber: (num) => {
+    const val = Math.max(0, Number(num) || 0);
+    if (!isFinite(val)) return '∞';
+    if (val < 1000) return String(Math.floor(val));
+
+    const suffixes = [
+      '', 'K', 'M', 'B', 'T', 'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an', 'ao', 'ap', 'aq', 'ar', 'as', 'at', 'au', 'av', 'aw', 'ax', 'ay', 'az'
+    ];
+
+    const i = Math.min(suffixes.length - 1, Math.floor(Math.log10(val) / 3));
+    if (i === 0) return String(Math.floor(val));
+
+    const formatted = (val / Math.pow(10, i * 3)).toFixed(1);
+    return `${formatted}${suffixes[i]}`;
+  },
+
+  /**
+   * Рисует сочную глянцевую 3D кнопку с гарантийным срабатыванием кликов на всех устройствах
    */
   createButton: (x, y, width, height, text, color = 0x2ecc71, onClick = () => {}) => {
     const container = new Container();
@@ -248,7 +267,7 @@ export const UIUtils = {
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
     const btnStyle = new TextStyle({
       fontFamily: font,
-      fontSize: 16,
+      fontSize: 15,
       fontWeight: 'bold',
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
@@ -263,23 +282,31 @@ export const UIUtils = {
 
     let lastClickTime = 0;
     const handleTap = (e) => {
-      if (e) {
-        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (e && typeof e.stopPropagation === 'function') {
+        e.stopPropagation();
       }
       const now = Date.now();
-      if (now - lastClickTime < 350) return;
+      if (now - lastClickTime < 300) return;
       lastClickTime = now;
 
       // Визуальный отклик нажатия
-      container.scale.set(0.95);
+      container.scale.set(0.94);
       setTimeout(() => {
         if (!container.destroyed) container.scale.set(1.0);
-      }, 100);
+      }, 90);
 
-      onClick(e);
+      try {
+        onClick(e);
+      } catch (err) {
+        console.error('Ошибка в обработчике кнопки:', err);
+      }
     };
 
     container.on('pointertap', handleTap);
+    container.on('pointerup', handleTap);
+    container.on('tap', handleTap);
+    container.on('click', handleTap);
+    container.on('touchend', handleTap);
     container.on('pointerdown', (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     });

@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { PlatformService } from '../services/PlatformService.js';
+import { storageService } from '../services/StorageService.js';
 
 /**
  * Окно «⚙️ Настройки»
@@ -114,11 +115,15 @@ export class SettingsModal extends Container {
       '🗑️ СБРОСИТЬ ПРОГРЕСС',
       0xd63031,
       async () => {
-        if (confirm('Вы уверены? Весь прогресс (монеты, рубины и открытые котики) будет полностью сброшен!')) {
-          const { storageService } = await import('../services/StorageService.js');
-          await storageService.clearAllProgress();
-          location.reload();
+        resetBtn.eventMode = 'none';
+        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+        if (appStage) {
+          UIUtils.showToast(appStage, '🔄 Сброс прогресса... Перезагрузка');
         }
+        await storageService.clearAllProgress();
+        setTimeout(() => {
+          location.reload();
+        }, 300);
       }
     );
     this.addChild(resetBtn);

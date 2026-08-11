@@ -33,18 +33,11 @@ export class OfflineEarningsModal extends Container {
     const width = CONFIG.GAME_WIDTH || 409;
     const height = CONFIG.GAME_HEIGHT || 667;
 
-    // 1. Полупрозрачный экранирующий щит
+    // 1. Полупрозрачный экранирующий щит (static оверлей без блокировки событий внутри модалки)
     const overlay = new Graphics();
     overlay.rect(0, 0, width, height);
     overlay.fill({ color: 0x07040d, alpha: 0.88 });
     overlay.eventMode = 'static';
-    const stopEvt = (e) => { if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); };
-    overlay.on('pointerdown', stopEvt);
-    overlay.on('pointerup', stopEvt);
-    overlay.on('pointertap', stopEvt);
-    overlay.on('tap', stopEvt);
-    overlay.on('click', stopEvt);
-    overlay.on('touchstart', stopEvt);
     this.addChild(overlay);
 
     // 2. Окно в стиле Glassmorphism
@@ -169,9 +162,7 @@ export class OfflineEarningsModal extends Container {
   }
 
   _formatNum(n) {
-    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-    return String(n);
+    return UIUtils.formatNumber(n);
   }
 
   async _handleClaim(isTriple = false) {

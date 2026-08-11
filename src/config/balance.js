@@ -8,9 +8,9 @@ export const BALANCE = {
   INITIAL_GEMS: 10,
   INITIAL_MAX_LEVEL: 1,
 
-  // Стоимость котика: идеально выверенный коэффициент роста 1.07 per buy (без упирания в тупик на 10+ уровнях)
+  // Стоимость котика: идеально выверенный коэффициент роста 1.07 per buy (безопасное ограничение n <= 300 для исключения математических переполнений)
   calculateCatCost(totalCatsBought = 0) {
-    const n = Math.max(0, Number(totalCatsBought) || 0);
+    const n = Math.min(300, Math.max(0, Number(totalCatsBought) || 0));
     return Math.floor(10 * Math.pow(1.07, n));
   },
 

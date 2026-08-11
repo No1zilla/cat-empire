@@ -185,11 +185,7 @@ export class HUD extends Container {
   hideMenuOverlay() {}
 
   _formatShortNumber(num) {
-    const val = Math.floor(num || 0);
-    if (val >= 1000000000) return (val / 1000000000).toFixed(1) + 'B';
-    if (val >= 1000000) return (val / 1000000).toFixed(1) + 'M';
-    if (val >= 100000) return (val / 1000).toFixed(0) + 'K';
-    return val.toLocaleString('ru-RU');
+    return UIUtils.formatNumber(num);
   }
 
   _repositionCoinContent() {

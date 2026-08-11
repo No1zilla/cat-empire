@@ -28,7 +28,7 @@ export class SpawnSystem extends Container {
 
   updateButtonLabel() {
     const cost = this.economy ? this.economy.getCatCost() : 10;
-    const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
+    const formattedCost = UIUtils.formatNumber(cost);
 
     if (this._subText) {
       this._subText.removeChildren();

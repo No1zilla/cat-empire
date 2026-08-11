@@ -101,7 +101,7 @@ export class FillAllButton extends Container {
 
       this._subContainer.removeChildren();
     } else {
-      const formattedCost = cost >= 1000000 ? (cost / 1000000).toFixed(1) + 'M' : (cost >= 1000 ? (cost / 1000).toFixed(1) + 'K' : cost);
+      const formattedCost = UIUtils.formatNumber(cost);
       const text1Obj = new Text({ text: `${count} шт (${formattedCost} `, style: subStyle });
       text1Obj.anchor.set(0, 0.5);
       text1Obj.position.set(0, 0);
