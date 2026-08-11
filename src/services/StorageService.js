@@ -10,41 +10,79 @@ const STORAGE_KEY = 'cat_empire_progress';
  */
 export class StorageService {
   /**
+   * Нормализация снимков данных из любых источников (LocalStorage, VK Storage, PostgreSQL Server DB)
+   */
+  _normalizeState(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+
+    const coins = raw.c !== undefined ? raw.c : (raw.coins !== undefined ? raw.coins : 100);
+    const gems = raw.g !== undefined ? raw.g : (raw.gems !== undefined ? raw.gems : 10);
+    const maxCatLevel = raw.m !== undefined ? raw.m : (raw.maxCatLevel !== undefined ? raw.maxCatLevel : (raw.max_cat_level !== undefined ? raw.max_cat_level : 1));
+    const totalCatsBought = raw.b !== undefined ? raw.b : (raw.totalCatsBought !== undefined ? raw.totalCatsBought : (raw.total_cats_bought !== undefined ? raw.total_cats_bought : 0));
+    const totalMerges = raw.r !== undefined ? raw.r : (raw.totalMerges !== undefined ? raw.totalMerges : (raw.total_merges !== undefined ? raw.total_merges : 0));
+
+    let gridState = raw.s !== undefined ? raw.s : (raw.gridState !== undefined ? raw.gridState : raw.grid_state);
+    if (Array.isArray(gridState)) {
+      gridState = gridState.map(item =>
+        Array.isArray(item) ? { slotIndex: item[0], catLevel: item[1] } : item
+      );
+    } else {
+      gridState = [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }];
+    }
+
+    let updatedAt = raw.t !== undefined ? raw.t : (raw.updatedAt !== undefined ? raw.updatedAt : (raw.updated_at !== undefined ? (typeof raw.updated_at === 'string' ? Date.parse(raw.updated_at) : raw.updated_at) : 0));
+
+    return {
+      coins: Number(coins) || 0,
+      gems: Number(gems) || 0,
+      maxCatLevel: Math.max(1, Number(maxCatLevel) || 1),
+      totalCatsBought: Math.max(0, Number(totalCatsBought) || 0),
+      totalMerges: Math.max(0, Number(totalMerges) || 0),
+      gridState,
+      updatedAt: Number(updatedAt) || 0,
+      isReset: Boolean(raw.isReset)
+    };
+  }
+
+  /**
    * Слить состояния из разных источников по максимальным прогрессивным показателям
    */
   mergeStates(stateA, stateB) {
-    if (!stateA) return stateB || {};
-    if (!stateB) return stateA || {};
+    const a = this._normalizeState(stateA);
+    const b = this._normalizeState(stateB);
+
+    if (!a) return b || {};
+    if (!b) return a || {};
 
     // 1. Приоритет флага жестокого сброса
-    if (stateA.isReset) return stateA;
-    if (stateB.isReset) return stateB;
+    if (a.isReset) return a;
+    if (b.isReset) return b;
     if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
-      if (stateA.coins === 100 && stateA.totalMerges === 0) return stateA;
-      if (stateB.coins === 100 && stateB.totalMerges === 0) return stateB;
+      if (a.coins === 100 && a.totalMerges === 0) return a;
+      if (b.coins === 100 && b.totalMerges === 0) return b;
     }
 
     // 2. Векторная Временная Синхронизация (Vector Clock): Снимок с более свежим таймстемпом побеждает 100%!
-    const timeA = Number(stateA.updatedAt || stateA.t || stateA.updated_at) || 0;
-    const timeB = Number(stateB.updatedAt || stateB.t || stateB.updated_at) || 0;
+    const timeA = Number(a.updatedAt) || 0;
+    const timeB = Number(b.updatedAt) || 0;
 
     // Если разница по времени между снимками превышает 2 секунды — забираем более свежий снимок целиком!
     if (Math.abs(timeA - timeB) > 2000) {
       console.log(`⏱️ Векторный выбор снимка по времени: timeA (${timeA}) vs timeB (${timeB}) -> победитель: ${timeA > timeB ? 'A (Local)' : 'B (Cloud)'}`);
-      return timeA > timeB ? stateA : stateB;
+      return timeA > timeB ? a : b;
     }
 
     // 3. Фолбэк для одновременных снимков
-    const mergesA = Number(stateA.totalMerges) || 0;
-    const mergesB = Number(stateB.totalMerges) || 0;
-    const boughtA = Number(stateA.totalCatsBought) || 0;
-    const boughtB = Number(stateB.totalCatsBought) || 0;
+    const mergesA = Number(a.totalMerges) || 0;
+    const mergesB = Number(b.totalMerges) || 0;
+    const boughtA = Number(a.totalCatsBought) || 0;
+    const boughtB = Number(b.totalCatsBought) || 0;
 
     let chooseB = false;
     if (mergesB > mergesA) chooseB = true;
     else if (mergesB === mergesA && boughtB > boughtA) chooseB = true;
 
-    return chooseB ? stateB : stateA;
+    return chooseB ? b : a;
   }
 
   async loadProgress() {
@@ -72,7 +110,7 @@ export class StorageService {
     let localData = null;
     try {
       const raw = localStorage.getItem('cat_empire_grid_state');
-      localData = {
+      localData = this._normalizeState({
         coins: parseFloat(localStorage.getItem('cat_empire_last_coins') || '0'),
         gems: parseInt(localStorage.getItem('cat_empire_last_gems') || '0', 10),
         maxCatLevel: parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10),
@@ -80,7 +118,7 @@ export class StorageService {
         totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
         updatedAt: parseInt(localStorage.getItem('cat_empire_last_updated_at') || '0', 10),
         gridState: raw ? JSON.parse(raw) : null
-      };
+      });
     } catch (e) {}
 
     let resultState = localData;
@@ -90,19 +128,7 @@ export class StorageService {
       const vkStorage = await vkService.storageGet([STORAGE_KEY]);
       if (vkStorage && vkStorage[STORAGE_KEY]) {
         const raw = vkStorage[STORAGE_KEY];
-        const vkState = raw.c !== undefined ? {
-          coins: raw.c,
-          gems: raw.g,
-          maxCatLevel: raw.m,
-          totalCatsBought: raw.b,
-          totalMerges: raw.r,
-          updatedAt: raw.t || 0,
-          gridState: Array.isArray(raw.s) ? raw.s.map(item =>
-            Array.isArray(item)
-              ? { slotIndex: item[0], catLevel: item[1] }
-              : item
-          ) : raw.s
-        } : raw;
+        const vkState = this._normalizeState(raw);
         resultState = this.mergeStates(resultState, vkState);
       }
     } catch (e) {
@@ -113,18 +139,14 @@ export class StorageService {
     try {
       const serverProfile = await fetchProfile();
       if (serverProfile && serverProfile.user) {
-        const u = serverProfile.user;
-        const serverState = {
-          ...u,
-          updatedAt: u.updated_at ? Date.parse(u.updated_at) : (u.updatedAt || 0)
-        };
+        const serverState = this._normalizeState(serverProfile.user);
         resultState = this.mergeStates(resultState, serverState);
       }
     } catch (e) {
       console.warn('Ошибка загрузки с бэкенда:', e);
     }
 
-    const finalState = resultState || {
+    const finalState = this._normalizeState(resultState) || {
       coins: 100,
       gems: 10,
       maxCatLevel: 1,
