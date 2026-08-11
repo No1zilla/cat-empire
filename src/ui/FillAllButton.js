@@ -293,31 +293,32 @@ export class FillAllButton extends Container {
       }
 
       if (count === 0 || (this.economy && !this.economy.canAfford(cost))) {
-        // 1. Запуск нативной рекламы VK в среде VK Mini Apps
+        // 1. Попытка показа нативной рекламы VK Ads
+        let vkAdSuccess = false;
         if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
           const adRes = await showRewardedAd();
           if (adRes && adRes.success) {
-            await this.onTriggerFillAll(freeSlotsCount, 0);
+            vkAdSuccess = true;
+            const freshFreeSlots = this.grid ? this.grid.slots.filter((slot) => slot === null).length : freeSlotsCount;
+            await this.onTriggerFillAll(freshFreeSlots, 0);
             this.updateLabel();
-          } else {
-            const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-            if (appStage) {
-              UIUtils.showToast(appStage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');
-            }
+            return;
           }
-          return;
         }
 
-        // 2. Фолбэк плеера LiveAd только вне платформы ВКонтакте
-        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        if (appStage) {
-          appStage.sortableChildren = true;
-          const modal = new AdModal(this.app, this.economy, async () => {
-            await this.onTriggerFillAll(freeSlotsCount, 0);
-            this.updateLabel();
-          }, 0);
-          modal.zIndex = 9999999;
-          appStage.addChild(modal);
+        // 2. Фолбэк плеера AdModal если VK Ads недоступна или произошла ошибка загрузки сети VK
+        if (!vkAdSuccess) {
+          const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
+          if (appStage) {
+            appStage.sortableChildren = true;
+            const modal = new AdModal(this.app, this.economy, async () => {
+              const freshFreeSlots = this.grid ? this.grid.slots.filter((slot) => slot === null).length : freeSlotsCount;
+              await this.onTriggerFillAll(freshFreeSlots, 0);
+              this.updateLabel();
+            }, 0);
+            modal.zIndex = 9999999;
+            appStage.addChild(modal);
+          }
         }
         return;
       }
