@@ -17,7 +17,7 @@ export class StorageService {
     const b = stateB || {};
 
     // Если выставлен флаг сброса в одном из состояний — отдавать приоритет свежему сброшенному состоянию!
-    if (a.isReset || localStorage.getItem('cat_empire_is_reset') === '1') {
+    if (a.isReset || (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1')) {
       return a;
     }
     if (b.isReset) {
@@ -62,7 +62,7 @@ export class StorageService {
 
   async loadProgress() {
     // Если активирован флаг сброса — не восстанавливаем старые снимки из облака/БД!
-    if (localStorage.getItem('cat_empire_is_reset') === '1') {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
       console.log('🧹 Загрузка после сброса прогресса: чистый баланс...');
       const cleanResetState = {
         coins: 100,
@@ -74,7 +74,9 @@ export class StorageService {
         isReset: true
       };
       // Очищаем флаг сброса только после перезаписи всех хранилищ
-      localStorage.removeItem('cat_empire_is_reset');
+      try {
+        localStorage.removeItem('cat_empire_is_reset');
+      } catch (e) {}
       await this.saveProgress(cleanResetState);
       return cleanResetState;
     }
@@ -182,15 +184,20 @@ export class StorageService {
     console.log('🔄 Сброс всего игрового прогресса в 0...');
 
     // Выставляем глобальный системный флаг сброса в LocalStorage
-    localStorage.setItem('cat_empire_is_reset', '1');
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('cat_empire_grid_state');
-    localStorage.removeItem('cat_empire_last_coins');
-    localStorage.removeItem('cat_empire_last_gems');
-    localStorage.removeItem('cat_empire_last_max_level');
-    localStorage.removeItem('cat_empire_last_total_bought');
-    localStorage.removeItem('cat_empire_last_total_merges');
-    localStorage.removeItem('cat_empire_tutorial_done');
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('cat_empire_is_reset', '1');
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('cat_empire_grid_state');
+        localStorage.removeItem('cat_empire_last_coins');
+        localStorage.removeItem('cat_empire_last_gems');
+        localStorage.removeItem('cat_empire_last_max_level');
+        localStorage.removeItem('cat_empire_last_total_bought');
+        localStorage.removeItem('cat_empire_last_total_merges');
+        localStorage.removeItem('cat_empire_last_timestamp');
+        localStorage.removeItem('cat_empire_tutorial_done');
+      } catch (e) {}
+    }
 
     const resetPayload = {
       coins: 100,

@@ -222,18 +222,21 @@ export const UIUtils = {
    * Универсальное безошибочное форматирование больших чисел (без е+107M экспоненциального оверфлоу)
    */
   formatNumber: (num) => {
-    const val = Math.max(0, Number(num) || 0);
+    let val = Math.max(0, Number(num) || 0);
     if (!isFinite(val)) return '∞';
     if (val < 1000) return String(Math.floor(val));
+    if (val >= 1e93) return '>999az';
 
     const suffixes = [
       '', 'K', 'M', 'B', 'T', 'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an', 'ao', 'ap', 'aq', 'ar', 'as', 'at', 'au', 'av', 'aw', 'ax', 'ay', 'az'
     ];
 
-    const i = Math.min(suffixes.length - 1, Math.floor(Math.log10(val) / 3));
+    const exp = Math.floor(Math.log10(val));
+    const i = Math.min(suffixes.length - 1, Math.floor(exp / 3));
     if (i === 0) return String(Math.floor(val));
 
-    const formatted = (val / Math.pow(10, i * 3)).toFixed(1);
+    const mantissa = val / Math.pow(10, i * 3);
+    const formatted = mantissa >= 100 ? String(Math.floor(mantissa)) : mantissa.toFixed(1);
     return `${formatted}${suffixes[i]}`;
   },
 

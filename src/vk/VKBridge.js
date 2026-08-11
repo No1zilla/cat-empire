@@ -107,6 +107,7 @@ export class VKService {
   // TASK-SYNC: Сохранение в нативное облачное хранилище VK (VKWebAppStorageSet)
   async storageSet(key, value) {
     try {
+      if (!this.bridge || typeof this.bridge.send !== 'function') return false;
       const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
