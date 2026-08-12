@@ -16,17 +16,49 @@ export class AdModal extends Container {
     this.rewardGems = rewardGems;
     this.customTitle = customTitle;
     this._interval = null;
-    this._videoTicker = null;
     this._startTime = Date.now();
     this._isClosed = false;
 
     this.eventMode = 'static';
     this.sortableChildren = true;
-    
-    // Блокирующий экран-оверлей И МГНОВЕННАЯ кнопка закрытия ✕ при инициализации
-    this._drawOverlayShield();
-    this._drawInstantCloseButton();
-    this._startVideoPlayer();
+
+    const hasVkBridge = typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function';
+
+    if (hasVkBridge) {
+      // 1. В среде VK — вызываем нативную рекламу VK без создания локальных оверлеев Canvas
+      this._startVkNativeAd();
+    } else {
+      // 2. В локальной веб-среде — отрисовываем чистый 60 FPS холст-симулятор с 3D кнопкой ✕
+      this._drawOverlayShield();
+      this._drawInstantCloseButton();
+      this._startSimulatorVideoPlayer();
+    }
+  }
+
+  async _startVkNativeAd() {
+    console.log('🎬 Запуск нативной рекламы VK (VKWebAppShowNativeAds)...');
+    try {
+      const realAdRes = await showRewardedAd();
+      if (this._isClosed) return;
+
+      if (realAdRes && realAdRes.success) {
+        console.log('✅ Нативная реклама VK успешно просмотрена!');
+        if (this.economy && this.rewardGems > 0) {
+          this.economy.addGems(this.rewardGems);
+          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+        }
+        this._close();
+        if (typeof this.onRewardGranted === 'function') {
+          this.onRewardGranted();
+        }
+      } else {
+        console.log('🎬 Нативная реклама VK была закрыта, отменена или перенаправлена по ссылке:', realAdRes);
+        this._close();
+      }
+    } catch (e) {
+      console.warn('⚠️ Ошибка нативной рекламы VK:', e);
+      this._close();
+    }
   }
 
   // Защитный экранирующий оверлей — закрывает окно при тапе по фону через 1сек
@@ -108,32 +140,7 @@ export class AdModal extends Container {
     this.addChild(closeBtnContainer);
   }
 
-  async _startVideoPlayer() {
-    // 1. Попытка запустить нативную VK рекламу
-    const adPromise = showRewardedAd().catch(() => null);
-    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
-    
-    const realAdRes = await Promise.race([adPromise, timeoutPromise]);
-    if (this._isClosed) return;
-
-    // Если нативная реклама VK отработала (успех или закрытие/клик по ссылке) -> мгновенно закрываем оверлей!
-    if (realAdRes !== null) {
-      if (realAdRes.success === true) {
-        if (this.economy && this.rewardGems > 0) {
-          this.economy.addGems(this.rewardGems);
-          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
-        }
-        this._close();
-        if (typeof this.onRewardGranted === 'function') {
-          this.onRewardGranted();
-        }
-      } else {
-        // Нативная реклама VK закрыта или выполнен переход по рекламной ссылке -> немедленно закрываем оверлей!
-        console.log('🎬 Нативная реклама VK была закрыта или перенаправлена по ссылке. Закрываем оверлей.');
-        this._close();
-      }
-      return;
-    }
+  async _startSimulatorVideoPlayer() {
 
     // 2. Если нативная реклама недоступна или превысила таймаут 2с — запускаем плеер-симулятор
     const W = CONFIG.GAME_WIDTH || 375;
