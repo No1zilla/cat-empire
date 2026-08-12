@@ -8,10 +8,10 @@ export const BALANCE = {
   INITIAL_GEMS: 10,
   INITIAL_MAX_LEVEL: 1,
 
-  // Линейный рост цены: 1-й котик = 1 монета, далее цена = всего_куплено + 1
+  // Стоимость котика равна сумме купленных котиков: 0-1 покупка = 1 монета, n покупок = n монет
   calculateCatCost(totalCatsBought = 0) {
     const n = Math.max(0, Number(totalCatsBought) || 0);
-    return n + 1;
+    return Math.max(1, n);
   },
 
   // Базовая кнопка покупки всегда спавнит котика 1-го уровня

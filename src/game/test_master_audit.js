@@ -40,22 +40,22 @@ console.log('✅ 1. Форматирование чисел полностью �
 // -------------------------------------------------------------
 // 2. АУДИТ БАЛАНСА И СТОИМОСТИ КУПЛИ (BALANCE.calculateCatCost)
 // -------------------------------------------------------------
-console.log('--- 2. Тестирование линейной формулы стоимости (Cost = n + 1) ---');
+console.log('--- 2. Тестирование формулы стоимости (Cost = max(1, n)) ---');
 const cost0 = BALANCE.calculateCatCost(0);
 const cost10 = BALANCE.calculateCatCost(10);
 const cost100 = BALANCE.calculateCatCost(100);
 const cost1000 = BALANCE.calculateCatCost(1000);
 
 console.assert(cost0 === 1, `❌ Стоимость при 0 покупках должна быть 1, получено: ${cost0}`);
-console.assert(cost10 === 11, `❌ Стоимость при 10 покупках должна быть 11, получено: ${cost10}`);
-console.assert(cost100 === 101, `❌ Стоимость при 100 покупках должна быть 101, получено: ${cost100}`);
-console.assert(cost1000 === 1001, `❌ Стоимость при 1000 покупках должна быть 1001, получено: ${cost1000}`);
+console.assert(cost10 === 10, `❌ Стоимость при 10 покупках должна быть 10, получено: ${cost10}`);
+console.assert(cost100 === 100, `❌ Стоимость при 100 покупках должна быть 100, получено: ${cost100}`);
+console.assert(cost1000 === 1000, `❌ Стоимость при 1000 покупках должна быть 1000, получено: ${cost1000}`);
 
 console.log(`  [Pass] 0 покупок: ${cost0} 💰`);
 console.log(`  [Pass] 10 покупок: ${cost10} 💰`);
 console.log(`  [Pass] 100 покупок: ${UIUtils.formatNumber(cost100)} 💰`);
 console.log(`  [Pass] 1000 покупок: ${UIUtils.formatNumber(cost1000)} 💰`);
-console.log('✅ 2. Линейная формула стоимости котиков работает устойчиво!\n');
+console.log('✅ 2. Формула стоимости (Cost = n) работает устойчиво!\n');
 
 // -------------------------------------------------------------
 // 3. АУДИТ СБРОСА ПРОГРЕССА (StorageService)

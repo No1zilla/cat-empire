@@ -28,7 +28,7 @@ async function runBeginnerProtectionTests() {
   const catCost = BALANCE.calculateCatCost(normalized.totalCatsBought);
   console.log('   Стоимость котика:', catCost, '💰 (Вместо 1300 💰!)');
 
-  console.assert(catCost <= 31, '❌ Цена котика для новичка 1-го уровня не должна превышать 31 монету');
+  console.assert(catCost <= 30, '❌ Цена котика для новичка 1-го уровня не должна превышать 30 монет');
   console.log('✅ ТЕСТ 2 УСПЕШНО ПРОЙДЕН!\n');
 
   console.log('🎉 =========================================================');

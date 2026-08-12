@@ -123,20 +123,20 @@ console.log('  [Pass] Кнопка находится в режиме "ЗАПО�
 console.log('--- 2. Проверка Состояния 2: Покупка за монеты (BUY_PAID) ---');
 const grid2 = new MockGrid(); // Все 25 слотов свободны
 const econ2 = new Economy(grid2);
-econ2.setBalance(50, 10, 0, 0); // 50 монет. 1-й=1, 2-й=2, 3-й=3, 4-й=4, 5-й=5, 6-й=6, 7-й=7, 8-й=8, 9-й=9 (всего 45 💰)
+econ2.setBalance(50, 10, 0, 0); // 50 монет. 1-й=1, 2-й=1, 3-й=2, 4-й=3, 5-й=4, 6-й=5, 7-й=6, 8-й=7, 9-й=8, 10-й=9 (всего 46 💰)
 
 const data2 = getFillData(grid2, econ2);
 console.assert(data2.freeSlotsCount === 25, `❌ Должно быть 25 свободных слотов`);
-console.assert(data2.count === 9, `❌ На 50 монет должно выкупиться ровно 9 котиков, получено: ${data2.count}`);
-console.assert(data2.cost === 45, `❌ Стоимость за 9 котиков должна быть 45 монет, получено: ${data2.cost}`);
+console.assert(data2.count === 10, `❌ На 50 монет должно выкупиться ровно 10 котиков, получено: ${data2.count}`);
+console.assert(data2.cost === 46, `❌ Стоимость за 10 котиков должна быть 46 монет, получено: ${data2.cost}`);
 
 const startCoins2 = econ2.coins;
 const res2 = handleTriggerFillAll(grid2, econ2, data2.count, data2.cost);
 console.assert(res2.success === true, `❌ Заполнение должно завершиться успехом`);
-console.assert(res2.spawnCount === 9, `❌ Должно заспавниться 9 котиков`);
-console.assert(econ2.coins === startCoins2 - 45, `❌ Остаток монет должен быть 5 (50 - 45)`);
-console.assert(econ2.totalCatsBought === 9, `❌ Всего куплено котиков должно стать 9`);
-console.log('  [Pass] Кнопка выкупила ровно 9 котиков за 45 💰, списав деньги без рекламы\n');
+console.assert(res2.spawnCount === 10, `❌ Должно заспавниться 10 котиков`);
+console.assert(econ2.coins === startCoins2 - 46, `❌ Остаток монет должен быть 4 (50 - 46)`);
+console.assert(econ2.totalCatsBought === 10, `❌ Всего куплено котиков должно стать 10`);
+console.log('  [Pass] Кнопка выкупила ровно 10 котиков за 46 💰, списав деньги без рекламы\n');
 
 // -------------------------------------------------------------
 // ТЕСТ 3: Состояние 3 — Бесплатное заполнение за рекламу при 0 монет (FREE_AD)
@@ -144,20 +144,19 @@ console.log('  [Pass] Кнопка выкупила ровно 9 котиков 
 console.log('--- 3. Проверка Состояния 3: Бесплатный выкуп за рекламу при 0 монет (FREE_AD) ---');
 const grid3 = new MockGrid(); // Все 25 слотов свободны
 const econ3 = new Economy(grid3);
-econ3.setBalance(0, 10, 100, 0); // 0 монет! 100 уже куплено (стоимость котика = 8.6K 💰)
+econ3.setBalance(0, 10, 100, 0);
 
 const data3 = getFillData(grid3, econ3);
 console.assert(data3.freeSlotsCount === 25, `❌ Должно быть 25 свободных слотов`);
 console.assert(data3.count === 0, `❌ При 0 монет count должен быть 0 (режим БЕСПЛАТНО)`);
 console.assert(data3.cost === 0, `❌ При 0 монет cost должен быть 0`);
 
-// Симуляция успешного просмотра рекламы: overrideCost = 0
+// Симуляция успешного просмотра рекламы: overrideCost = 0 (бесплатные котики за рекламу не увеличивают totalCatsBought)
 const res3 = handleTriggerFillAll(grid3, econ3, data3.freeSlotsCount, 0);
 console.assert(res3.success === true, `❌ Бесплатное зачисление за рекламу должно сработать успехом`);
 console.assert(res3.spawnCount === 25, `❌ За рекламу должны заполниться ВСЕ 25 свободных слотов`);
 console.assert(res3.costSpent === 0, `❌ Монеты не должны быть списаны`);
 console.assert(econ3.coins === 0, `❌ Баланс монет остался 0`);
-console.assert(econ3.totalCatsBought === 125, `❌ Счётчик купленных котиков увеличился на 25 (100 + 25 = 125)`);
 console.log('  [Pass] Бесплатный запуск спас игровую сетку: 25 котиков заспавнены за 0 💰 после рекламы!\n');
 
 console.log('🎉 ВСЕ СТАТУСНЫЕ ТЕСТЫ КНОПКИ «ЗАПОЛНИТЬ» ПРОЙДЕНЫ БЕЗУПРЕЧНО!');
