@@ -109,21 +109,28 @@ export class AdModal extends Container {
   }
 
   async _startVideoPlayer() {
-    // 1. Попытка запустить нативную VK рекламу с ограничением ожидания в 2 секунды
+    // 1. Попытка запустить нативную VK рекламу
     const adPromise = showRewardedAd().catch(() => null);
-    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 1500));
     
     const realAdRes = await Promise.race([adPromise, timeoutPromise]);
     if (this._isClosed) return;
 
-    if (realAdRes && realAdRes.success) {
-      if (this.economy && this.rewardGems > 0) {
-        this.economy.addGems(this.rewardGems);
-        try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
-      }
-      this._close();
-      if (typeof this.onRewardGranted === 'function') {
-        this.onRewardGranted();
+    // Если нативная реклама VK отработала (успех или закрытие/клик по ссылке) -> мгновенно закрываем оверлей!
+    if (realAdRes !== null) {
+      if (realAdRes.success === true) {
+        if (this.economy && this.rewardGems > 0) {
+          this.economy.addGems(this.rewardGems);
+          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+        }
+        this._close();
+        if (typeof this.onRewardGranted === 'function') {
+          this.onRewardGranted();
+        }
+      } else {
+        // Нативная реклама VK закрыта или выполнен переход по рекламной ссылке -> немедленно закрываем оверлей!
+        console.log('🎬 Нативная реклама VK была закрыта или перенаправлена по ссылке. Закрываем оверлей.');
+        this._close();
       }
       return;
     }
