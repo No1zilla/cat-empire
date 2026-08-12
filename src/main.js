@@ -5,6 +5,12 @@ import { PlatformService } from './services/PlatformService.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 
+// Глобальная блокировка браузерного выделения текста и drag-out элементов
+if (typeof document !== 'undefined') {
+  document.addEventListener('selectstart', (e) => e.preventDefault(), false);
+  document.addEventListener('dragstart', (e) => e.preventDefault(), false);
+}
+
 // Глобальный метод для отладки и сброса туториала
 window.resetTutorial = () => {
   localStorage.removeItem('cat_empire_tutorial_done');
