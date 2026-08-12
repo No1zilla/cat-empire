@@ -74,6 +74,8 @@ export class AdModal extends Container {
     const W = CONFIG.GAME_WIDTH || 375;
     const H = CONFIG.GAME_HEIGHT || 667;
 
+    this.sortableChildren = true;
+
     // Рамка экрана видеоплеера
     const screenW = 340;
     const screenH = 260;
@@ -84,48 +86,8 @@ export class AdModal extends Container {
     screenBox.roundRect(screenX, screenY, screenW, screenH, 16);
     screenBox.fill(0x110b29);
     screenBox.stroke({ color: 0xffd700, width: 2.5 });
+    screenBox.zIndex = 10;
     this.addChild(screenBox);
-
-    // Крупная объёмная сочная 3D кнопка «Закрыть ❌» (44x44px) в правом верхнем углу
-    const closeBtnContainer = new Container();
-    closeBtnContainer.position.set(screenX + screenW - 14, screenY + 14);
-
-    const closeBtnShadow = new Graphics();
-    closeBtnShadow.circle(0, 3, 20);
-    closeBtnShadow.fill(0x78281f);
-
-    const closeBtnBg = new Graphics();
-    closeBtnBg.circle(0, 0, 20);
-    closeBtnBg.fill(0xe74c3c);
-    closeBtnBg.stroke({ color: '#ffffff', alpha: 0.9, width: 2 });
-
-    const closeStyle = new TextStyle({
-      fontSize: 16,
-      fontWeight: 'bold',
-      fill: '#ffffff',
-      dropShadow: { color: '#000000', alpha: 0.5, blur: 2 }
-    });
-    const closeText = new Text({ text: '✕', style: closeStyle });
-    closeText.anchor.set(0.5, 0.5);
-
-    closeBtnContainer.addChild(closeBtnShadow);
-    closeBtnContainer.addChild(closeBtnBg);
-    closeBtnContainer.addChild(closeText);
-
-    closeBtnContainer.eventMode = 'static';
-    closeBtnContainer.cursor = 'pointer';
-
-    const triggerClose = (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-      console.log('🔴 AdModal: Закрытие по кнопке ✕');
-      this._close();
-    };
-
-    closeBtnContainer.on('pointertap', triggerClose);
-    closeBtnContainer.on('pointerdown', (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-    });
-    this.addChild(closeBtnContainer);
 
     // Динамический сцен-контейнер рекламного видеоролика
     const videoScene = new Container();
@@ -258,6 +220,48 @@ export class AdModal extends Container {
     };
 
     updateFill(0.05);
+
+    // Крупная объёмная сочная 3D кнопка «Закрыть ❌» (44x44px) на САМОМ ВЕРХНЕМ СЛОЕ zIndex 999999
+    const closeBtnContainer = new Container();
+    closeBtnContainer.position.set(screenX + screenW - 14, screenY + 14);
+
+    const closeBtnShadow = new Graphics();
+    closeBtnShadow.circle(0, 3, 20);
+    closeBtnShadow.fill(0x78281f);
+
+    const closeBtnBg = new Graphics();
+    closeBtnBg.circle(0, 0, 20);
+    closeBtnBg.fill(0xe74c3c);
+    closeBtnBg.stroke({ color: '#ffffff', alpha: 0.9, width: 2 });
+
+    const closeStyle = new TextStyle({
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 2 }
+    });
+    const closeText = new Text({ text: '✕', style: closeStyle });
+    closeText.anchor.set(0.5, 0.5);
+
+    closeBtnContainer.addChild(closeBtnShadow);
+    closeBtnContainer.addChild(closeBtnBg);
+    closeBtnContainer.addChild(closeText);
+
+    closeBtnContainer.eventMode = 'static';
+    closeBtnContainer.cursor = 'pointer';
+    closeBtnContainer.zIndex = 999999;
+
+    const triggerClose = (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      console.log('🔴 AdModal: Закрытие по кнопке ✕ на верхнем слое!');
+      this._close();
+    };
+
+    closeBtnContainer.on('pointertap', triggerClose);
+    closeBtnContainer.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
+    this.addChild(closeBtnContainer);
 
     const totalDuration = 5;
     const startTime = Date.now();
