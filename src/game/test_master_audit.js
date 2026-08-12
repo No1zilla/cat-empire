@@ -40,22 +40,22 @@ console.log('✅ 1. Форматирование чисел полностью �
 // -------------------------------------------------------------
 // 2. АУДИТ БАЛАНСА И СТОИМОСТИ КУПЛИ (BALANCE.calculateCatCost)
 // -------------------------------------------------------------
-console.log('--- 2. Тестирование формулы стоимости и ограничения n <= 300 ---');
+console.log('--- 2. Тестирование линейной формулы стоимости (Cost = n + 1) ---');
 const cost0 = BALANCE.calculateCatCost(0);
 const cost10 = BALANCE.calculateCatCost(10);
 const cost100 = BALANCE.calculateCatCost(100);
-const cost1000 = BALANCE.calculateCatCost(1000); // Должно сработать ограничение Math.min(300, n)
+const cost1000 = BALANCE.calculateCatCost(1000);
 
-console.assert(cost0 === 10, `❌ Стоимость при 0 покупок должна быть 10, получено: ${cost0}`);
-console.assert(cost10 === 19, `❌ Стоимость при 10 покупках должна быть 19, получено: ${cost10}`);
-console.assert(typeof cost100 === 'number' && isFinite(cost100), `❌ Стоимость должна быть конечно числом, получено: ${cost100}`);
-console.assert(cost1000 === BALANCE.calculateCatCost(300), `❌ При 1000 покупках должно быть ограничение как при 300`);
+console.assert(cost0 === 1, `❌ Стоимость при 0 покупках должна быть 1, получено: ${cost0}`);
+console.assert(cost10 === 11, `❌ Стоимость при 10 покупках должна быть 11, получено: ${cost10}`);
+console.assert(cost100 === 101, `❌ Стоимость при 100 покупках должна быть 101, получено: ${cost100}`);
+console.assert(cost1000 === 1001, `❌ Стоимость при 1000 покупках должна быть 1001, получено: ${cost1000}`);
 
 console.log(`  [Pass] 0 покупок: ${cost0} 💰`);
 console.log(`  [Pass] 10 покупок: ${cost10} 💰`);
 console.log(`  [Pass] 100 покупок: ${UIUtils.formatNumber(cost100)} 💰`);
-console.log(`  [Pass] 1000 покупок (Кап 300): ${UIUtils.formatNumber(cost1000)} 💰`);
-console.log('✅ 2. Формула стоимости котиков работает устойчиво и не ломает экономику!\n');
+console.log(`  [Pass] 1000 покупок: ${UIUtils.formatNumber(cost1000)} 💰`);
+console.log('✅ 2. Линейная формула стоимости котиков работает устойчиво!\n');
 
 // -------------------------------------------------------------
 // 3. АУДИТ СБРОСА ПРОГРЕССА (StorageService)

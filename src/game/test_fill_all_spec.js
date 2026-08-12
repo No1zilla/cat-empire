@@ -123,20 +123,20 @@ console.log('  [Pass] Кнопка находится в режиме "ЗАПО�
 console.log('--- 2. Проверка Состояния 2: Покупка за монеты (BUY_PAID) ---');
 const grid2 = new MockGrid(); // Все 25 слотов свободны
 const econ2 = new Economy(grid2);
-econ2.setBalance(50, 10, 0, 0); // 50 монет. 1-й котик = 10, 2-й = 10, 3-й = 11, 4-й = 11, 5-й = 12 (всего 54 > 50 -> 4 котика = 42 монеты)
+econ2.setBalance(50, 10, 0, 0); // 50 монет. 1-й=1, 2-й=2, 3-й=3, 4-й=4, 5-й=5, 6-й=6, 7-й=7, 8-й=8, 9-й=9 (всего 45 💰)
 
 const data2 = getFillData(grid2, econ2);
 console.assert(data2.freeSlotsCount === 25, `❌ Должно быть 25 свободных слотов`);
-console.assert(data2.count === 4, `❌ На 50 монет должно выкупиться ровно 4 котика, получено: ${data2.count}`);
-console.assert(data2.cost === 43, `❌ Стоимость за 4 котика должна быть 43 монеты, получено: ${data2.cost}`);
+console.assert(data2.count === 9, `❌ На 50 монет должно выкупиться ровно 9 котиков, получено: ${data2.count}`);
+console.assert(data2.cost === 45, `❌ Стоимость за 9 котиков должна быть 45 монет, получено: ${data2.cost}`);
 
 const startCoins2 = econ2.coins;
 const res2 = handleTriggerFillAll(grid2, econ2, data2.count, data2.cost);
 console.assert(res2.success === true, `❌ Заполнение должно завершиться успехом`);
-console.assert(res2.spawnCount === 4, `❌ Должно заспавниться 4 котика`);
-console.assert(econ2.coins === startCoins2 - 43, `❌ Остаток монет должен быть 7 (50 - 43)`);
-console.assert(econ2.totalCatsBought === 4, `❌ Всего куплено котиков должно стать 4`);
-console.log('  [Pass] Кнопка выкупила ровно 4 котика за 43 💰, списав деньги без рекламы\n');
+console.assert(res2.spawnCount === 9, `❌ Должно заспавниться 9 котиков`);
+console.assert(econ2.coins === startCoins2 - 45, `❌ Остаток монет должен быть 5 (50 - 45)`);
+console.assert(econ2.totalCatsBought === 9, `❌ Всего куплено котиков должно стать 9`);
+console.log('  [Pass] Кнопка выкупила ровно 9 котиков за 45 💰, списав деньги без рекламы\n');
 
 // -------------------------------------------------------------
 // ТЕСТ 3: Состояние 3 — Бесплатное заполнение за рекламу при 0 монет (FREE_AD)

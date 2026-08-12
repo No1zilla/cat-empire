@@ -46,8 +46,8 @@ async function runResetTests() {
 
   console.log('📌 ТЕСТ 2: Проверка стартовой стоимости котика при 0 покупок');
   const initialCost = BALANCE.calculateCatCost(0);
-  console.log('   Цена 1-го котика:', initialCost, '💰 (Никаких 19.5k!)');
-  console.assert(initialCost === 10, '❌ Цена первого котика при 0 покупок должна быть ровно 10 💰');
+  console.log('   Цена 1-го котика:', initialCost, '💰 (1 котик = 1 монета!)');
+  console.assert(initialCost === 1, '❌ Цена первого котика при 0 покупок должна быть ровно 1 💰');
   console.log('✅ ТЕСТ 2 УСПЕШНО ПРОЙДЕН!\n');
 
   console.log('📌 ТЕСТ 3: Валидация метода сброса прогресса (clearAllProgress)');
