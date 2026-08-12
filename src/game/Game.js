@@ -193,16 +193,15 @@ export class Game {
       for (let i = 0; i < spawnCount; i++) {
         const slot = freeSlots[i];
         const cat = new Cat(1, slot);
-        cat.scale.set(0);
         this.grid.addCat(cat, slot);
-        cat.playJumpAnimation();
 
         if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {
           this.dragSystem.makeDraggable(cat);
         }
 
-        this.spawnSystem._animateBounce(cat);
-        await new Promise((r) => setTimeout(r, 35));
+        if (this.spawnSystem) {
+          this.spawnSystem._animateBounce(cat);
+        }
       }
 
       if (this.economy) {
@@ -210,6 +209,10 @@ export class Game {
       }
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
+      if (this.hud && this.economy) this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
+      if (this.autoMergeSystem && typeof this.autoMergeSystem.scheduleNextCheck === 'function') {
+        this.autoMergeSystem.scheduleNextCheck();
+      }
 
       this._saveToLocalStorage();
 

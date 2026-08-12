@@ -185,7 +185,7 @@ export class FillAllButton extends Container {
     let lastFATapTime = 0;
     const triggerFillAllClick = (e) => {
       const now = Date.now();
-      if (now - lastFATapTime < 300) return;
+      if (now - lastFATapTime < 100) return;
       lastFATapTime = now;
 
       if (e) {
@@ -314,7 +314,7 @@ export class FillAllButton extends Container {
     } finally {
       setTimeout(() => {
         this._isClickProcessing = false;
-      }, 400);
+      }, 100);
     }
   }
 
