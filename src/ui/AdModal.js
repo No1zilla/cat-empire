@@ -17,28 +17,33 @@ export class AdModal extends Container {
     this.customTitle = customTitle;
     this._interval = null;
     this._videoTicker = null;
+    this._startTime = Date.now();
+    this._isClosed = false;
 
     this.eventMode = 'static';
+    this.sortableChildren = true;
     
-    // Блокирующий экран-оверлей при инициализации
+    // Блокирующий экран-оверлей И МГНОВЕННАЯ кнопка закрытия ✕ при инициализации
     this._drawOverlayShield();
+    this._drawInstantCloseButton();
     this._startVideoPlayer();
   }
 
-  // Защитный экранирующий оверлей — предотвращает «проклик» в игровое поле и закрывает окно при тапе по фону
+  // Защитный экранирующий оверлей — закрывает окно при тапе по фону через 1сек
   _drawOverlayShield() {
     const W = CONFIG.GAME_WIDTH || 375;
     const H = CONFIG.GAME_HEIGHT || 667;
 
     const overlay = new Graphics();
     overlay.rect(0, 0, W, H);
-    overlay.fill({ color: 0x07040d, alpha: 0.92 });
+    overlay.fill({ color: 0x07040d, alpha: 0.94 });
     overlay.eventMode = 'static';
+    overlay.zIndex = 1;
 
     const handleTap = (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-      // Разрешаем закрывать оверлей тапом по фону через 1.5 секунды
-      if (Date.now() - (this._startTime || 0) > 1500) {
+      if (Date.now() - (this._startTime || 0) > 1000) {
+        console.log('🔴 AdModal: Закрытие по тапу на фон');
         this._close();
       }
     };
@@ -50,9 +55,67 @@ export class AdModal extends Container {
     this.addChild(overlay);
   }
 
+  // Мгновенная неубиваемая 3D кнопка «Закрыть ✕» (44x44px) на самом верхнем слое zIndex 999999
+  _drawInstantCloseButton() {
+    const W = CONFIG.GAME_WIDTH || 375;
+    const H = CONFIG.GAME_HEIGHT || 667;
+
+    const screenW = 340;
+    const screenH = 260;
+    const screenX = (W - screenW) / 2;
+    const screenY = (H - screenH) / 2 - 20;
+
+    const closeBtnContainer = new Container();
+    closeBtnContainer.position.set(screenX + screenW - 14, screenY + 14);
+
+    const closeBtnShadow = new Graphics();
+    closeBtnShadow.circle(0, 3, 20);
+    closeBtnShadow.fill(0x78281f);
+
+    const closeBtnBg = new Graphics();
+    closeBtnBg.circle(0, 0, 20);
+    closeBtnBg.fill(0xe74c3c);
+    closeBtnBg.stroke({ color: '#ffffff', alpha: 0.9, width: 2 });
+
+    const closeStyle = new TextStyle({
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 2 }
+    });
+    const closeText = new Text({ text: '✕', style: closeStyle });
+    closeText.anchor.set(0.5, 0.5);
+
+    closeBtnContainer.addChild(closeBtnShadow);
+    closeBtnContainer.addChild(closeBtnBg);
+    closeBtnContainer.addChild(closeText);
+
+    closeBtnContainer.eventMode = 'static';
+    closeBtnContainer.cursor = 'pointer';
+    closeBtnContainer.zIndex = 999999;
+
+    const triggerClose = (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      console.log('🔴 AdModal: Закрытие по гарантированной кнопке ✕!');
+      this._close();
+    };
+
+    closeBtnContainer.on('pointertap', triggerClose);
+    closeBtnContainer.on('pointerdown', (e) => {
+      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    });
+
+    this.addChild(closeBtnContainer);
+  }
+
   async _startVideoPlayer() {
-    // 1. Попытка запустить нативную VK рекламу
-    const realAdRes = await showRewardedAd().catch(() => null);
+    // 1. Попытка запустить нативную VK рекламу с ограничением ожидания в 2 секунды
+    const adPromise = showRewardedAd().catch(() => null);
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
+    
+    const realAdRes = await Promise.race([adPromise, timeoutPromise]);
+    if (this._isClosed) return;
+
     if (realAdRes && realAdRes.success) {
       if (this.economy && this.rewardGems > 0) {
         this.economy.addGems(this.rewardGems);
@@ -65,16 +128,9 @@ export class AdModal extends Container {
       return;
     }
 
-    this._startTime = Date.now();
-
-    // 2. Если нативная реклама недоступна — запускаем чистый симулятор видеоплеера
-    this.removeChildren();
-    this._drawOverlayShield();
-
+    // 2. Если нативная реклама недоступна или превысила таймаут 2с — запускаем плеер-симулятор
     const W = CONFIG.GAME_WIDTH || 375;
     const H = CONFIG.GAME_HEIGHT || 667;
-
-    this.sortableChildren = true;
 
     // Рамка экрана видеоплеера
     const screenW = 340;
@@ -220,48 +276,6 @@ export class AdModal extends Container {
     };
 
     updateFill(0.05);
-
-    // Крупная объёмная сочная 3D кнопка «Закрыть ❌» (44x44px) на САМОМ ВЕРХНЕМ СЛОЕ zIndex 999999
-    const closeBtnContainer = new Container();
-    closeBtnContainer.position.set(screenX + screenW - 14, screenY + 14);
-
-    const closeBtnShadow = new Graphics();
-    closeBtnShadow.circle(0, 3, 20);
-    closeBtnShadow.fill(0x78281f);
-
-    const closeBtnBg = new Graphics();
-    closeBtnBg.circle(0, 0, 20);
-    closeBtnBg.fill(0xe74c3c);
-    closeBtnBg.stroke({ color: '#ffffff', alpha: 0.9, width: 2 });
-
-    const closeStyle = new TextStyle({
-      fontSize: 16,
-      fontWeight: 'bold',
-      fill: '#ffffff',
-      dropShadow: { color: '#000000', alpha: 0.5, blur: 2 }
-    });
-    const closeText = new Text({ text: '✕', style: closeStyle });
-    closeText.anchor.set(0.5, 0.5);
-
-    closeBtnContainer.addChild(closeBtnShadow);
-    closeBtnContainer.addChild(closeBtnBg);
-    closeBtnContainer.addChild(closeText);
-
-    closeBtnContainer.eventMode = 'static';
-    closeBtnContainer.cursor = 'pointer';
-    closeBtnContainer.zIndex = 999999;
-
-    const triggerClose = (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-      console.log('🔴 AdModal: Закрытие по кнопке ✕ на верхнем слое!');
-      this._close();
-    };
-
-    closeBtnContainer.on('pointertap', triggerClose);
-    closeBtnContainer.on('pointerdown', (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-    });
-    this.addChild(closeBtnContainer);
 
     const totalDuration = 5;
     const startTime = Date.now();
