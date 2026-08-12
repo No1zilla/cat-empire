@@ -295,14 +295,16 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Если гемов не хватает (gems < 5) -> запускаем плеер AdModal для начисления +5 гемов и авто-слияния!
+    // 2. Если гемов не хватает (gems < 5) -> запускаем AdModal для начисления +5 гемов!
     const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
     if (appStage) {
       appStage.sortableChildren = true;
       const modal = new AdModal(this.app, this.economy, async () => {
-        await this.onTriggerAutoMerge();
+        if (this.economy) {
+          this.economy.addGems(5);
+        }
         this.updateLabel();
-      }, 5, 'Авто-соединение через:');
+      }, 5, 'Получение рубинов через:');
       modal.zIndex = 9999999;
       appStage.addChild(modal);
     }

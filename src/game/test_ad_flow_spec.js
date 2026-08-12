@@ -35,9 +35,9 @@ async function runAdFlowTests() {
   let mergeCompleted = false;
   const mergeModal = new AdModal(app, economy, () => {
     mergeCompleted = true;
-  }, 5, 'Авто-соединение через:');
+  }, 5, 'Получение рубинов через:');
 
-  console.assert(mergeModal.customTitle === 'Авто-соединение через:', '❌ customTitle должен быть "Авто-соединение через:"');
+  console.assert(mergeModal.customTitle === 'Получение рубинов через:', '❌ customTitle должен быть "Получение рубинов через:"');
   console.assert(mergeModal.rewardGems === 5, '❌ rewardGems должен быть 5 для авто-слияния');
   console.log('✅ ТЕСТ 2 УСПЕШНО ПРОЙДЕН!\n');
 
