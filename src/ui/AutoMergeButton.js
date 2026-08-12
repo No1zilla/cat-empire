@@ -299,10 +299,7 @@ export class AutoMergeButton extends Container {
     const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
     if (appStage) {
       appStage.sortableChildren = true;
-      const modal = new AdModal(this.app, this.economy, async () => {
-        if (this.economy) {
-          this.economy.addGems(5);
-        }
+      const modal = new AdModal(this.app, this.economy, () => {
         this.updateLabel();
       }, 5, 'Получение рубинов через:');
       modal.zIndex = 9999999;
