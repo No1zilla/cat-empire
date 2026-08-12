@@ -32,11 +32,18 @@ export class StorageService {
 
     let updatedAt = raw.t !== undefined ? raw.t : (raw.updatedAt !== undefined ? raw.updatedAt : (raw.updated_at !== undefined ? (typeof raw.updated_at === 'string' ? Date.parse(raw.updated_at) : raw.updated_at) : 0));
 
+    let normBought = Math.max(0, Number(totalCatsBought) || 0);
+    const normMaxLvl = Math.max(1, Number(maxCatLevel) || 1);
+    // Защита новичков: для уровней 1-6 стоимость не должна улетать в 1300 из-за рекламы/ошибок
+    if (normMaxLvl < 7 && normBought > normMaxLvl * 30) {
+      normBought = normMaxLvl * 30;
+    }
+
     return {
       coins: Number(coins) || 0,
       gems: Number(gems) || 0,
-      maxCatLevel: Math.max(1, Number(maxCatLevel) || 1),
-      totalCatsBought: Math.max(0, Number(totalCatsBought) || 0),
+      maxCatLevel: normMaxLvl,
+      totalCatsBought: normBought,
       totalMerges: Math.max(0, Number(totalMerges) || 0),
       gridState,
       updatedAt: Number(updatedAt) || 0,

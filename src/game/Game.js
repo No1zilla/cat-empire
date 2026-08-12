@@ -186,8 +186,8 @@ export class Game {
       if (this.economy) {
         if (actualTotalCost > 0) {
           this.economy.spend(actualTotalCost);
+          this.economy.totalCatsBought += spawnCount;
         }
-        this.economy.totalCatsBought += spawnCount;
         this.economy.totalCatsCreated += spawnCount;
       }
 
