@@ -32,26 +32,19 @@ export class FillAllButton extends Container {
     this._draw();
   }
 
-  // Расчёт стоимости и количества доступных котиков для массовой покупки
+  // Расчёт стоимости и количества доступных котиков для массовой покупки (Прозрачная прямая математика: count * unitCost)
   getFillData() {
     if (!this.grid || !this.economy) return { count: 0, cost: 0, freeSlotsCount: 0 };
 
     const freeSlotsCount = this.grid.slots.filter((slot) => slot === null).length;
     if (freeSlotsCount === 0) return { count: 0, cost: 0, freeSlotsCount: 0 };
 
-    let totalCost = 0;
-    let count = 0;
     const currentBought = this.economy.totalCatsBought || 0;
+    const unitCost = BALANCE.calculateCatCost(currentBought);
 
-    for (let i = 0; i < freeSlotsCount; i++) {
-      const catCost = BALANCE.calculateCatCost(currentBought + i);
-      if (this.economy.coins >= totalCost + catCost) {
-        totalCost += catCost;
-        count++;
-      } else {
-        break;
-      }
-    }
+    const maxAffordable = Math.floor((this.economy.coins || 0) / unitCost);
+    const count = Math.min(freeSlotsCount, maxAffordable);
+    const totalCost = count * unitCost;
 
     return { count, cost: totalCost, freeSlotsCount };
   }

@@ -160,22 +160,16 @@ export class Game {
       let actualTotalCost = 0;
       let spawnCount = 0;
       const currentBought = this.economy ? this.economy.totalCatsBought : 0;
-
+      const unitCost = BALANCE.calculateCatCost(currentBought);
       const isFree = (overrideCost === 0);
 
       if (isFree) {
         spawnCount = Math.min(freeSlots.length, requestedCount || freeSlots.length);
         actualTotalCost = 0;
       } else {
-        for (let i = 0; i < freeSlots.length; i++) {
-          const catCost = BALANCE.calculateCatCost(currentBought + i);
-          if (this.economy && this.economy.coins >= actualTotalCost + catCost) {
-            actualTotalCost += catCost;
-            spawnCount++;
-          } else {
-            break;
-          }
-        }
+        const maxAffordable = Math.floor((this.economy ? this.economy.coins : 0) / unitCost);
+        spawnCount = Math.min(freeSlots.length, requestedCount || freeSlots.length, maxAffordable);
+        actualTotalCost = spawnCount * unitCost;
       }
 
       if (spawnCount === 0) {

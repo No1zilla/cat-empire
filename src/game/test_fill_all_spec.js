@@ -31,19 +31,12 @@ function getFillData(grid, economy) {
   const freeSlotsCount = grid.getFreeSlotsCount();
   if (freeSlotsCount === 0) return { count: 0, cost: 0, freeSlotsCount: 0 };
 
-  let totalCost = 0;
-  let count = 0;
   const currentBought = economy.totalCatsBought || 0;
+  const unitCost = BALANCE.calculateCatCost(currentBought);
 
-  for (let i = 0; i < freeSlotsCount; i++) {
-    const catCost = BALANCE.calculateCatCost(currentBought + i);
-    if (economy.coins >= totalCost + catCost) {
-      totalCost += catCost;
-      count++;
-    } else {
-      break;
-    }
-  }
+  const maxAffordable = Math.floor((economy.coins || 0) / unitCost);
+  const count = Math.min(freeSlotsCount, maxAffordable);
+  const totalCost = count * unitCost;
 
   return { count, cost: totalCost, freeSlotsCount };
 }
@@ -64,21 +57,16 @@ function handleTriggerFillAll(grid, economy, requestedCount, overrideCost) {
   let actualTotalCost = 0;
   let spawnCount = 0;
   const currentBought = economy ? economy.totalCatsBought : 0;
+  const unitCost = BALANCE.calculateCatCost(currentBought);
   const isFree = (overrideCost === 0);
 
   if (isFree) {
     spawnCount = Math.min(freeSlots.length, requestedCount || freeSlots.length);
     actualTotalCost = 0;
   } else {
-    for (let i = 0; i < freeSlots.length; i++) {
-      const catCost = BALANCE.calculateCatCost(currentBought + i);
-      if (economy && economy.coins >= actualTotalCost + catCost) {
-        actualTotalCost += catCost;
-        spawnCount++;
-      } else {
-        break;
-      }
-    }
+    const maxAffordable = Math.floor((economy ? economy.coins : 0) / unitCost);
+    spawnCount = Math.min(freeSlots.length, requestedCount || freeSlots.length, maxAffordable);
+    actualTotalCost = spawnCount * unitCost;
   }
 
   if (spawnCount === 0) {
@@ -88,8 +76,8 @@ function handleTriggerFillAll(grid, economy, requestedCount, overrideCost) {
   if (economy) {
     if (actualTotalCost > 0) {
       economy.spend(actualTotalCost);
+      economy.totalCatsBought += spawnCount;
     }
-    economy.totalCatsBought += spawnCount;
   }
 
   for (let i = 0; i < spawnCount; i++) {
@@ -123,20 +111,20 @@ console.log('  [Pass] Кнопка находится в режиме "ЗАПО�
 console.log('--- 2. Проверка Состояния 2: Покупка за монеты (BUY_PAID) ---');
 const grid2 = new MockGrid(); // Все 25 слотов свободны
 const econ2 = new Economy(grid2);
-econ2.setBalance(50, 10, 0, 0); // 50 монет. 1-й=1, 2-й=1, 3-й=2, 4-й=3, 5-й=4, 6-й=5, 7-й=6, 8-й=7, 9-й=8, 10-й=9 (всего 46 💰)
+econ2.setBalance(50, 10, 0, 0); // 50 монет. unitCost = 1 💰 per cat. 25 свободных слотов = 25 котиков за 25 💰
 
 const data2 = getFillData(grid2, econ2);
 console.assert(data2.freeSlotsCount === 25, `❌ Должно быть 25 свободных слотов`);
-console.assert(data2.count === 10, `❌ На 50 монет должно выкупиться ровно 10 котиков, получено: ${data2.count}`);
-console.assert(data2.cost === 46, `❌ Стоимость за 10 котиков должна быть 46 монет, получено: ${data2.cost}`);
+console.assert(data2.count === 25, `❌ На 50 монет при цене 1 💰 выкупается все 25 слотов, получено: ${data2.count}`);
+console.assert(data2.cost === 25, `❌ Стоимость за 25 котиков должна быть 25 монет, получено: ${data2.cost}`);
 
 const startCoins2 = econ2.coins;
 const res2 = handleTriggerFillAll(grid2, econ2, data2.count, data2.cost);
 console.assert(res2.success === true, `❌ Заполнение должно завершиться успехом`);
-console.assert(res2.spawnCount === 10, `❌ Должно заспавниться 10 котиков`);
-console.assert(econ2.coins === startCoins2 - 46, `❌ Остаток монет должен быть 4 (50 - 46)`);
-console.assert(econ2.totalCatsBought === 10, `❌ Всего куплено котиков должно стать 10`);
-console.log('  [Pass] Кнопка выкупила ровно 10 котиков за 46 💰, списав деньги без рекламы\n');
+console.assert(res2.spawnCount === 25, `❌ Должно заспавниться 25 котиков`);
+console.assert(econ2.coins === startCoins2 - 25, `❌ Остаток монет должен быть 25 (50 - 25)`);
+console.assert(econ2.totalCatsBought === 25, `❌ Всего куплено котиков должно стать 25`);
+console.log('  [Pass] Кнопка выкупила ровно 25 котиков за 25 💰 по прямой чистой цене unitCost * count!\n');
 
 // -------------------------------------------------------------
 // ТЕСТ 3: Состояние 3 — Бесплатное заполнение за рекламу при 0 монет (FREE_AD)
