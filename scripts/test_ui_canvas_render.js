@@ -6,14 +6,6 @@ async function runCanvasBrowserTest() {
   console.log('🧪 PLAYWRIGHT BROWSER TEST: Проверка реальной визуальной отрисовки на Canvas');
   console.log('🧪 =========================================================\n');
 
-  // 1. Запуск локального Vite сервера
-  const server = await createServer({
-    server: { port: 5174 }
-  });
-  await server.listen();
-  console.log('🌐 Локальный тестовый сервер запущен на http://localhost:5174');
-
-  // 2. Запуск браузера Chromium без кэширования
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 410, height: 750 },
@@ -21,8 +13,8 @@ async function runCanvasBrowserTest() {
   });
   const page = await context.newPage();
 
-  console.log('📱 Открываем страницу приложения без кэша...');
-  await page.goto('http://localhost:5174', { waitUntil: 'networkidle' });
+  console.log('📱 Открываем live страницу на http://localhost:5173 без кэша...');
+  await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
 
   // Ждем полной загрузки спрайтов и создания объекта window.game
   await page.waitForFunction(() => window.game && window.game.economy && window.game.fillAllButton, { timeout: 10000 });
@@ -68,9 +60,8 @@ async function runCanvasBrowserTest() {
   await page.screenshot({ path: screenshotPath });
   console.log(`📸 Скриншот реальной игры сохранен в: ${screenshotPath}`);
 
-  // Закрываем браузер и сервер
+  // Закрываем браузер
   await browser.close();
-  await server.close();
 
   // Валидация
   const expectedCost = result.fillCount * result.unitCost;

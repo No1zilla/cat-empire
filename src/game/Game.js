@@ -339,7 +339,8 @@ export class Game {
     const offlineMinutes = Math.floor(offlineSeconds / 60);
 
     this._onMenuPlayCallback = () => {
-      if (offlineSeconds >= 60 && baseOfflineCoins >= 10) {
+      const isBeginner = (this.maxCatLevel <= 1 && (this.economy ? this.economy.totalMerges : 0) <= 10);
+      if (!isBeginner && offlineSeconds >= 60 && baseOfflineCoins >= 10) {
         const modal = new OfflineEarningsModal(
           this.app,
           this.economy,
