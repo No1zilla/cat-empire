@@ -61,6 +61,12 @@ async function runResetTests() {
   console.assert(resetLoadedState.maxCatLevel === 1, '❌ Максимальный уровень котика должен сброситься в 1');
   console.log('✅ ТЕСТ 3 УСПЕШНО ПРОЙДЕН!\n');
 
+  console.log('📌 ТЕСТ 4: Исключение 1-секундного моргания устаревших монет после сброса');
+  const cachedCoins = localStorage.getItem('cat_empire_last_coins');
+  console.log('   Монеты в синхронном кэше LocalStorage:', cachedCoins, '💰 (Ожидается: "100")');
+  console.assert(cachedCoins === '100', '❌ Локальный кэш должен мгновенно содержать "100" монет без задержек');
+  console.log('✅ ТЕСТ 4 УСПЕШНО ПРОЙДЕН!\n');
+
   console.log('🎉 =========================================================');
   console.log('🎉 ВСЕ ТЕСТЫ НАЧАЛЬНОГО СОСТОЯНИЯ И СБРОСА УСПЕШНО ПРОЙДЕНЫ!');
   console.log('🎉 =========================================================');

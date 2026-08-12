@@ -87,6 +87,7 @@ export class Game {
     this.hud = new HUD(this.app, openCollection, openMenu);
     this.hud.position.set(0, 0);
     this.hud.zIndex = 100;
+    this.hud.update(startCoins, startGems, 0);
     this.gameContainer.addChild(this.hud);
 
     // 3. Увеличенное сочное игровое поле 5x5 (всцентрировано ровно по CONFIG.GAME_WIDTH)

@@ -77,8 +77,8 @@ const lastCoins = localStorage.getItem('cat_empire_last_coins');
 const maxLevel = localStorage.getItem('cat_empire_last_max_level');
 
 console.assert(isResetFlag === '1', '❌ Флаг cat_empire_is_reset должен быть выставлен в 1');
-console.assert(lastCoins === null, '❌ Ключ cat_empire_last_coins должен быть полностью удалён');
-console.assert(maxLevel === null, '❌ Ключ cat_empire_last_max_level должен быть полностью удалён');
+console.assert(lastCoins === '100', '❌ Ключ cat_empire_last_coins должен содержать чистые "100" монет');
+console.assert(maxLevel === '1', '❌ Ключ cat_empire_last_max_level должен сброситься в "1"');
 
 console.log('  [Pass] Флаг сброса cat_empire_is_reset = 1');
 console.log('  [Pass] Все кэш-ключи старого прогресса очищены');

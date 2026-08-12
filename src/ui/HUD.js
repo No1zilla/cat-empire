@@ -90,7 +90,7 @@ export class HUD extends Container {
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
-    this._coinsText = new Text({ text: '0', style: coinsStyle });
+    this._coinsText = new Text({ text: '100', style: coinsStyle });
     this._coinsText.anchor.set(0, 0.5);
     this.addChild(this._coinsText);
     this._repositionCoinContent();
@@ -108,7 +108,7 @@ export class HUD extends Container {
       fill: '#ffffff',
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
-    this._gemsText = new Text({ text: '0', style: gemsStyle });
+    this._gemsText = new Text({ text: '10', style: gemsStyle });
     this._gemsText.anchor.set(0, 0.5);
     this.addChild(this._gemsText);
 

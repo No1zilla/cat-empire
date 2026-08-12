@@ -55,8 +55,8 @@ export class StorageService {
     if (!b) return a || {};
 
     // 1. Приоритет флага жестокого сброса
-    if (a.isReset) return a;
-    if (b.isReset) return b;
+    if (a.isReset && !b.isReset) return a;
+    if (b.isReset && !a.isReset) return b;
     if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
       if (a.coins === 100 && a.totalMerges === 0) return a;
       if (b.coins === 100 && b.totalMerges === 0) return b;
@@ -111,8 +111,8 @@ export class StorageService {
     try {
       const raw = localStorage.getItem('cat_empire_grid_state');
       localData = this._normalizeState({
-        coins: parseFloat(localStorage.getItem('cat_empire_last_coins') || '0'),
-        gems: parseInt(localStorage.getItem('cat_empire_last_gems') || '0', 10),
+        coins: parseFloat(localStorage.getItem('cat_empire_last_coins') || '100'),
+        gems: parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10),
         maxCatLevel: parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10),
         totalCatsBought: parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10),
         totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
@@ -205,24 +205,25 @@ export class StorageService {
   // Полный гарантийный сброс игрового прогресса в 0 во всех 3 элементах (LocalStorage, VK Storage и Сервер DB)
   async clearAllProgress() {
     console.log('🔄 Сброс всего игрового прогресса в 0...');
+    const now = Date.now();
 
-    // Выставляем глобальный системный флаг сброса в LocalStorage
+    // Синхронная немедленная перезапись локального кэша каноничными чистыми значениями (100 монет, 10 гемов)
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem('cat_empire_is_reset', '1');
+        localStorage.setItem('cat_empire_last_coins', '100');
+        localStorage.setItem('cat_empire_last_gems', '10');
+        localStorage.setItem('cat_empire_last_max_level', '1');
+        localStorage.setItem('cat_empire_last_total_bought', '0');
+        localStorage.setItem('cat_empire_last_total_merges', '0');
+        localStorage.setItem('cat_empire_last_updated_at', String(now));
+        localStorage.setItem('cat_empire_grid_state', JSON.stringify([{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]));
         localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem('cat_empire_grid_state');
-        localStorage.removeItem('cat_empire_last_coins');
-        localStorage.removeItem('cat_empire_last_gems');
-        localStorage.removeItem('cat_empire_last_max_level');
-        localStorage.removeItem('cat_empire_last_total_bought');
-        localStorage.removeItem('cat_empire_last_total_merges');
         localStorage.removeItem('cat_empire_last_timestamp');
         localStorage.removeItem('cat_empire_tutorial_done');
       } catch (e) {}
     }
 
-    const now = Date.now();
     const resetPayload = {
       coins: 100,
       gems: 10,
@@ -233,12 +234,6 @@ export class StorageService {
       updatedAt: now,
       isReset: true
     };
-
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.setItem('cat_empire_last_updated_at', String(now));
-      } catch (e) {}
-    }
 
     // Гарантированно параллельно отправляем и дожидаемся перезаписи в VK Storage и серверную БД
     await Promise.allSettled([
