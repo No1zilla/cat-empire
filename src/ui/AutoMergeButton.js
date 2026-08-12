@@ -295,39 +295,14 @@ export class AutoMergeButton extends Container {
       return;
     }
 
-    // 2. Запуск нативной рекламы VK (без наложения дублирующего плеера LiveAd)
-    if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
-      const adRes = await showRewardedAd();
-      if (adRes && adRes.success) {
-        if (this.economy) {
-          this.economy.addGems(GEM_COST);
-          this._showWarning('+5 рубинов начислено! ⚡');
-        }
-        await this.onTriggerAutoMerge();
-        try {
-          await saveProgress({
-            coins: this.economy ? this.economy.coins : undefined,
-            gems: this.economy ? this.economy.gems : undefined,
-            totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined
-          });
-        } catch (err) {}
-        this.updateLabel();
-      } else {
-        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        if (appStage) {
-          UIUtils.showToast(appStage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');
-        }
-      }
-      return;
-    }
-
-    // 3. Фолбэк плеера LiveAd только для автономной веб-демо версии вне ВКонтакте
+    // 2. Если гемов не хватает (gems < 5) -> запускаем плеер AdModal для начисления +5 гемов и авто-слияния!
     const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
     if (appStage) {
       appStage.sortableChildren = true;
-      const modal = new AdModal(this.app, this.economy, () => {
+      const modal = new AdModal(this.app, this.economy, async () => {
+        await this.onTriggerAutoMerge();
         this.updateLabel();
-      }, 5);
+      }, 5, 'Авто-соединение через:');
       modal.zIndex = 9999999;
       appStage.addChild(modal);
     }
