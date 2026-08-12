@@ -25,7 +25,7 @@ export class AdModal extends Container {
     this._startVideoPlayer();
   }
 
-  // Защитный экранирующий оверлей — предотвращает «проклик» в игровое поле
+  // Защитный экранирующий оверлей — предотвращает «проклик» в игровое поле и закрывает окно при тапе по фону
   _drawOverlayShield() {
     const W = CONFIG.GAME_WIDTH || 375;
     const H = CONFIG.GAME_HEIGHT || 667;
@@ -35,16 +35,17 @@ export class AdModal extends Container {
     overlay.fill({ color: 0x07040d, alpha: 0.92 });
     overlay.eventMode = 'static';
 
-    const stopEvt = (e) => {
+    const handleTap = (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      // Разрешаем закрывать оверлей тапом по фону через 1.5 секунды
+      if (Date.now() - (this._startTime || 0) > 1500) {
+        this._close();
+      }
     };
 
-    overlay.on('pointerdown', stopEvt);
-    overlay.on('pointerup', stopEvt);
-    overlay.on('pointertap', stopEvt);
-    overlay.on('tap', stopEvt);
-    overlay.on('click', stopEvt);
-    overlay.on('touchstart', stopEvt);
+    overlay.on('pointertap', handleTap);
+    overlay.on('tap', handleTap);
+    overlay.on('click', handleTap);
 
     this.addChild(overlay);
   }
@@ -63,6 +64,8 @@ export class AdModal extends Container {
       }
       return;
     }
+
+    this._startTime = Date.now();
 
     // 2. Если нативная реклама недоступна — запускаем чистый симулятор видеоплеера
     this.removeChildren();
@@ -83,21 +86,46 @@ export class AdModal extends Container {
     screenBox.stroke({ color: 0xffd700, width: 2.5 });
     this.addChild(screenBox);
 
-    // Кнопка Закрыть ✕ в углу экрана видеоплеера
-    const closeBtnStyle = new TextStyle({ fontSize: 20, fill: '#aaaaaa' });
-    const closeBtn = new Text({ text: '✕', style: closeBtnStyle });
-    closeBtn.anchor.set(0.5, 0.5);
-    closeBtn.position.set(screenX + screenW - 16, screenY + 16);
-    closeBtn.eventMode = 'static';
-    closeBtn.cursor = 'pointer';
-    closeBtn.on('pointertap', (e) => {
+    // Крупная объёмная сочная 3D кнопка «Закрыть ❌» (44x44px) в правом верхнем углу
+    const closeBtnContainer = new Container();
+    closeBtnContainer.position.set(screenX + screenW - 14, screenY + 14);
+
+    const closeBtnShadow = new Graphics();
+    closeBtnShadow.circle(0, 3, 20);
+    closeBtnShadow.fill(0x78281f);
+
+    const closeBtnBg = new Graphics();
+    closeBtnBg.circle(0, 0, 20);
+    closeBtnBg.fill(0xe74c3c);
+    closeBtnBg.stroke({ color: '#ffffff', alpha: 0.9, width: 2 });
+
+    const closeStyle = new TextStyle({
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.5, blur: 2 }
+    });
+    const closeText = new Text({ text: '✕', style: closeStyle });
+    closeText.anchor.set(0.5, 0.5);
+
+    closeBtnContainer.addChild(closeBtnShadow);
+    closeBtnContainer.addChild(closeBtnBg);
+    closeBtnContainer.addChild(closeText);
+
+    closeBtnContainer.eventMode = 'static';
+    closeBtnContainer.cursor = 'pointer';
+
+    const triggerClose = (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      console.log('🔴 AdModal: Закрытие по кнопке ✕');
       this._close();
-    });
-    closeBtn.on('pointerdown', (e) => {
+    };
+
+    closeBtnContainer.on('pointertap', triggerClose);
+    closeBtnContainer.on('pointerdown', (e) => {
       if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     });
-    this.addChild(closeBtn);
+    this.addChild(closeBtnContainer);
 
     // Динамический сцен-контейнер рекламного видеоролика
     const videoScene = new Container();
@@ -267,15 +295,37 @@ export class AdModal extends Container {
         }, 500);
       }
     }, 1000 / 30);
+    // Аварийный страховочный таймер: максимум 6.5 секунд для автоматического закрытия при зависании
+    this._safetyTimeout = setTimeout(() => {
+      if (!this._isClosed) {
+        console.warn('⚠️ AdModal: Сработал аварийный страховочный таймер 6.5с');
+        this._close();
+        if (typeof this.onRewardGranted === 'function') {
+          this.onRewardGranted();
+        }
+      }
+    }, 6500);
   }
 
   _close() {
+    if (this._isClosed) return;
+    this._isClosed = true;
+
     if (this._interval) {
       clearInterval(this._interval);
       this._interval = null;
     }
-    if (this.parent) this.parent.removeChild(this);
-    this.destroy();
+    if (this._safetyTimeout) {
+      clearTimeout(this._safetyTimeout);
+      this._safetyTimeout = null;
+    }
+
+    if (this.parent) {
+      this.parent.removeChild(this);
+    } else if (this.app && this.app.stage) {
+      this.app.stage.removeChild(this);
+    }
+    this.destroy({ children: true });
   }
 }
 
