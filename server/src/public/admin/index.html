@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Империя Котиков — Аналитический Дашборд</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #0b0914;
+      --card-bg: #161226;
+      --border-color: #2b2347;
+      --primary-color: #ffd700;
+      --accent-color: #9b59b6;
+      --success-color: #2ecc71;
+      --text-color: #f1f2f6;
+      --muted-color: #8c7ae6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    h1 { font-size: 24px; color: var(--primary-color); display: flex; align-items: center; gap: 10px; }
+    .status-badge { font-size: 13px; padding: 4px 10px; border-radius: 12px; background: rgba(46, 204, 113, 0.2); color: var(--success-color); border: 1px solid var(--success-color); }
+
+    .grid-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .metric-title { font-size: 13px; color: #a4b0be; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-value { font-size: 28px; font-weight: bold; color: #fff; }
+    .metric-sub { font-size: 12px; color: var(--muted-color); }
+
+    .grid-charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .chart-title { font-size: 16px; margin-bottom: 16px; color: var(--primary-color); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 14px; }
+    th { color: #a4b0be; text-transform: uppercase; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🐱 Империя Котиков — Data Analytics Dashboard</h1>
+    <div class="status-badge" id="live-status">● Live Data (60s Auto-Refresh)</div>
+  </header>
+
+  <!-- Метрики активности -->
+  <div class="grid-metrics">
+    <div class="metric-card">
+      <div class="metric-title">DAU Сегодня</div>
+      <div class="metric-value" id="dau-val">--</div>
+      <div class="metric-sub">Активных игроков</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">D1 Retention</div>
+      <div class="metric-value" id="d1-val">--%</div>
+      <div class="metric-sub">Цель: > 35%</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">D7 Retention</div>
+      <div class="metric-value" id="d7-val">--%</div>
+      <div class="metric-sub">Цель: > 15%</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Ad Fill Rate</div>
+      <div class="metric-value" id="fillrate-val">--%</div>
+      <div class="metric-sub">Цель: > 80%</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-title">Ads per DAU</div>
+      <div class="metric-value" id="ads-dau-val">--</div>
+      <div class="metric-sub">Просмотров на игрока</div>
+    </div>
+  </div>
+
+  <!-- Графики -->
+  <div class="grid-charts">
+    <div class="chart-card">
+      <div class="chart-title">📊 Распределение Максимальных Уровней Котиков</div>
+      <canvas id="levelChart" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🏆 Топ Активных Игроков (Сессий за 7 дней)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Сессий</th>
+            <th>Активность</th>
+          </tr>
+        </thead>
+        <tbody id="top-users-body">
+          <tr><td colspan="3">Загрузка данных...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let levelChart = null;
+
+    async function fetchDashboard() {
+      try {
+        const token = new URLSearchParams(window.location.search).get('token') || 'cat_empire_admin_secret_token_2026';
+        const res = await fetch(`/api/admin/dashboard?token=${encodeURIComponent(token)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        document.getElementById('dau-val').innerText = data.activity ? data.activity.dau_today : 0;
+        document.getElementById('d1-val').innerText = data.retention ? Math.round((data.retention.d1_retention || 0) * 100) + '%' : '0%';
+        document.getElementById('d7-val').innerText = data.retention ? Math.round((data.retention.d7_retention || 0) * 100) + '%' : '0%';
+        document.getElementById('fillrate-val').innerText = data.monetization ? data.monetization.fill_rate_pct + '%' : '0%';
+        document.getElementById('ads-dau-val').innerText = data.monetization ? data.monetization.ads_per_dau : 0;
+
+        // Рендер таблицы топ пользователей
+        const tbody = document.getElementById('top-users-body');
+        if (data.top_users && data.top_users.length) {
+          tbody.innerHTML = data.top_users.map(u => `
+            <tr>
+              <td><code>${u.user_id}</code></td>
+              <td><strong>${u.session_count}</strong></td>
+              <td>${new Date(u.last_seen).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+            </tr>
+          `).join('');
+        }
+
+        // Рендер Chart.js бар-чарта
+        if (data.gameplay && data.gameplay.level_distribution) {
+          const labels = data.gameplay.level_distribution.map(d => `Ур. ${d.level}`);
+          const values = data.gameplay.level_distribution.map(d => d.users);
+
+          const ctx = document.getElementById('levelChart').getContext('2d');
+          if (levelChart) levelChart.destroy();
+          levelChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Игроков',
+                data: values,
+                backgroundColor: 'rgba(155, 89, 182, 0.7)',
+                borderColor: '#9b59b6',
+                borderWidth: 1.5,
+                borderRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, grid: { color: '#2b2347' } },
+                x: { grid: { display: false } }
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Ошибка загрузки данных дашборда:', e);
+      }
+    }
+
+    fetchDashboard();
+    setInterval(fetchDashboard, 60000);
+  </script>
+</body>
+</html>

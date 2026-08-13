@@ -59,11 +59,30 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
   `);
 
-  console.log('✅ PostgreSQL подключён, таблицы users и analytics_events готовы');
+  // Таблица сессий пользователей для Retention (TASK-067)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id            BIGSERIAL PRIMARY KEY,
+      user_id       VARCHAR(64) NOT NULL UNIQUE,
+      first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_seen_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      session_count INTEGER DEFAULT 1,
+      d1_returned   BOOLEAN DEFAULT FALSE,
+      d7_returned   BOOLEAN DEFAULT FALSE,
+      d30_returned  BOOLEAN DEFAULT FALSE
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+  `);
+
+  console.log('✅ PostgreSQL подключён, таблицы users, analytics_events и user_sessions готовы');
 }
 
 // Пробуем подключиться с повторами (PostgreSQL может стартовать позже)
 async function connectWithRetry(retries = 10, delay = 3000) {
+  if (!process.env.DATABASE_URL) {
+    console.log('ℹ️ DATABASE_URL не задан. Сервер работает в автономном режиме без БД.');
+    return;
+  }
   for (let i = 0; i < retries; i++) {
     try {
       await initDB();

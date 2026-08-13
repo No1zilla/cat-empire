@@ -44,6 +44,36 @@ router.post('/batch', async (req, res) => {
                 JSON.stringify(eventProps)
               ]
             );
+
+            // TASK-067: Авто-расчет retention метрик при старте сессии
+            if (event === 'session_start' && user_id && user_id !== 'guest') {
+              const uId = String(user_id);
+              const { rows: sessionRows } = await client.query('SELECT * FROM user_sessions WHERE user_id = $1', [uId]);
+              if (sessionRows.length === 0) {
+                await client.query(
+                  `INSERT INTO user_sessions (user_id, first_seen_at, last_seen_at, session_count)
+                   VALUES ($1, NOW(), NOW(), 1)`,
+                  [uId]
+                );
+              } else {
+                const s = sessionRows[0];
+                const daysDiff = (Date.now() - new Date(s.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
+                const d1 = s.d1_returned || daysDiff >= 1;
+                const d7 = s.d7_returned || daysDiff >= 7;
+                const d30 = s.d30_returned || daysDiff >= 30;
+
+                await client.query(
+                  `UPDATE user_sessions
+                   SET last_seen_at = NOW(),
+                       session_count = session_count + 1,
+                       d1_returned = $1,
+                       d7_returned = $2,
+                       d30_returned = $3
+                   WHERE user_id = $4`,
+                  [d1, d7, d30, uId]
+                );
+              }
+            }
           }
 
           await client.query('COMMIT');
