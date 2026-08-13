@@ -155,7 +155,7 @@
 
         // Рендер таблицы топ пользователей
         const tbody = document.getElementById('top-users-body');
-        if (data.top_users && data.top_users.length) {
+        if (data.top_users && data.top_users.length > 0) {
           tbody.innerHTML = data.top_users.map(u => `
             <tr>
               <td><code>${u.user_id}</code></td>
@@ -163,6 +163,8 @@
               <td>${new Date(u.last_seen).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
             </tr>
           `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="3" style="color:#8c7ae6">Пока нет зарегистрированных сессий. Сыграйте 1 раунд!</td></tr>';
         }
 
         // Рендер Chart.js бар-чарта

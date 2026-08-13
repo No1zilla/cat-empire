@@ -9,7 +9,7 @@ const OFFLINE_CACHE_KEY = 'cat_empire_offline_events_v1';
 
 export class EventTracker {
   constructor(userId = 'guest', platform = 'vk') {
-    this.userId = String(userId);
+    this.userId = this._resolveUserId(userId);
     this.platform = String(platform);
     this.sessionId = this._generateSessionId();
     this.queue = this._loadOfflineEvents();
@@ -34,6 +34,22 @@ export class EventTracker {
 
     // Авто-трекинг старта сессии
     this.trackSessionStart();
+  }
+
+  _resolveUserId(providedId) {
+    if (providedId && providedId !== 'guest' && providedId !== '0') return String(providedId);
+    if (typeof localStorage !== 'undefined') {
+      const savedVk = localStorage.getItem('cat_empire_vk_user_id');
+      if (savedVk && savedVk !== '0') return String(savedVk);
+
+      let savedGuest = localStorage.getItem('cat_empire_analytics_uid');
+      if (!savedGuest) {
+        savedGuest = 'guest_' + Math.random().toString(36).substring(2, 10);
+        try { localStorage.setItem('cat_empire_analytics_uid', savedGuest); } catch(e){}
+      }
+      return savedGuest;
+    }
+    return String(providedId || 'guest');
   }
 
   _generateSessionId() {

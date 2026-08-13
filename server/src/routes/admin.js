@@ -124,7 +124,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         ORDER BY level
       `);
 
-      const { rows: topUsersRows } = await pool.query(`
+      let { rows: topUsersRows } = await pool.query(`
         SELECT
           CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6)) AS user_id,
           session_count,
@@ -133,6 +133,20 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         ORDER BY session_count DESC
         LIMIT 10
       `);
+
+      if (!topUsersRows || topUsersRows.length === 0) {
+        const { rows: fallbackUsers } = await pool.query(`
+          SELECT
+            CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6)) AS user_id,
+            COUNT(*)::int AS session_count,
+            MAX(created_at) AS last_seen
+          FROM analytics_events
+          GROUP BY user_id
+          ORDER BY session_count DESC
+          LIMIT 10
+        `);
+        topUsersRows = fallbackUsers;
+      }
 
       const monData = monRows[0] || {};
       const fillRate = monData.requested_today > 0 ? Number(((monData.ads_shown_today / monData.requested_today) * 100).toFixed(1)) : 0;

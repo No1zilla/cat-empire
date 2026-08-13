@@ -46,7 +46,7 @@ router.post('/batch', async (req, res) => {
             );
 
             // TASK-067: Авто-расчет retention метрик при старте сессии
-            if (event === 'session_start' && user_id && user_id !== 'guest') {
+            if (event === 'session_start' && user_id) {
               const uId = String(user_id);
               const { rows: sessionRows } = await client.query('SELECT * FROM user_sessions WHERE user_id = $1', [uId]);
               if (sessionRows.length === 0) {
