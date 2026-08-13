@@ -146,7 +146,8 @@ export class VKService {
       if (typeof eventTracker !== 'undefined' && eventTracker.trackShareTriggered) {
         eventTracker.trackShareTriggered('wall_post');
       }
-      if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
+      const inIframe = typeof window !== 'undefined' && window.self !== window.top;
+      if (this.bridge && typeof this.bridge.send === 'function' && inIframe) {
         const res = await this.bridge.send('VKWebAppShowWallPostBox', {
           message: message,
           attachments: 'https://vk.com/app54702054'
@@ -159,7 +160,15 @@ export class VKService {
       }
     } catch (e) {
       console.warn('⚠️ VKWebAppShowWallPostBox error/cancelled:', e);
-      return { success: false, error: e };
+      if (e && (e.error_type === 'client_error' || e.error_code === 4)) {
+        return { success: false, reason: 'user_cancelled', error: e };
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.open('https://vk.com/share.php?url=' + encodeURIComponent('https://vk.com/app54702054') + '&title=' + encodeURIComponent(message), '_blank');
+      } catch (e) {}
     }
     return { success: true, simulated: true };
   }
