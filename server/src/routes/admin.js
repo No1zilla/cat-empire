@@ -107,9 +107,10 @@ router.get('/dashboard', adminAuth, async (req, res) => {
 
       const { rows: monRows } = await pool.query(`
         SELECT
-          COUNT(*) FILTER (WHERE event = 'ad_shown')::int AS ads_shown_today,
+          COUNT(*) FILTER (WHERE event = 'ad_shown' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_shown_today,
+          COUNT(*) FILTER (WHERE event = 'ad_shown' AND props->>'is_test_ad' = 'true')::int AS test_shown_today,
           COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested_today,
-          COUNT(*) FILTER (WHERE event = 'ad_completed')::int AS completed_today
+          COUNT(*) FILTER (WHERE event = 'ad_completed' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_completed_today
         FROM analytics_events
         WHERE created_at >= CURRENT_DATE
       `);
@@ -149,8 +150,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
       }
 
       const monData = monRows[0] || {};
-      const fillRate = monData.requested_today > 0 ? Number(((monData.ads_shown_today / monData.requested_today) * 100).toFixed(1)) : 0;
-      const compRate = monData.ads_shown_today > 0 ? Number(((monData.completed_today / monData.ads_shown_today) * 100).toFixed(1)) : 0;
+      const commercialShown = monData.commercial_shown_today || 0;
+      const testShown = monData.test_shown_today || 0;
+      const requested = monData.requested_today || 0;
+      const commercialCompleted = monData.commercial_completed_today || 0;
+
+      // Настоящий коммерческий Fill Rate (без учёта десктоп-симуляторов)
+      const fillRate = requested > 0 ? Number(((commercialShown / requested) * 100).toFixed(1)) : 0;
+      const compRate = commercialShown > 0 ? Number(((commercialCompleted / commercialShown) * 100).toFixed(1)) : 0;
 
       resultPayload = {
         activity: {
@@ -161,10 +168,11 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         },
         retention: retRows[0] || { d1_retention: 0, d7_retention: 0, d30_retention: 0, avg_sessions_per_dau: 1 },
         monetization: {
-          ads_shown_today: monData.ads_shown_today || 0,
+          ads_shown_today: commercialShown,
+          test_ads_shown_today: testShown,
           fill_rate_pct: fillRate,
           completion_rate_pct: compRate,
-          ads_per_dau: actRows[0]?.dau_today > 0 ? Number((monData.completed_today / actRows[0].dau_today).toFixed(1)) : 0
+          ads_per_dau: actRows[0]?.dau_today > 0 ? Number((commercialCompleted / actRows[0].dau_today).toFixed(1)) : 0
         },
         gameplay: {
           level_distribution: lvlRows

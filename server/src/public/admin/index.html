@@ -103,9 +103,9 @@
       <div class="metric-sub">Цель: > 15%</div>
     </div>
     <div class="metric-card">
-      <div class="metric-title">Ad Fill Rate</div>
+      <div class="metric-title">Commercial Ad Fill Rate</div>
       <div class="metric-value" id="fillrate-val">--%</div>
-      <div class="metric-sub">Цель: > 80%</div>
+      <div class="metric-sub" id="test-ads-sub">VK Ads (ПК-симулятор не в счет)</div>
     </div>
     <div class="metric-card">
       <div class="metric-title">Ads per DAU</div>
@@ -151,6 +151,7 @@
         document.getElementById('d1-val').innerText = data.retention ? Math.round((data.retention.d1_retention || 0) * 100) + '%' : '0%';
         document.getElementById('d7-val').innerText = data.retention ? Math.round((data.retention.d7_retention || 0) * 100) + '%' : '0%';
         document.getElementById('fillrate-val').innerText = data.monetization ? data.monetization.fill_rate_pct + '%' : '0%';
+        document.getElementById('test-ads-sub').innerText = 'Симуляторов на ПК: ' + (data.monetization ? (data.monetization.test_ads_shown_today || 0) : 0);
         document.getElementById('ads-dau-val').innerText = data.monetization ? data.monetization.ads_per_dau : 0;
 
         // Рендер таблицы топ пользователей
