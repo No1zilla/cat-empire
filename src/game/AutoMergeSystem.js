@@ -4,13 +4,24 @@ import { CONFIG } from '../config.js';
  * TASK-012: Система каскадного авто-слияния котиков на поле 5x5 с задержкой 120мс
  */
 export class AutoMergeSystem {
-  constructor(app, grid, mergeEngine, dragSystem, onMergeComplete) {
+  constructor(app, grid, mergeEngine, dragSystem, onMergeComplete, onMergeStep) {
     this.app = app;
     this.grid = grid;
     this.mergeEngine = mergeEngine;
     this.dragSystem = dragSystem;
     this.onMergeComplete = onMergeComplete || (() => {});
+    this.onMergeStep = onMergeStep || (() => {});
     this.isMerging = false;
+  }
+
+  scheduleNextCheck() {
+    if (this._scheduleTimer) return;
+    this._scheduleTimer = setTimeout(async () => {
+      this._scheduleTimer = null;
+      if (!this.isMerging) {
+        await this.runAutoMerge();
+      }
+    }, 50);
   }
 
   // Запуск процесса авто-слияния
@@ -49,6 +60,10 @@ export class AutoMergeSystem {
             // Воспроизводим анимацию эффекта merge
             if (this.dragSystem && typeof this.dragSystem._playMergeEffect === 'function') {
               this.dragSystem._playMergeEffect(slotB, newCat);
+            }
+
+            if (typeof this.onMergeStep === 'function') {
+              this.onMergeStep();
             }
 
             // Каскадная задержка 120мс между слияниями

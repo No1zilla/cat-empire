@@ -304,6 +304,11 @@ export class Game {
         if (this.fillAllButton) this.fillAllButton.updateLabel();
         if (this.autoMergeButton) this.autoMergeButton.updateLabel();
         this._syncToCloud();
+      },
+      () => {
+        if (this.fillAllButton) this.fillAllButton.updateLabel();
+        if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
+        if (this.hud && this.economy) this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
       }
     );
 
