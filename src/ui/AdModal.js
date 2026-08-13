@@ -4,6 +4,7 @@ import { showRewardedAd, saveProgress } from '../api/client.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { DesktopRewardModal } from './DesktopRewardModal.js';
 
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
@@ -64,13 +65,17 @@ export class AdModal extends Container {
         eventTracker.trackAdSkipped(this.adType);
         this._close();
       } else {
-        // На Десктопе (ПК ПК-браузер) нативная реклама VK не поддерживается -> переключаемся на внутренний симулятор!
-        console.log('🎬 Нативная реклама VK недоступна на ПК. Запускаем симулятор:', realAdRes);
+        // На Десктопе (ПК ПК-браузер) нативная реклама VK не поддерживается -> открываем модалку постов с Зеленоглазой Кошечкой!
+        console.log('🎬 Нативная реклама VK недоступна на ПК. Открываем окно вирального поста с Зеленоглазой Кошечкой...');
         eventTracker.trackAdFailed(this.adType, realAdRes ? realAdRes.reason : 'desktop_unsupported');
-        eventTracker.trackAdShown(this.adType, true);
-        this._drawOverlayShield();
-        this._drawInstantCloseButton();
-        this._startSimulatorVideoPlayer();
+
+        const stage = (this.app && this.app.stage) ? this.app.stage : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
+        this._close();
+        if (stage) {
+          const desktopModal = new DesktopRewardModal(this.app, this.economy, this.onRewardGranted, this.rewardGems);
+          desktopModal.zIndex = 9999999;
+          stage.addChild(desktopModal);
+        }
       }
     } catch (e) {
       console.warn('⚠️ Ошибка нативной рекламы VK, переключаемся на симулятор:', e);
