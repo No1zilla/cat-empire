@@ -285,14 +285,7 @@ export class FillAllButton extends Container {
     this._isClickProcessing = true;
 
     try {
-      let data = this.getFillData();
-
-      // Если во время слияния слоты временно заняты анимацией — ждём 80мс и перепроверяем открытие ячеек!
-      const isAutoMerging = (window.game && window.game.autoMergeSystem && window.game.autoMergeSystem.isMerging);
-      if (data.freeSlotsCount === 0 && isAutoMerging) {
-        await new Promise((r) => setTimeout(r, 80));
-        data = this.getFillData();
-      }
+      const data = this.getFillData();
 
       if (data.freeSlotsCount === 0) {
         this._showWarning('Нет свободных мест! 🚫');
@@ -301,7 +294,6 @@ export class FillAllButton extends Container {
 
       if (data.count === 0 || (this.economy && !this.economy.canAfford(data.cost))) {
         // Гарантированный показ внутриигровой модалки AdModal с таймером и анимацией.
-        // Исключает нативный вызов VK Ads, приводящий к вылету Safari в VK Mini Apps на iOS.
         const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
         if (appStage) {
           appStage.sortableChildren = true;
