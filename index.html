@@ -18,13 +18,24 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    body {
+    html, body, #game-container, canvas {
       margin: 0;
       padding: 0;
       overflow: hidden;
       background: #100b20;
       font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+      touch-action: none;
     }
     #game-container {
       width: 100vw;
@@ -174,7 +185,7 @@
       location.reload();
     };
   </script>
-  <script type="module" crossorigin src="./assets/index-D9ass8Hx.js"></script>
+  <script type="module" crossorigin src="./assets/index-CY5mJo00.js"></script>
 </head>
 <body>
   <!-- 🔥 Единый Сплаш-Экран Загрузки в стиле MainMenu -->
