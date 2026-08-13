@@ -212,12 +212,9 @@ export class Game {
       if (this.hud && this.economy) this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
 
       this._saveToLocalStorage();
-
-      try {
-        await storageService.saveProgress(this._getStateSnapshot());
-      } catch (e) {
-        console.error('Ошибка сохранения после массовой покупки:', e);
-      }
+      storageService.saveProgress(this._getStateSnapshot()).catch((e) => {
+        console.error('Ошибка фонового сохранения после массовой покупки:', e);
+      });
     });
     this.fillAllButton.x = 141;
     this.fillAllButton.y = buttonRowY;
