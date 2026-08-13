@@ -125,29 +125,26 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         ORDER BY level
       `);
 
-      let { rows: topUsersRows } = await pool.query(`
+      const { rows: topUsersRows } = await pool.query(`
         SELECT
-          CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6)) AS user_id,
-          session_count,
-          last_seen_at AS last_seen
-        FROM user_sessions
+          user_id_hash AS user_id,
+          COUNT(DISTINCT session_id)::int AS session_count,
+          MAX(created_at) AS last_seen
+        FROM (
+          SELECT
+            user_id,
+            session_id,
+            created_at,
+            CASE 
+              WHEN user_id LIKE 'guest_%' THEN user_id
+              ELSE CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6))
+            END AS user_id_hash
+          FROM analytics_events
+        ) sub
+        GROUP BY user_id_hash
         ORDER BY session_count DESC
         LIMIT 10
       `);
-
-      if (!topUsersRows || topUsersRows.length === 0) {
-        const { rows: fallbackUsers } = await pool.query(`
-          SELECT
-            CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6)) AS user_id,
-            COUNT(*)::int AS session_count,
-            MAX(created_at) AS last_seen
-          FROM analytics_events
-          GROUP BY user_id
-          ORDER BY session_count DESC
-          LIMIT 10
-        `);
-        topUsersRows = fallbackUsers;
-      }
 
       const monData = monRows[0] || {};
       const commercialShown = monData.commercial_shown_today || 0;
