@@ -21,6 +21,7 @@ import { FillAllButton } from '../ui/FillAllButton.js';
 import { MainMenu } from '../ui/MainMenu.js';
 import { OfflineEarningsModal } from '../ui/OfflineEarningsModal.js';
 import { SettingsModal } from '../ui/SettingsModal.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
@@ -46,6 +47,13 @@ export class Game {
   async init(userName = 'Тест Игрок') {
     // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
     const progress = await storageService.loadProgress();
+
+    if (progress && progress.vkId) {
+      eventTracker.setUserId(progress.vkId);
+    }
+    if (typeof __PLATFORM__ !== 'undefined') {
+      eventTracker.setPlatform(__PLATFORM__);
+    }
 
     let startCoins           = progress.coins;
     let startGems            = progress.gems;
@@ -134,6 +142,9 @@ export class Game {
     // A) 🐱 Купить (128px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
+      if (this.economy) {
+        eventTracker.trackCatBought(cost, this.economy.totalCatsBought, this.economy.coins);
+      }
       this._saveToLocalStorage();
     });
 
@@ -204,6 +215,8 @@ export class Game {
         }
       }
 
+      eventTracker.trackFillAllTriggered(spawnCount, actualTotalCost, freeSlots.length);
+
       if (this.economy) {
         this.economy.recalcAfterMerge();
       }
@@ -227,6 +240,7 @@ export class Game {
       if (this.autoMergeSystem) {
         count = await this.autoMergeSystem.runAutoMerge();
       }
+      eventTracker.trackAutoMergeTriggered(5, count);
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
       return count;
@@ -254,10 +268,12 @@ export class Game {
       if (this.economy) {
         this.economy.totalMerges++;
       }
+      eventTracker.trackManualMerge(newLevel - 1, newLevel);
       this._saveToLocalStorage();
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
+        eventTracker.trackMaxCatLevelReached(newLevel);
         if (this.spawnSystem) this.spawnSystem._stopHold();
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
 

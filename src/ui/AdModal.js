@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { showRewardedAd, saveProgress } from '../api/client.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
@@ -15,12 +16,15 @@ export class AdModal extends Container {
     this.onRewardGranted = onRewardGranted || (() => {});
     this.rewardGems = rewardGems;
     this.customTitle = customTitle;
+    this.adType = customTitle && customTitle.includes('Заполнение') ? 'fill_free' : (rewardGems === 0 ? 'auto_merge' : 'reward_gems');
     this._interval = null;
     this._startTime = Date.now();
     this._isClosed = false;
 
     this.eventMode = 'static';
     this.sortableChildren = true;
+
+    eventTracker.trackAdRequested(this.adType);
 
     const hasVkBridge = typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function';
 
@@ -29,6 +33,7 @@ export class AdModal extends Container {
       this._startVkNativeAd();
     } else {
       // 2. В локальной веб-среде — отрисовываем чистый 60 FPS холст-симулятор с 3D кнопкой ✕
+      eventTracker.trackAdShown(this.adType, true);
       this._drawOverlayShield();
       this._drawInstantCloseButton();
       this._startSimulatorVideoPlayer();
@@ -43,6 +48,9 @@ export class AdModal extends Container {
 
       if (realAdRes && realAdRes.success) {
         console.log('✅ Нативная реклама VK успешно просмотрена!');
+        eventTracker.trackAdShown(this.adType, false);
+        eventTracker.trackAdCompleted(this.adType, this.rewardGems);
+
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
           try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
@@ -53,10 +61,13 @@ export class AdModal extends Container {
         }
       } else if (realAdRes && (realAdRes.reason === 'AD_CLOSED_EARLY' || realAdRes.reason === 'AD_CLOSED')) {
         console.log('🎬 Нативная реклама VK на мобильном отменена/закрыта пользователем:', realAdRes);
+        eventTracker.trackAdSkipped(this.adType);
         this._close();
       } else {
         // На Десктопе (ПК ПК-браузер) нативная реклама VK не поддерживается -> переключаемся на внутренний симулятор!
         console.log('🎬 Нативная реклама VK недоступна на ПК. Запускаем симулятор:', realAdRes);
+        eventTracker.trackAdFailed(this.adType, realAdRes ? realAdRes.reason : 'desktop_unsupported');
+        eventTracker.trackAdShown(this.adType, true);
         this._drawOverlayShield();
         this._drawInstantCloseButton();
         this._startSimulatorVideoPlayer();
@@ -321,6 +332,8 @@ export class AdModal extends Container {
       if (progress >= 1.0) {
         clearInterval(this._interval);
         this._interval = null;
+
+        eventTracker.trackAdCompleted(this.adType, this.rewardGems);
 
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);

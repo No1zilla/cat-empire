@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { showRewardedAd } from '../api/client.js';
 import { saveProgress } from '../api/client.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
  * TASK-058: Модальное окно Офлайн-Дохода «⏰ С Возвращением!» с возможностью удваивания/утраивания за VK Ads
@@ -198,6 +199,8 @@ export class OfflineEarningsModal extends Container {
         this.economy._notify();
       }
     }
+
+    eventTracker.trackOfflineBonusClaimed(earned, isTriple ? 3 : 1, this.offlineMinutes * 60);
 
     try {
       await saveProgress({

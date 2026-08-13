@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import userRouter from './routes/user.js';
 import leaderboardRouter from './routes/leaderboard.js';
+import eventsRouter from './routes/events.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -29,6 +30,7 @@ app.get('/api/health', (req, res) => {
 // Подключение основных маршрутов API
 app.use('/api/user', userRouter);
 app.use('/api/leaderboard', leaderboardRouter);
+app.use('/api/events', eventsRouter);
 
 // Запуск сервера — слушаем на 0.0.0.0 для Railway (v1.0.3 - Mobile Hash Fix)
 app.listen(PORT, '0.0.0.0', () => {

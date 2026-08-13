@@ -43,7 +43,23 @@ async function initDB() {
     // игнорируем если колонка уже существует
   }
 
-  console.log('✅ PostgreSQL подключён, таблица users готова');
+  // Таблица аналитических событий (TASK-066)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id         BIGSERIAL PRIMARY KEY,
+      event      VARCHAR(64) NOT NULL,
+      user_id    VARCHAR(64),
+      session_id VARCHAR(64),
+      platform   VARCHAR(16),
+      props      JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event);
+    CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics_events(user_id);
+    CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
+  `);
+
+  console.log('✅ PostgreSQL подключён, таблицы users и analytics_events готовы');
 }
 
 // Пробуем подключиться с повторами (PostgreSQL может стартовать позже)

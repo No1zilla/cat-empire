@@ -1,4 +1,5 @@
 import bridge from '@vkontakte/vk-bridge';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 if (typeof window !== 'undefined') {
   window.vkBridge = bridge;
@@ -123,10 +124,13 @@ export class VKService {
   }
 
   // TASK-SHARE: Расшаривание ссылки друзьям или в сообщения (VKWebAppShare)
-  async shareLink(link = 'https://vk.com/app54702054') {
+  async shareLink(customLink = 'https://vk.com/app54702054') {
     try {
+      if (typeof eventTracker !== 'undefined' && eventTracker.trackShareTriggered) {
+        eventTracker.trackShareTriggered('link');
+      }
       if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
-        const res = await this.bridge.send('VKWebAppShare', { link });
+        const res = await this.bridge.send('VKWebAppShare', { link: customLink });
         console.log('📢 VKWebAppShare result:', res);
         return { success: true, res };
       }
@@ -139,6 +143,9 @@ export class VKService {
   // TASK-SHARE: Пост записи на стену пользователя VK (VKWebAppShowWallPostBox)
   async sharePost(message = '🐱 Моя Империя Котиков растет! Присоединяйся к игре!') {
     try {
+      if (typeof eventTracker !== 'undefined' && eventTracker.trackShareTriggered) {
+        eventTracker.trackShareTriggered('wall_post');
+      }
       if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
         const res = await this.bridge.send('VKWebAppShowWallPostBox', {
           message: message,
