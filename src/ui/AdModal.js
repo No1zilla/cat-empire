@@ -51,13 +51,21 @@ export class AdModal extends Container {
         if (typeof this.onRewardGranted === 'function') {
           this.onRewardGranted();
         }
-      } else {
-        console.log('🎬 Нативная реклама VK была закрыта, отменена или перенаправлена по ссылке:', realAdRes);
+      } else if (realAdRes && (realAdRes.reason === 'AD_CLOSED_EARLY' || realAdRes.reason === 'AD_CLOSED')) {
+        console.log('🎬 Нативная реклама VK на мобильном отменена/закрыта пользователем:', realAdRes);
         this._close();
+      } else {
+        // На Десктопе (ПК ПК-браузер) нативная реклама VK не поддерживается -> переключаемся на внутренний симулятор!
+        console.log('🎬 Нативная реклама VK недоступна на ПК. Запускаем симулятор:', realAdRes);
+        this._drawOverlayShield();
+        this._drawInstantCloseButton();
+        this._startSimulatorVideoPlayer();
       }
     } catch (e) {
-      console.warn('⚠️ Ошибка нативной рекламы VK:', e);
-      this._close();
+      console.warn('⚠️ Ошибка нативной рекламы VK, переключаемся на симулятор:', e);
+      this._drawOverlayShield();
+      this._drawInstantCloseButton();
+      this._startSimulatorVideoPlayer();
     }
   }
 
