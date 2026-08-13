@@ -30,6 +30,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Статический админский дашборд (TASK-070)
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/admin/index.html'));
+});
 app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
 
 // Базовый роут проверки работы бэкенда
