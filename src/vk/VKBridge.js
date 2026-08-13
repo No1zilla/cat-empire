@@ -152,10 +152,14 @@ export class VKService {
           attachments: 'https://vk.com/app54702054'
         });
         console.log('📝 VKWebAppShowWallPostBox result:', res);
-        return { success: true, res };
+        if (res && res.post_id) {
+          return { success: true, postId: res.post_id, res };
+        }
+        return { success: false, reason: 'user_cancelled' };
       }
     } catch (e) {
       console.warn('⚠️ VKWebAppShowWallPostBox error/cancelled:', e);
+      return { success: false, error: e };
     }
     return { success: true, simulated: true };
   }
