@@ -66,13 +66,13 @@ export class DesktopRewardModal extends Container {
     const titleText = new Text({ text: 'Закончились рубины? ', style: titleStyle });
     titleText.position.set(0, 0);
 
-    const titleGem = UIUtils.createGemIcon(12);
-    titleGem.position.set(titleText.width + 12, 12);
+    const titleGem = UIUtils.createGemIcon(11);
+    titleGem.position.set(titleText.width + 10, 11);
 
     titleContainer.addChild(titleText);
     titleContainer.addChild(titleGem);
 
-    const totalTitleWidth = titleText.width + 24;
+    const totalTitleWidth = titleText.width + 22;
     titleContainer.pivot.set(totalTitleWidth / 2, 0);
     titleContainer.position.set(W / 2, modalY + 16);
     this.addChild(titleContainer);
@@ -108,34 +108,50 @@ export class DesktopRewardModal extends Container {
       imgContainer.addChild(fallbackText);
     }
 
-    // 5. Описание акции с розовым гемом
-    const descContainer = new Container();
-    descContainer.zIndex = 5;
+    // 5. Двухстрочное аккуратное центрированное описание акции
+    const descGroup = new Container();
+    descGroup.zIndex = 5;
 
     const descStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 12,
+      fontSize: 13,
+      fontWeight: 'bold',
       fill: '#dcdde1',
       align: 'center'
     });
 
-    const descPart1 = new Text({ text: 'Опубликуй открытку с Зеленоглазой Кошечкой и получи +5 ', style: descStyle });
-    descPart1.position.set(0, 0);
+    const line1 = new Text({ text: 'Опубликуй открытку на стене VK', style: descStyle });
+    line1.anchor.set(0.5, 0);
+    line1.position.set(0, 0);
+    descGroup.addChild(line1);
 
-    const descGem = UIUtils.createGemIcon(8);
-    descGem.position.set(descPart1.width + 8, 7);
+    const line2Container = new Container();
+    const t1 = new Text({ text: 'и получи +5 ', style: descStyle });
+    t1.position.set(0, 0);
 
-    const descPart2 = new Text({ text: ' БЕСПЛАТНО!', style: descStyle });
-    descPart2.position.set(descPart1.width + 18, 0);
+    const descGem = UIUtils.createGemIcon(9);
+    descGem.position.set(t1.width + 9, 8);
 
-    descContainer.addChild(descPart1);
-    descContainer.addChild(descGem);
-    descContainer.addChild(descPart2);
+    const highlightStyle = new TextStyle({
+      fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+      fontSize: 13,
+      fontWeight: 'bold',
+      fill: '#ffd700'
+    });
+    const t2 = new Text({ text: ' БЕСПЛАТНО!', style: highlightStyle });
+    t2.position.set(t1.width + 20, 0);
 
-    const totalDescWidth = descPart1.width + 18 + descPart2.width;
-    descContainer.pivot.set(totalDescWidth / 2, 0);
-    descContainer.position.set(W / 2, modalY + 242);
-    this.addChild(descContainer);
+    line2Container.addChild(t1);
+    line2Container.addChild(descGem);
+    line2Container.addChild(t2);
+
+    const line2Width = t1.width + 20 + t2.width;
+    line2Container.pivot.set(line2Width / 2, 0);
+    line2Container.position.set(0, 20);
+    descGroup.addChild(line2Container);
+
+    descGroup.position.set(W / 2, modalY + 238);
+    this.addChild(descGroup);
 
     // 6. Сочная 3D кнопка «📢 Опубликовать пост (+5 [розовый гем])»
     const btnW = 280;
@@ -148,7 +164,7 @@ export class DesktopRewardModal extends Container {
       btnY,
       btnW,
       btnH,
-      `📢 Опубликовать пост (+${this.rewardGems})`,
+      `📢 Опубликовать пост (+${this.rewardGems}) `,
       0x2ecc71,
       async () => {
         await this._handlePostAndReward();
@@ -157,7 +173,7 @@ export class DesktopRewardModal extends Container {
 
     // Добавляем 3D розовый гем внутрь кнопки
     const btnGem = UIUtils.createGemIcon(10);
-    btnGem.position.set(btnW - 28, btnH / 2);
+    btnGem.position.set(btnW - 22, btnH / 2);
     postBtn.addChild(btnGem);
 
     postBtn.zIndex = 10;
