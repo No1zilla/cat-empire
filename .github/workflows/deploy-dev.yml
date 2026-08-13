@@ -35,3 +35,17 @@ jobs:
           destination_dir: dev
           keep_files: true
           commit_message: 'deploy: dev build from dev branch'
+
+      - name: Create root /dev.html redirect fallback
+        run: |
+          mkdir -p redirect_dist
+          echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=./dev/"><script>window.location.href="./dev/";</script></head><body><a href="./dev/">Click here if not redirected</a></body></html>' > redirect_dist/dev.html
+
+      - name: Deploy dev.html redirect to root
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./redirect_dist
+          destination_dir: .
+          keep_files: true
+          commit_message: 'deploy: dev.html redirect fallback'
