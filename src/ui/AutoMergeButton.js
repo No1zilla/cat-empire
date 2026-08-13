@@ -272,15 +272,21 @@ export class AutoMergeButton extends Container {
 
     // 1. Если у игрока ХВАТАЕТ гемов (gems >= 5) -> списываем 5 гемов и соединяем!
     if (this.economy && this.economy.gems >= GEM_COST) {
-      try {
-        this.economy.spendGems(GEM_COST);
-        this._showWarning('-5 рубинов списано! ⚡');
-      } catch (e) {
-        this._showWarning('Мало рубинов!');
+      const mergesDone = await this.onTriggerAutoMerge();
+
+      if (mergesDone > 0) {
+        try {
+          this.economy.spendGems(GEM_COST);
+          this._showWarning(`-5 💎 (Слито ${mergesDone} пар!) ⚡`);
+        } catch (e) {
+          this._showWarning('Мало рубинов!');
+          return;
+        }
+      } else {
+        this._showWarning('Нет пар для слияния! 🚫');
+        this.updateLabel();
         return;
       }
-
-      await this.onTriggerAutoMerge();
 
       try {
         await saveProgress({

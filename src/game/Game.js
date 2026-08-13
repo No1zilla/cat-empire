@@ -229,11 +229,13 @@ export class Game {
 
     // C) ⚡ Соединить все (128px)
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
+      let count = 0;
       if (this.autoMergeSystem) {
-        await this.autoMergeSystem.runAutoMerge();
+        count = await this.autoMergeSystem.runAutoMerge();
       }
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
+      return count;
     });
     this.autoMergeButton.x = 274;
     this.autoMergeButton.y = buttonRowY;
