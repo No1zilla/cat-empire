@@ -130,6 +130,14 @@ export async function showRewardedAd() {
     return { success: false, reason: 'VK_BRIDGE_NOT_FOUND' };
   }
 
+  // Рекомендованная VK SDK предварительная проверка доступности рекламного слота
+  try {
+    const checkRes = await window.vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' });
+    console.log('🔍 VKWebAppCheckNativeAds result:', checkRes);
+  } catch (checkErr) {
+    console.log('ℹ️ VKWebAppCheckNativeAds bypass:', checkErr);
+  }
+
   return new Promise((resolve) => {
     let resolved = false;
 
