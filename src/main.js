@@ -5,6 +5,7 @@ import { PlatformService } from './services/PlatformService.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 import { soundManager } from './audio/SoundManager.js';
+import { showDesktopBannerAd } from './api/vkAds.js';
 
 // Глобальная блокировка браузерного выделения текста и drag-out элементов
 if (typeof document !== 'undefined') {
@@ -121,6 +122,12 @@ async function initApp() {
   updateSplashProgress(100, 'Готово! 👑');
   // Скрывать сплэш строго после полной готовности сцены
   hideSplashScreen();
+
+  if (PlatformService.isVK() && PlatformService.isDesktopVK()) {
+    showDesktopBannerAd().catch((e) => {
+      console.warn('VK desktop banner skipped:', e);
+    });
+  }
 
   console.log('🐱 Империя Котиков запущены со стилем Premium Splash & Glow!');
 }

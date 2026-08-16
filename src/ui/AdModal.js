@@ -1,10 +1,12 @@
 import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { showRewardedAd, saveProgress } from '../api/client.js';
+import { isAdUserClosed } from '../api/vkAds.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import { DesktopRewardModal } from './DesktopRewardModal.js';
+import { isDesktopVK } from '../services/PlatformService.js';
 
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
@@ -30,7 +32,8 @@ export class AdModal extends Container {
     const hasVkBridge = typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function';
 
     if (hasVkBridge) {
-      // 1. В среде VK — вызываем нативную рекламу VK без создания локальных оверлеев Canvas
+      // В VK: нативная реклама (на ПК — interstitial, затем reward). Симулятор не показываем.
+      this._drawVkLoadingHint();
       this._startVkNativeAd();
     } else {
       // 2. В локальной веб-среде — отрисовываем чистый 60 FPS холст-симулятор с 3D кнопкой ✕
@@ -41,14 +44,60 @@ export class AdModal extends Container {
     }
   }
 
+  _drawVkLoadingHint() {
+    const W = CONFIG.GAME_WIDTH || 375;
+    const H = CONFIG.GAME_HEIGHT || 667;
+
+    const overlay = new Graphics();
+    overlay.rect(0, 0, W, H);
+    overlay.fill({ color: 0x07040d, alpha: 0.72 });
+    overlay.eventMode = 'static';
+    overlay.zIndex = 1;
+    this.addChild(overlay);
+
+    const hint = new Text({
+      text: isDesktopVK()
+        ? 'Загружаем рекламу VK...\nНа компьютере сначала полноэкранная'
+        : 'Загружаем рекламу VK...',
+      style: new TextStyle({
+        fontFamily: 'Arial, sans-serif',
+        fontSize: 18,
+        fontWeight: '700',
+        fill: 0xffffff,
+        align: 'center',
+        wordWrap: true,
+        wordWrapWidth: 280
+      })
+    });
+    hint.anchor.set(0.5);
+    hint.x = W / 2;
+    hint.y = H / 2 - 24;
+    hint.zIndex = 2;
+    this.addChild(hint);
+  }
+
+  _openWallPostFallback(reason) {
+    console.log('🎬 Нативная реклама VK недоступна. Фолбэк: пост на стену.', reason);
+    eventTracker.trackAdFailed(this.adType, reason || 'ads_unavailable');
+    const stage = (this.app && this.app.stage)
+      ? this.app.stage
+      : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
+    this._close();
+    if (stage) {
+      const desktopModal = new DesktopRewardModal(this.app, this.economy, this.onRewardGranted, this.rewardGems);
+      desktopModal.zIndex = 9999999;
+      stage.addChild(desktopModal);
+    }
+  }
+
   async _startVkNativeAd() {
-    console.log('🎬 Запуск нативной рекламы VK (VKWebAppShowNativeAds)...');
+    console.log('🎬 Запуск нативной рекламы VK (reward + interstitial)...');
     try {
       const realAdRes = await showRewardedAd();
       if (this._isClosed) return;
 
       if (realAdRes && realAdRes.success) {
-        console.log('✅ Нативная реклама VK успешно просмотрена!');
+        console.log('✅ Нативная реклама VK успешно просмотрена:', realAdRes.format || 'unknown');
         eventTracker.trackAdShown(this.adType, false);
         eventTracker.trackAdCompleted(this.adType, this.rewardGems);
 
@@ -60,25 +109,19 @@ export class AdModal extends Container {
         if (typeof this.onRewardGranted === 'function') {
           this.onRewardGranted();
         }
-      } else if (realAdRes && (realAdRes.reason === 'AD_CLOSED_EARLY' || realAdRes.reason === 'AD_CLOSED')) {
-        console.log('🎬 Нативная реклама VK на мобильном отменена/закрыта пользователем:', realAdRes);
+      } else if (realAdRes && isAdUserClosed(realAdRes.reason)) {
+        console.log('🎬 Нативная реклама VK закрыта пользователем:', realAdRes);
         eventTracker.trackAdSkipped(this.adType);
         this._close();
       } else {
-        // На Десктопе (ПК ПК-браузер) нативная реклама VK не поддерживается -> открываем модалку постов с Зеленоглазой Кошечкой!
-        console.log('🎬 Нативная реклама VK недоступна на ПК. Открываем окно вирального поста с Зеленоглазой Кошечкой...');
-        eventTracker.trackAdFailed(this.adType, realAdRes ? realAdRes.reason : 'desktop_unsupported');
-
-        const stage = (this.app && this.app.stage) ? this.app.stage : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
-        this._close();
-        if (stage) {
-          const desktopModal = new DesktopRewardModal(this.app, this.economy, this.onRewardGranted, this.rewardGems);
-          desktopModal.zIndex = 9999999;
-          stage.addChild(desktopModal);
-        }
+        this._openWallPostFallback(realAdRes ? realAdRes.reason : 'ads_unavailable');
       }
     } catch (e) {
-      console.warn('⚠️ Ошибка нативной рекламы VK, переключаемся на симулятор:', e);
+      console.warn('⚠️ Ошибка нативной рекламы VK:', e);
+      if (isDesktopVK()) {
+        this._openWallPostFallback(e && e.message ? e.message : 'native_ad_error');
+        return;
+      }
       this._drawOverlayShield();
       this._drawInstantCloseButton();
       this._startSimulatorVideoPlayer();
