@@ -173,6 +173,24 @@ export class VKService {
     return { success: true, simulated: true };
   }
 
+  // TASK-021: Нативное приглашение друзей VK
+  async showInviteBox() {
+    try {
+      if (typeof eventTracker !== 'undefined' && eventTracker.trackShareTriggered) {
+        eventTracker.trackShareTriggered('invite');
+      }
+      if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
+        const res = await this.bridge.send('VKWebAppShowInviteBox');
+        console.log('🤝 VKWebAppShowInviteBox result:', res);
+        return { success: true, res };
+      }
+    } catch (e) {
+      console.warn('⚠️ VKWebAppShowInviteBox error/cancelled:', e);
+      return { success: false, reason: 'user_cancelled', error: e };
+    }
+    return { success: false, reason: 'not_vk', simulated: true };
+  }
+
   // TASK-015B: Тактильная отдача (вибрация VK Haptics)
   triggerHaptic(style = 'medium') {
     try {

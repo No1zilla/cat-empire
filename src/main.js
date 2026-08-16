@@ -4,11 +4,17 @@ import { VKService } from './vk/VKBridge.js';
 import { PlatformService } from './services/PlatformService.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
+import { soundManager } from './audio/SoundManager.js';
 
 // Глобальная блокировка браузерного выделения текста и drag-out элементов
 if (typeof document !== 'undefined') {
   document.addEventListener('selectstart', (e) => e.preventDefault(), false);
   document.addEventListener('dragstart', (e) => e.preventDefault(), false);
+  const unlockAudio = () => {
+    soundManager.unlock();
+    document.removeEventListener('pointerdown', unlockAudio);
+  };
+  document.addEventListener('pointerdown', unlockAudio, { passive: true });
 }
 
 // Глобальный метод для отладки и сброса туториала

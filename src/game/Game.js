@@ -21,7 +21,17 @@ import { FillAllButton } from '../ui/FillAllButton.js';
 import { MainMenu } from '../ui/MainMenu.js';
 import { OfflineEarningsModal } from '../ui/OfflineEarningsModal.js';
 import { SettingsModal } from '../ui/SettingsModal.js';
+import { DailyRewardsModal } from '../ui/DailyRewardsModal.js';
+import { DailyQuestsModal } from '../ui/DailyQuestsModal.js';
+import { LeaderboardModal } from '../ui/LeaderboardModal.js';
+import { AscensionModal } from '../ui/AscensionModal.js';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { eventBus } from '../utils/EventBus.js';
+import { dailyRewardsService } from './DailyRewards.js';
+import { dailyQuestsService } from './DailyQuests.js';
+import { soundManager } from '../audio/SoundManager.js';
+import { VKService } from '../vk/VKBridge.js';
+import { UIUtils } from '../utils/UIUtils.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
@@ -145,6 +155,8 @@ export class Game {
       if (this.economy) {
         eventTracker.trackCatBought(cost, this.economy.totalCatsBought, this.economy.coins);
       }
+      eventBus.emit('CAT_SPAWNED', { cost });
+      dailyQuestsService.progress('buy', 1);
       this._saveToLocalStorage();
     });
 
@@ -216,6 +228,8 @@ export class Game {
       }
 
       eventTracker.trackFillAllTriggered(spawnCount, actualTotalCost, freeSlots.length);
+      eventBus.emit('CAT_SPAWNED', { count: spawnCount });
+      dailyQuestsService.progress('buy', spawnCount);
 
       if (this.economy) {
         this.economy.recalcAfterMerge();
@@ -241,6 +255,7 @@ export class Game {
         count = await this.autoMergeSystem.runAutoMerge();
       }
       eventTracker.trackAutoMergeTriggered(5, count);
+      dailyQuestsService.progress('auto_merge', 1);
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
       return count;
@@ -268,23 +283,35 @@ export class Game {
       if (this.economy) {
         this.economy.totalMerges++;
       }
+      const combo = (this.dragSystem && this.dragSystem._comboCount) || 1;
+      eventBus.emit('CATS_MERGED', { level: newLevel, combo });
+      dailyQuestsService.progress('merge', 1);
       eventTracker.trackManualMerge(newLevel - 1, newLevel);
       this._saveToLocalStorage();
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
         eventTracker.trackMaxCatLevelReached(newLevel);
+        eventBus.emit('NEW_CAT_UNLOCKED', { level: newLevel });
         if (this.spawnSystem) this.spawnSystem._stopHold();
         if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
 
-        const rewardGems = 5;
+        const isGodCat = newLevel >= 15;
+        const alreadyAscended = typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_god_cat_claimed') === '1';
+        const rewardGems = isGodCat && !alreadyAscended ? 50 : 5;
         if (this.economy) this.economy.addGems(rewardGems);
 
-        const newCatModal = new NewCatModal(this.app, newLevel, rewardGems, async () => {
-          this._syncToCloud();
-        });
-        newCatModal.zIndex = 99999;
-        this.app.stage.addChild(newCatModal);
+        if (isGodCat && !alreadyAscended) {
+          try { localStorage.setItem('cat_empire_god_cat_claimed', '1'); } catch (e) {}
+          const ascension = new AscensionModal(this.app, () => this._syncToCloud());
+          this.app.stage.addChild(ascension);
+        } else {
+          const newCatModal = new NewCatModal(this.app, newLevel, rewardGems, async () => {
+            this._syncToCloud();
+          });
+          newCatModal.zIndex = 99999;
+          this.app.stage.addChild(newCatModal);
+        }
       }
     };
 
@@ -359,22 +386,30 @@ export class Game {
     const offlineMinutes = Math.floor(offlineSeconds / 60);
 
     this._onMenuPlayCallback = () => {
-      const isBeginner = (this.maxCatLevel <= 1 && (this.economy ? this.economy.totalMerges : 0) <= 10);
-      if (!isBeginner && offlineSeconds >= 60 && baseOfflineCoins >= 10) {
-        const modal = new OfflineEarningsModal(
-          this.app,
-          this.economy,
-          baseOfflineCoins,
-          offlineMinutes,
-          () => {
-            console.log(`⏰ Офлайн-доход за ${offlineMinutes} мин забран!`);
-            showTutorialIfNeeded();
-          }
-        );
-        modal.zIndex = 99999;
-        this.app.stage.addChild(modal);
+      const afterHooks = () => {
+        const isBeginner = (this.maxCatLevel <= 1 && (this.economy ? this.economy.totalMerges : 0) <= 10);
+        if (!isBeginner && offlineSeconds >= 60 && baseOfflineCoins >= 10) {
+          const modal = new OfflineEarningsModal(
+            this.app,
+            this.economy,
+            baseOfflineCoins,
+            offlineMinutes,
+            () => {
+              console.log(`⏰ Офлайн-доход за ${offlineMinutes} мин забран!`);
+              showTutorialIfNeeded();
+            }
+          );
+          modal.zIndex = 99999;
+          this.app.stage.addChild(modal);
+        } else {
+          showTutorialIfNeeded();
+        }
+      };
+
+      if (dailyRewardsService.getState().canClaim) {
+        this.showDailyRewards(afterHooks);
       } else {
-        showTutorialIfNeeded();
+        afterHooks();
       }
     };
 
@@ -542,6 +577,7 @@ export class Game {
         }
         if (this.hud) this.hud.showMenuOverlay();
         console.log('▶️ Игра запущена из главного меню!');
+        soundManager.unlock();
         if (this._onMenuPlayCallback) {
           const cb = this._onMenuPlayCallback;
           this._onMenuPlayCallback = null;
@@ -555,7 +591,13 @@ export class Game {
       },
       onOpenSettings: () => {
         this.showSettingsModal();
-      }
+      },
+      onOpenDaily: () => this.showDailyRewards(),
+      onOpenQuests: () => this.showDailyQuests(),
+      onOpenLeaderboard: () => this.showLeaderboard(),
+      onInvite: () => this.inviteFriends(),
+      dailyAvailable: dailyRewardsService.getState().canClaim,
+      questsClaimable: dailyQuestsService.getState().claimable
     });
 
     this._mainMenuInstance.zIndex = 999990;
@@ -566,6 +608,75 @@ export class Game {
     const modal = new SettingsModal(this.app, () => {});
     modal.zIndex = 999999;
     this.gameContainer.addChild(modal);
+  }
+
+  showDailyRewards(onDone) {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      if (typeof onDone === 'function') onDone();
+    };
+    const modal = new DailyRewardsModal(this.app, this.economy, (reward) => {
+      if (reward && reward.catLevel) {
+        this._spawnRewardCat(reward.catLevel);
+      }
+      this._saveToLocalStorage();
+    }, finish);
+    this.app.stage.addChild(modal);
+  }
+
+  showDailyQuests() {
+    const modal = new DailyQuestsModal(this.app, this.economy, () => this._saveToLocalStorage());
+    this.app.stage.addChild(modal);
+  }
+
+  showLeaderboard() {
+    const modal = new LeaderboardModal(this.app, {
+      maxCatLevel: this.maxCatLevel,
+      coins: this.economy ? this.economy.coins : 0
+    });
+    this.app.stage.addChild(modal);
+  }
+
+  async inviteFriends() {
+    const vk = new VKService();
+    const result = await vk.showInviteBox();
+    if (result && result.success && !result.simulated) {
+      if (this.economy) this.economy.addGems(15);
+      this._saveToLocalStorage();
+      UIUtils.showToast(this.app.stage, '🤝 +15 💎 за приглашение друзей!');
+    } else if (result && result.simulated) {
+      UIUtils.showToast(this.app.stage, '🤝 Приглашения доступны внутри VK');
+    } else {
+      UIUtils.showToast(this.app.stage, 'Приглашение отменено');
+    }
+  }
+
+  _spawnRewardCat(level) {
+    if (!this.grid) return false;
+    const slot = this.grid.getFreeSlotIndex ? this.grid.getFreeSlotIndex() : -1;
+    if (slot < 0) {
+      const gems = Math.max(5, Number(level) * 2);
+      if (this.economy) this.economy.addGems(gems);
+      UIUtils.showToast(this.app.stage, `Поле полно — +${gems} 💎 вместо котика`);
+      return false;
+    }
+    const cat = new Cat(Math.max(1, Number(level) || 1), slot);
+    this.grid.addCat(cat, slot);
+    if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {
+      this.dragSystem.makeDraggable(cat);
+    }
+    if (this.spawnSystem && typeof this.spawnSystem._animateBounce === 'function') {
+      this.spawnSystem._animateBounce(cat);
+    }
+    if (level > this.maxCatLevel) {
+      this.maxCatLevel = level;
+      if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
+    }
+    if (this.economy) this.economy.recalcAfterMerge();
+    eventBus.emit('CAT_SPAWNED', { level, reward: true });
+    return true;
   }
 
   restartTutorial() {

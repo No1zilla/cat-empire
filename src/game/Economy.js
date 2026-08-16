@@ -1,5 +1,6 @@
 import { getCatData } from '../utils/catVisuals.js';
 import { BALANCE } from '../config/balance.js';
+import { eventBus } from '../utils/EventBus.js';
 
 // Класс управления экономикой (Простая цена: 10 + totalCatsBought, ровно +1 монета за покупку)
 export class Economy {
@@ -84,6 +85,7 @@ export class Economy {
     }
     this.coins -= coins;
     this.gems -= gems;
+    if (coins > 0) eventBus.emit('COINS_SPENT', { coins });
     this._notify();
   }
 

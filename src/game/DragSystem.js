@@ -1,4 +1,4 @@
-import { Graphics, Container } from 'pixi.js';
+import { Graphics, Container, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { VKService } from '../vk/VKBridge.js';
 
@@ -13,6 +13,8 @@ export class DragSystem {
     this.selectedSlot = null; // Выбранная тапом ячейка
     this._selectionRing = null;
     this.vkService = new VKService();
+    this._comboCount = 0;
+    this._lastMergeAt = 0;
 
     this._pointerStart = { x: 0, y: 0 };
     this._hasMoved = false;
@@ -279,12 +281,20 @@ export class DragSystem {
     const centerX = pos.x + cardSize / 2;
     const centerY = pos.y + cardSize / 2;
 
+    const now = Date.now();
+    this._comboCount = (now - this._lastMergeAt < 2200) ? (this._comboCount + 1) : 1;
+    this._lastMergeAt = now;
+    if (newCat) newCat._mergeCombo = this._comboCount;
+
     // 1. Тактильная отдача VK Haptics
     try {
       if (window.vkBridge) {
         window.vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'medium' }).catch(() => {});
       }
     } catch (e) {}
+
+    this._shakeGrid();
+    if (this._comboCount >= 2) this._showCombo(centerX, centerY);
 
     // 2. Золотая кольцевая ударная волна (Golden Shockwave Ring)
     const shockwave = new Graphics();
@@ -399,6 +409,57 @@ export class DragSystem {
       };
       requestAnimationFrame(animateScale);
     }
+  }
+
+  _shakeGrid() {
+    const target = this.grid;
+    if (!target) return;
+    const ox = target.x;
+    const oy = target.y;
+    let frame = 0;
+    const shake = () => {
+      frame += 1;
+      if (frame < 8) {
+        target.x = ox + (Math.random() - 0.5) * 5;
+        target.y = oy + (Math.random() - 0.5) * 4;
+        requestAnimationFrame(shake);
+      } else {
+        target.x = ox;
+        target.y = oy;
+      }
+    };
+    requestAnimationFrame(shake);
+  }
+
+  _showCombo(x, y) {
+    const combo = new Text({
+      text: `COMBO x${this._comboCount}!`,
+      style: new TextStyle({
+        fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
+        fontSize: 16,
+        fontWeight: 'bold',
+        fill: '#FFD15C',
+        dropShadow: { color: '#000000', alpha: 0.7, blur: 3, distance: 1 }
+      })
+    });
+    combo.anchor.set(0.5);
+    combo.position.set(x, y - 28);
+    this.grid.addChild(combo);
+
+    const start = performance.now();
+    const tick = () => {
+      const p = (performance.now() - start) / 700;
+      if (p < 1 && !combo.destroyed) {
+        combo.y = y - 28 - p * 22;
+        combo.alpha = 1 - p;
+        combo.scale.set(1 + p * 0.25);
+        requestAnimationFrame(tick);
+      } else if (combo.parent) {
+        combo.parent.removeChild(combo);
+        combo.destroy();
+      }
+    };
+    requestAnimationFrame(tick);
   }
 }
 

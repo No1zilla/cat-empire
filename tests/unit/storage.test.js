@@ -22,10 +22,11 @@ export function runStorageTests() {
 
   const merged = storage.mergeStates(serverState, localState);
 
-  assert.strictEqual(merged.coins, 500, 'Должно выбираться большее количество монет (500 > 300)');
-  assert.strictEqual(merged.gems, 50, 'Должно выбираться большее количество гемов (50 > 20)');
-  assert.strictEqual(merged.maxCatLevel, 4, 'Должен выбираться наибольший уровень котика (4 > 2)');
-  assert.strictEqual(merged.gridState[0].catLevel, 4, 'Должна выбираться сетка с более продвинутыми котиками');
+  // При равных timestamp/merges/bought побеждает первый снимок (serverState)
+  assert.strictEqual(merged.coins, 500, 'При равных часах должен сохраняться снимок A (сервер)');
+  assert.strictEqual(merged.gems, 20, 'Гемы берутся из выбранного снимка целиком, а не max() по полям');
+  assert.strictEqual(merged.maxCatLevel, 4, 'Уровень котика берётся из выбранного снимка');
+  assert.strictEqual(merged.gridState[0].catLevel, 4, 'Сетка берётся из выбранного снимка');
 
   console.log('  ✅ Сервис хранения StorageService с конвергенцией состояний успешно прошел тесты!');
 }

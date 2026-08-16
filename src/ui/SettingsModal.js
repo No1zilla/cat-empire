@@ -4,6 +4,7 @@ import { UIUtils } from '../utils/UIUtils.js';
 import { PlatformService } from '../services/PlatformService.js';
 import { VKService } from '../vk/VKBridge.js';
 import { storageService } from '../services/StorageService.js';
+import { soundManager } from '../audio/SoundManager.js';
 
 /**
  * Окно «⚙️ Настройки»
@@ -37,7 +38,7 @@ export class SettingsModal extends Container {
 
     // 2. Модальная плашка Glassmorphism
     const modalW = 310;
-    const modalH = 340;
+    const modalH = 430;
     const modalX = (width - modalW) / 2;
     const modalY = (height - modalH) / 2;
 
@@ -64,9 +65,10 @@ export class SettingsModal extends Container {
 
     // 4. Переключатель Звука
     let soundEnabled = localStorage.getItem('cat_empire_sound_muted') !== '1';
+    let musicEnabled = localStorage.getItem('cat_empire_music_muted') !== '1';
 
     const soundContainer = new Container();
-    soundContainer.position.set(modalX + 25, modalY + 80);
+    soundContainer.position.set(modalX + 25, modalY + 78);
 
     const soundLabel = new Text({
       text: 'Звуковые эффекты:',
@@ -80,16 +82,36 @@ export class SettingsModal extends Container {
       soundEnabled ? 0x2ecc71 : 0xe74c3c,
       () => {
         soundEnabled = !soundEnabled;
-        localStorage.setItem('cat_empire_sound_muted', soundEnabled ? '0' : '1');
+        soundManager.setEnabled(soundEnabled);
         this._draw();
       }
     );
     soundContainer.addChild(soundBtn);
     this.addChild(soundContainer);
 
+    const musicContainer = new Container();
+    musicContainer.position.set(modalX + 25, modalY + 126);
+    const musicLabel = new Text({
+      text: 'Музыка:',
+      style: new TextStyle({ fontFamily: font, fontSize: 15, fill: '#ecf0f1' })
+    });
+    musicContainer.addChild(musicLabel);
+    const musicBtn = UIUtils.createButton(
+      170, -6, 90, 36,
+      musicEnabled ? '🎵 ВКЛ' : '🎵 ВЫКЛ',
+      musicEnabled ? 0x2ecc71 : 0xe74c3c,
+      () => {
+        musicEnabled = !musicEnabled;
+        soundManager.setMusicEnabled(musicEnabled);
+        this._draw();
+      }
+    );
+    musicContainer.addChild(musicBtn);
+    this.addChild(musicContainer);
+
     // 5. Статус Синхронизации
     const syncContainer = new Container();
-    syncContainer.position.set(modalX + 25, modalY + 145);
+    syncContainer.position.set(modalX + 25, modalY + 180);
 
     const syncTitle = new Text({
       text: 'Синхронизация:',
@@ -111,7 +133,7 @@ export class SettingsModal extends Container {
     const vkService = new VKService();
     const shareBtn = UIUtils.createButton(
       modalX + 25,
-      modalY + 200,
+      modalY + 238,
       (modalW - 60) / 2,
       36,
       '📢 ПОДЕЛИТЬСЯ',
@@ -126,7 +148,7 @@ export class SettingsModal extends Container {
 
     const wallBtn = UIUtils.createButton(
       modalX + 35 + (modalW - 60) / 2,
-      modalY + 200,
+      modalY + 238,
       (modalW - 60) / 2,
       36,
       '📝 НА СТЕНУ',
@@ -142,7 +164,7 @@ export class SettingsModal extends Container {
     // 7. Кнопка «🗑️ Сбросить прогресс»
     const resetBtn = UIUtils.createButton(
       modalX + 25,
-      modalY + 248,
+      modalY + 286,
       modalW - 50,
       34,
       '🗑️ СБРОСИТЬ ПРОГРЕСС',
@@ -165,7 +187,7 @@ export class SettingsModal extends Container {
       style: new TextStyle({ fontFamily: font, fontSize: 11, fill: '#7f8c8d', align: 'center' })
     });
     verText.anchor.set(0.5);
-    verText.position.set(width / 2, modalY + 292);
+    verText.position.set(width / 2, modalY + 332);
     this.addChild(verText);
 
     const closeBtn = UIUtils.createButton(

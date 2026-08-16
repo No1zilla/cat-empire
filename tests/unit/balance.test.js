@@ -4,10 +4,10 @@ import { BALANCE } from '../../src/config/balance.js';
 export function runBalanceTests() {
   console.log('🧪 Тестирование формул баланса и цен (src/config/balance.js)...');
 
-  // 1. Формула цены котика: 10 + totalCatsBought
-  assert.strictEqual(BALANCE.calculateCatCost(0), 10, 'Цена начального котика должна быть 10');
-  assert.strictEqual(BALANCE.calculateCatCost(1), 11, 'Цена 2-го котика должна быть 11');
-  assert.strictEqual(BALANCE.calculateCatCost(5), 15, 'Цена 6-го котика должна быть 15');
+  // 1. Формула цены котика: max(1, totalCatsBought)
+  assert.strictEqual(BALANCE.calculateCatCost(0), 1, 'Цена начального котика должна быть 1');
+  assert.strictEqual(BALANCE.calculateCatCost(1), 1, 'Цена 2-го котика должна быть 1');
+  assert.strictEqual(BALANCE.calculateCatCost(5), 5, 'Цена после 5 покупок должна быть 5');
 
   // 2. Формула пассивного дохода: 2^(level - 1)
   assert.strictEqual(BALANCE.calculateCatIncome(1), 1, 'Доход кота 1 ур должен быть 1');

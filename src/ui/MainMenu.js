@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle, Sprite, Assets } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
@@ -8,12 +8,28 @@ import { getCatTexture } from '../utils/catTextures.js';
  * Главное Стартовое Меню (Соответствие правилу 4.2.10 VK Mini Apps + TOKENS)
  */
 export class MainMenu extends Container {
-  constructor(app, { onPlay, onOpenCollection, onOpenSettings }) {
+  constructor(app, {
+    onPlay,
+    onOpenCollection,
+    onOpenSettings,
+    onOpenDaily,
+    onOpenQuests,
+    onOpenLeaderboard,
+    onInvite,
+    dailyAvailable = false,
+    questsClaimable = 0
+  }) {
     super();
     this.app = app;
     this.onPlay = onPlay || (() => {});
     this.onOpenCollection = onOpenCollection || (() => {});
     this.onOpenSettings = onOpenSettings || (() => {});
+    this.onOpenDaily = onOpenDaily || (() => {});
+    this.onOpenQuests = onOpenQuests || (() => {});
+    this.onOpenLeaderboard = onOpenLeaderboard || (() => {});
+    this.onInvite = onInvite || (() => {});
+    this.dailyAvailable = dailyAvailable;
+    this.questsClaimable = questsClaimable;
 
     this._tickerCallback = null;
     this.eventMode = 'static';
@@ -53,7 +69,7 @@ export class MainMenu extends Container {
 
     const title = new Text({ text: 'ИМПЕРИЯ КОТИКОВ', style: titleStyle });
     title.anchor.set(0.5);
-    title.position.set(width / 2, 110);
+    title.position.set(width / 2, 72);
     this.addChild(title);
 
     const subTitleStyle = new TextStyle({
@@ -66,12 +82,12 @@ export class MainMenu extends Container {
 
     const subTitle = new Text({ text: 'IDLE MERGE KINGDOM', style: subTitleStyle });
     subTitle.anchor.set(0.5);
-    subTitle.position.set(width / 2, 145);
+    subTitle.position.set(width / 2, 102);
     this.addChild(subTitle);
 
     // 4. Маскот — Анимированный Королевский Кот в центре
     const mascotContainer = new Container();
-    mascotContainer.position.set(width / 2, 250);
+    mascotContainer.position.set(width / 2, 188);
 
     const mascotBg = new Graphics();
     mascotBg.circle(0, 0, 72);
@@ -101,46 +117,91 @@ export class MainMenu extends Container {
     let elapsed = 0;
     this._tickerCallback = (ticker) => {
       elapsed += ticker.deltaTime * 0.05;
-      mascotContainer.y = 250 + Math.sin(elapsed) * 8;
+      mascotContainer.y = 188 + Math.sin(elapsed) * 8;
       mascotContainer.scale.set(1 + Math.sin(elapsed * 1.5) * 0.03);
     };
     this.app.ticker.add(this._tickerCallback);
 
-    // 5. Кнопки управления в единой токены-палитре
     const btnW = 240;
-    const btnH = 54;
+    const halfW = 114;
     const btnX = (width - btnW) / 2;
+    const gap = 12;
 
-    // А) ▶️ ИГРАТЬ (Сочная розовая/красная кнопка TOKENS.colors.btnBuy)
     const playBtn = UIUtils.createButton(
       btnX,
-      360,
+      278,
       btnW,
-      btnH,
+      50,
       '▶️ ИГРАТЬ',
       0xFF6B6B,
       () => this.onPlay()
     );
     this.addChild(playBtn);
 
-    // Б) 📖 КОТОПЕДИЯ (Оранжевая кнопка TOKENS.colors.btnFill)
+    const dailyLabel = this.dailyAvailable ? '🎁 ДЕНЬ •' : '🎁 ДЕНЬ';
+    const dailyBtn = UIUtils.createButton(
+      btnX,
+      340,
+      halfW,
+      44,
+      dailyLabel,
+      0xFF6B6B,
+      () => this.onOpenDaily()
+    );
+    this.addChild(dailyBtn);
+    if (this.dailyAvailable) this._addBadge(dailyBtn, halfW);
+
+    const questLabel = this.questsClaimable > 0 ? `📋 КВЕСТ ${this.questsClaimable}` : '📋 КВЕСТ';
+    const questBtn = UIUtils.createButton(
+      btnX + halfW + gap,
+      340,
+      halfW,
+      44,
+      questLabel,
+      0xA55EEA,
+      () => this.onOpenQuests()
+    );
+    this.addChild(questBtn);
+    if (this.questsClaimable > 0) this._addBadge(questBtn, halfW);
+
+    const boardBtn = UIUtils.createButton(
+      btnX,
+      396,
+      halfW,
+      44,
+      '🏆 ТОП',
+      0xFF9F43,
+      () => this.onOpenLeaderboard()
+    );
+    this.addChild(boardBtn);
+
+    const inviteBtn = UIUtils.createButton(
+      btnX + halfW + gap,
+      396,
+      halfW,
+      44,
+      '🤝 ДРУЗЬЯ',
+      0x0077FF,
+      () => this.onInvite()
+    );
+    this.addChild(inviteBtn);
+
     const deckBtn = UIUtils.createButton(
       btnX,
-      430,
+      452,
       btnW,
-      48,
+      44,
       '📖 КОТОПЕДИЯ',
       0xFF9F43,
       () => this.onOpenCollection()
     );
     this.addChild(deckBtn);
 
-    // В) ⚙️ НАСТРОЙКИ (Фиолетовая кнопка TOKENS.colors.btnMerge)
     const settingsBtn = UIUtils.createButton(
       btnX,
-      492,
+      508,
       btnW,
-      48,
+      44,
       '⚙️ НАСТРОЙКИ',
       0xA55EEA,
       () => this.onOpenSettings()
@@ -157,6 +218,14 @@ export class MainMenu extends Container {
     footer.anchor.set(0.5);
     footer.position.set(width / 2, height - 30);
     this.addChild(footer);
+  }
+
+  _addBadge(button, width) {
+    const dot = new Graphics();
+    dot.circle(width - 10, 8, 6);
+    dot.fill(0xff4757);
+    dot.stroke({ color: 0xffffff, width: 1.5 });
+    button.addChild(dot);
   }
 
   destroy(options) {
