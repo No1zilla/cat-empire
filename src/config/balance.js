@@ -14,9 +14,15 @@ export const BALANCE = {
     return Math.max(1, n);
   },
 
-  // Базовая кнопка покупки всегда спавнит котика 1-го уровня
-  getSpawnCatLevel(maxUnlockedLevel = 1) {
+  // Базовая кнопка покупки спавнит 1 ур., после первой мяты — котика 2 ур.
+  getSpawnCatLevel(maxUnlockedLevel = 1, mintPercent = 0) {
+    if (Number(mintPercent) >= 15) return 2;
     return 1;
+  },
+
+  mintForClearedWorld(worldsCleared = 1) {
+    const n = Math.max(1, Number(worldsCleared) || 1);
+    return 10 + n * 5;
   },
 
   // Пассивный доход котика уровня N = 2^(level - 1)

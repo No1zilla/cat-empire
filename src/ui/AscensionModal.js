@@ -9,10 +9,11 @@ import { eventBus } from '../utils/EventBus.js';
  * Кульминация 15 уровня — Кото-Бог (TASK-027).
  */
 export class AscensionModal extends Container {
-  constructor(app, onClose) {
+  constructor(app, { onFly, onStay } = {}) {
     super();
     this.app = app;
-    this.onClose = onClose || (() => {});
+    this.onFly = onFly || (() => {});
+    this.onStay = onStay || (() => {});
     this.eventMode = 'static';
     this.zIndex = 999999;
     this._particles = [];
@@ -70,7 +71,7 @@ export class AscensionModal extends Container {
     }
 
     const reward = new Text({
-      text: 'Империя покорила небеса!\nНаграда: +50 рубинов и легендарный бейдж',
+      text: 'Империя покорила небеса!\nНаграда: +50 рубинов. Портал на землю дюн открыт.',
       style: new TextStyle({
         fontFamily: font,
         fontSize: 14,
@@ -80,19 +81,30 @@ export class AscensionModal extends Container {
       })
     });
     reward.anchor.set(0.5);
-    reward.position.set(W / 2, 400);
+    reward.position.set(W / 2, 390);
     this.addChild(reward);
 
-    const closeBtn = UIUtils.createButton(
-      (W - 220) / 2,
-      470,
-      220,
+    const flyBtn = UIUtils.createButton(
+      (W - 240) / 2,
+      450,
+      240,
       48,
-      'СЛАВА КОТО-БОГУ',
+      'ЛЕТЕТЬ НА ЗЕМЛЮ ДЮН',
       0xFF6B6B,
-      () => this._close()
+      () => this._fly()
     );
-    this.addChild(closeBtn);
+    this.addChild(flyBtn);
+
+    const stayBtn = UIUtils.createButton(
+      (W - 240) / 2,
+      508,
+      240,
+      40,
+      'Позже',
+      0x3d356c,
+      () => this._stay()
+    );
+    this.addChild(stayBtn);
   }
 
   _burst() {
@@ -130,9 +142,16 @@ export class AscensionModal extends Container {
     eventBus.emit('NEW_CAT_UNLOCKED', { level: 15 });
   }
 
-  _close() {
+  _fly() {
     if (this._raf) cancelAnimationFrame(this._raf);
-    if (typeof this.onClose === 'function') this.onClose();
+    if (typeof this.onFly === 'function') this.onFly();
+    if (this.parent) this.parent.removeChild(this);
+    this.destroy({ children: true });
+  }
+
+  _stay() {
+    if (this._raf) cancelAnimationFrame(this._raf);
+    if (typeof this.onStay === 'function') this.onStay();
     if (this.parent) this.parent.removeChild(this);
     this.destroy({ children: true });
   }

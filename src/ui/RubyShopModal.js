@@ -6,6 +6,8 @@ import { RUBY_PACKS } from '../config/rubyShop.js';
 import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
+import { empireMeta } from '../game/EmpireMeta.js';
+import { StarterTributeModal } from './StarterTributeModal.js';
 
 const PROCESSED_ORDERS_KEY = 'cat_empire_iap_orders';
 
@@ -64,7 +66,7 @@ export class RubyShopModal extends Container {
     this.addChild(overlay);
 
     const modalW = 340;
-    const modalH = 430;
+    const modalH = empireMeta.starterOpen ? 490 : 430;
     const modalX = (W - modalW) / 2;
     const modalY = (H - modalH) / 2;
 
@@ -103,8 +105,28 @@ export class RubyShopModal extends Container {
     sub.position.set(W / 2, modalY + 50);
     this.addChild(sub);
 
+    let packsTop = modalY + 92;
+    if (empireMeta.starterOpen) {
+      const tributeBtn = UIUtils.createButton(
+        modalX + 22,
+        modalY + 86,
+        modalW - 44,
+        44,
+        'Ларец первого трона · 5 голосов',
+        parseInt(TOKENS.colors.gems.replace('#', '0x')),
+        () => {
+          this._close();
+          const modal = new StarterTributeModal(this.app, this.economy, this.onClose, () => {});
+          modal.zIndex = 9999999;
+          this.app.stage.addChild(modal);
+        }
+      );
+      this.addChild(tributeBtn);
+      packsTop = modalY + 140;
+    }
+
     RUBY_PACKS.forEach((pack, index) => {
-      const y = modalY + 96 + index * 84;
+      const y = packsTop + index * 84;
       const btn = UIUtils.createButton(
         modalX + 22,
         y,

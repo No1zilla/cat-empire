@@ -191,6 +191,21 @@ export class VKService {
     return { success: false, reason: 'not_vk', simulated: true };
   }
 
+  async joinGroup(groupId) {
+    try {
+      const id = Number(groupId) || 0;
+      if (!id) return { success: false, noGroup: true };
+      if (!this.bridge || typeof this.bridge.send !== 'function' || !isVkEnvironment()) {
+        return { success: false, simulated: true };
+      }
+      const res = await this.bridge.send('VKWebAppJoinGroup', { group_id: id });
+      return { success: true, res };
+    } catch (e) {
+      console.warn('⚠️ VKWebAppJoinGroup error:', e);
+      return { success: false, cancelled: true, error: e };
+    }
+  }
+
   // TASK-SHARE: Покупка предмета за голоса VK
   async showOrderBox(item) {
     try {

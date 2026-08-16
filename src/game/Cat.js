@@ -1,7 +1,7 @@
 import { Container, Sprite, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { getCatTexture, getUITexture } from '../utils/catTextures.js';
-import { getCatData } from '../utils/catVisuals.js';
+import { getCatData, getCatWorldTint } from '../utils/catVisuals.js';
 
 // Класс котика (TASK-015B: Rarity Visual System — Ауры 5+ уровней)
 export class Cat extends Container {
@@ -48,6 +48,8 @@ export class Cat extends Container {
       sprite.height = catSize;
       sprite.x = cardWidth / 2;
       sprite.y = cardHeight / 2 - 4; // 32px center
+      const tint = getCatWorldTint();
+      if (tint && tint !== 0xffffff) sprite.tint = tint;
       mainContainer.addChild(sprite);
     } else {
       const emojiStyle = new TextStyle({ fontSize: 38, align: 'center' });

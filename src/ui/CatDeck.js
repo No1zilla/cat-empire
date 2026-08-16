@@ -14,6 +14,7 @@ export class CatDeck extends Container {
     this.app = app;
     this.maxUnlockedLevel = Math.max(1, Math.min(15, maxUnlockedLevel || 1));
     this.onCardClick = onCardClick || (() => {});
+    this.worldTitle = 'Котопедия';
 
     // Физика и параметры скролла
     this._currentX = 0;
@@ -38,7 +39,7 @@ export class CatDeck extends Container {
     this.removeChildren();
 
     const W = CONFIG.GAME_WIDTH;
-    const deckH = 125;
+    const deckH = 100;
 
     // 1. Панель матового стекла (Glassmorphism): использование токенов panelBg & panelBorder
     const bg = new Graphics();
@@ -55,7 +56,7 @@ export class CatDeck extends Container {
       fill: CONFIG.COLORS.GOLD || '#ffd700',
     });
     const titleText = new Text({
-      text: `📖 Котопедия (${this.maxUnlockedLevel}/15)`,
+        text: `📖 ${this.worldTitle || 'Котопедия'} (${this.maxUnlockedLevel}/15)`,
       style: titleStyle
     });
     titleText.position.set(22, 8);
@@ -108,7 +109,7 @@ export class CatDeck extends Container {
     const maskX = 48;
     const maskW = W - 96;
     const mask = new Graphics();
-    mask.rect(maskX, 26, maskW, 92);
+    mask.rect(maskX, 24, maskW, 72);
     mask.fill(0xffffff);
     this.addChild(mask);
 
@@ -117,7 +118,7 @@ export class CatDeck extends Container {
     this.addChild(this._cardsContainer);
 
     const cardW = 54;
-    const cardH = 78;
+    const cardH = 64;
     const padX = 8;
     const startX = maskX + 4;
 
@@ -418,8 +419,9 @@ export class CatDeck extends Container {
     this._targetX = Math.max(minX, Math.min(0, desiredX));
   }
 
-  updateMaxLevel(newMaxLevel) {
+  updateMaxLevel(newMaxLevel, worldTitle) {
     this.maxUnlockedLevel = Math.max(1, Math.min(15, newMaxLevel || 1));
+    if (worldTitle) this.worldTitle = worldTitle;
     this._draw();
     this.scrollToLevel(this.maxUnlockedLevel);
   }

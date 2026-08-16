@@ -87,11 +87,7 @@ export class IncomeBoosterButton extends Container {
 
   _tick() {
     const active = incomeBoosterService.isActive();
-    const multiplier = incomeBoosterService.getMultiplier();
-    if (this.economy && this.economy.incomeMultiplier !== multiplier) {
-      this.economy.setIncomeMultiplier(multiplier);
-      this.onMultiplierChange(multiplier);
-    }
+    this.onMultiplierChange(incomeBoosterService.getMultiplier());
     this._paint(active);
     if (active) {
       this._label.text = `2× активно  ${formatMmSs(incomeBoosterService.remainingMs())}`;

@@ -12,6 +12,7 @@ export class Economy {
     this.totalMerges = 0;
     this.incomePerSecond = 0;
     this.incomeMultiplier = 1;
+    this.mintPercent = 0;
     this._ticker = null;
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
@@ -46,7 +47,13 @@ export class Economy {
         }
       });
     }
-    this.incomePerSecond = Math.floor(totalIncome * (this.incomeMultiplier || 1));
+    this.incomePerSecond = Math.floor(totalIncome * (this.incomeMultiplier || 1) * (1 + (this.mintPercent || 0) / 100));
+  }
+
+  setMintPercent(percent = 0) {
+    this.mintPercent = Math.max(0, Number(percent) || 0);
+    this._recalcIncome();
+    this._notify();
   }
 
   setIncomeMultiplier(multiplier = 1) {

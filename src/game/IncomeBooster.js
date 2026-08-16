@@ -27,8 +27,10 @@ export class IncomeBoosterService {
     return this.isActive(now) ? INCOME_BOOSTER_MULTIPLIER : 1;
   }
 
-  activate(now = Date.now()) {
-    const expiresAt = now + INCOME_BOOSTER_MS;
+  activate(now = Date.now(), durationMs = INCOME_BOOSTER_MS, extend = false) {
+    const duration = Math.max(1000, Number(durationMs) || INCOME_BOOSTER_MS);
+    const base = extend ? Math.max(now, this.getExpiresAt()) : now;
+    const expiresAt = base + duration;
     this.storage.setItem(STORAGE_KEY, String(expiresAt));
     return expiresAt;
   }

@@ -3,7 +3,9 @@ import crypto from 'node:crypto';
 export const PAYMENT_RUBY_PACKS = [
   { id: 'gems_pack_10', rubies: 10, votes: 1, title: 'Старт' },
   { id: 'gems_pack_50', rubies: 50, votes: 4, title: 'Супер' },
-  { id: 'gems_pack_150', rubies: 150, votes: 10, title: 'Империя' }
+  { id: 'gems_pack_150', rubies: 150, votes: 10, title: 'Империя' },
+  { id: 'starter_tribute_5', rubies: 80, votes: 5, title: 'Ларец первого трона' },
+  { id: 'edict_seven_nights', rubies: 40, votes: 8, title: 'Указ семи ночей' }
 ];
 
 export function getPaymentRubyPack(itemId) {

@@ -9,6 +9,10 @@ import {
 } from '../../src/config/rubyShop.js';
 import { IncomeBoosterService } from '../../src/game/IncomeBooster.js';
 import { Economy } from '../../src/game/Economy.js';
+import { EmpireMetaService } from '../../src/game/EmpireMeta.js';
+import { rollIdolReward, IDOL_REWARDS } from '../../src/game/idolRewards.js';
+import { BALANCE } from '../../src/config/balance.js';
+import { getCatData, setCatWorld } from '../../src/utils/catVisuals.js';
 import {
   getPaymentRubyPack,
   handleVkPaymentNotification,
@@ -124,5 +128,48 @@ export function runMonetizationTests() {
   const orderRes = handleVkPaymentNotification(order, secret);
   assert.strictEqual(orderRes.response.order_id, '42');
 
-  console.log('  ✅ Касса, бустер 2× и callback VK прошли автотесты');
+  assert.strictEqual(getRubyPack('starter_tribute_5').votes, 5);
+  assert.strictEqual(getRubyPack('edict_seven_nights').rubies, 40);
+  assert.strictEqual(getPaymentRubyPack('starter_tribute_5').votes, 5);
+  assert.strictEqual(getPaymentRubyPack('edict_seven_nights').votes, 8);
+
+  assert.strictEqual(BALANCE.mintForClearedWorld(1), 15);
+  assert.strictEqual(BALANCE.getSpawnCatLevel(1, 15), 2);
+  assert.strictEqual(BALANCE.getSpawnCatLevel(1, 0), 1);
+
+  const meta = new EmpireMetaService(memoryStorage());
+  meta.noteBest(1, 15);
+  const flown = meta.flyToNextWorld(15);
+  assert.strictEqual(flown.worldIndex, 2);
+  assert.strictEqual(flown.worldsCleared, 1);
+  assert.strictEqual(flown.mint, 15);
+  assert.strictEqual(meta.bestFor(1), 15);
+
+  const edictNow = now;
+  meta.activateEdict(edictNow);
+  assert.strictEqual(meta.isEdictActive(edictNow + 1000), true);
+  assert.strictEqual(meta.claimEdictDaily(edictNow), 8);
+  assert.strictEqual(meta.claimEdictDaily(edictNow), null);
+
+  assert.strictEqual(meta.idolRemaining(edictNow), 3);
+  assert.strictEqual(meta.recordIdolOffering(edictNow), true);
+  assert.strictEqual(meta.idolRemaining(edictNow), 2);
+
+  const weights = IDOL_REWARDS.reduce((s, r) => s + r.weight, 0);
+  assert.strictEqual(weights, 100);
+  assert.strictEqual(rollIdolReward(() => 0).id, 'handful');
+  const mintDream = rollIdolReward(() => 0.99, 0);
+  assert.strictEqual(mintDream.rubies, 5, 'Без мяты идол даёт рубины, не мяту');
+
+  setCatWorld(2);
+  assert.strictEqual(getCatData(15).name, 'Кото-Бог дюн');
+  setCatWorld(1);
+  assert.strictEqual(getCatData(15).name, 'Кото-Бог');
+
+  const minted = new Economy({ slots: [{ level: 1 }, { level: 2 }, null] });
+  minted.setBalance(0, 0);
+  minted.setMintPercent(100);
+  assert.strictEqual(minted.incomePerSecond, 6, 'Мята +100% к доходу 3');
+
+  console.log('  ✅ Касса, бустер 2×, земля дюн, ларец/указ/идол прошли автотесты');
 }

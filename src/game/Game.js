@@ -38,6 +38,14 @@ import { VKService } from '../vk/VKBridge.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { INVITE_FALLBACK_GEMS } from '../ui/DesktopRewardModal.js';
 import { RUBY_AD_REWARD } from '../config/rubyShop.js';
+import { LiveOpsRow } from '../ui/LiveOpsRow.js';
+import { WorldFlightOverlay } from '../ui/WorldFlightOverlay.js';
+import { StarterTributeModal } from '../ui/StarterTributeModal.js';
+import { VassalsModal } from '../ui/VassalsModal.js';
+import { empireMeta } from './EmpireMeta.js';
+import { setCatWorld } from '../utils/catVisuals.js';
+import { getWorldTitle } from '../config/worlds.js';
+import { VK_GROUP_ID } from '../config/vkCommunity.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
@@ -96,13 +104,7 @@ export class Game {
     }
 
     // 2. Создание HUD интерфейса с кнопкой 📖 Котопедии
-    const openCollection = () => {
-      const modal = new CollectionModal(this.app, this.maxCatLevel, () => {
-        console.log('Котопедия закрыта');
-      });
-      modal.zIndex = 999999;
-      this.app.stage.addChild(modal);
-    };
+    const openCollection = () => this.openCollection();
 
     const openMenu = () => {
       this.showMainMenu();
@@ -150,7 +152,8 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
     };
     this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalMerges);
-    this.economy.setIncomeMultiplier(incomeBoosterService.getMultiplier());
+    setCatWorld(empireMeta.worldIndex);
+    this._applyIncomeBuffs();
     this.economy.startTicker();
 
     // Синхронизируем максимально объединенный прогресс со всеми хранилищами (VK Storage, LocalStorage, DB) при старте
@@ -225,7 +228,7 @@ export class Game {
 
       for (let i = 0; i < spawnCount; i++) {
         const slot = freeSlots[i];
-        const cat = new Cat(1, slot);
+        const cat = new Cat(BALANCE.getSpawnCatLevel(this.maxCatLevel, this.economy ? this.economy.mintPercent : 0), slot);
         this.grid.addCat(cat, slot);
 
         if (this.dragSystem && typeof this.dragSystem.makeDraggable === 'function') {
@@ -269,21 +272,31 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
       return count;
-    }, () => this.showRubyShop());
+    }, () => {
+      if (empireMeta.starterOpen) this.showStarterTribute();
+      else this.showRubyShop();
+    });
     this.autoMergeButton.x = 280;
     this.autoMergeButton.y = buttonRowY;
     this.autoMergeButton.zIndex = 10;
     this.gameContainer.addChild(this.autoMergeButton);
 
     this.incomeBoosterButton = new IncomeBoosterButton(this.app, this.economy, () => {
-      if (this.hud && this.economy) {
-        this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
-      }
+      this._applyIncomeBuffs();
     });
     this.incomeBoosterButton.x = 8;
-    this.incomeBoosterButton.y = buttonRowY + 54;
+    this.incomeBoosterButton.y = buttonRowY + 52;
     this.incomeBoosterButton.zIndex = 10;
     this.gameContainer.addChild(this.incomeBoosterButton);
+
+    this.liveOpsRow = new LiveOpsRow(this.app, this.economy, {
+      onBuffs: () => this._applyIncomeBuffs(),
+      onPortal: () => this.flyToNextWorld()
+    });
+    this.liveOpsRow.x = 8;
+    this.liveOpsRow.y = buttonRowY + 88;
+    this.liveOpsRow.zIndex = 10;
+    this.gameContainer.addChild(this.liveOpsRow);
 
     // 7. Панель «📖 Котопедия» прямо на главном экране под кнопками управления
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
@@ -293,7 +306,9 @@ export class Game {
         this.app.stage.addChild(detailModal);
       }
     });
-    this.catDeck.y = buttonRowY + 94;
+    this.catDeck.worldTitle = getWorldTitle(empireMeta.worldIndex);
+    this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
+    this.catDeck.y = buttonRowY + 122;
     this.catDeck.zIndex = 70;
     this.gameContainer.addChild(this.catDeck);
 
@@ -311,19 +326,27 @@ export class Game {
 
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
+        empireMeta.noteBest(empireMeta.worldIndex, this.maxCatLevel);
         eventTracker.trackMaxCatLevelReached(newLevel);
         eventBus.emit('NEW_CAT_UNLOCKED', { level: newLevel });
         if (this.spawnSystem) this.spawnSystem._stopHold();
-        if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
+        if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
 
         const isGodCat = newLevel >= 15;
-        const alreadyAscended = typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_god_cat_claimed') === '1';
+        const alreadyAscended = empireMeta.wasGodClaimed(empireMeta.worldIndex);
         const rewardGems = isGodCat && !alreadyAscended ? 50 : 5;
         if (this.economy) this.economy.addGems(rewardGems);
 
         if (isGodCat && !alreadyAscended) {
-          try { localStorage.setItem('cat_empire_god_cat_claimed', '1'); } catch (e) {}
-          const ascension = new AscensionModal(this.app, () => this._syncToCloud());
+          empireMeta.markGodClaimed(empireMeta.worldIndex);
+          const ascension = new AscensionModal(this.app, {
+            onFly: () => this.flyToNextWorld(),
+            onStay: () => {
+              empireMeta.setPendingFlight(true);
+              if (this.liveOpsRow) this.liveOpsRow._tick();
+              this._syncToCloud();
+            }
+          });
           this.app.stage.addChild(ascension);
         } else {
           const newCatModal = new NewCatModal(this.app, newLevel, rewardGems, async () => {
@@ -604,11 +627,7 @@ export class Game {
           cb();
         }
       },
-      onOpenCollection: () => {
-        const modal = new CollectionModal(this.app, this.maxCatLevel, () => {});
-        modal.zIndex = 999999;
-        this.app.stage.addChild(modal);
-      },
+      onOpenCollection: () => this.openCollection(),
       onOpenSettings: () => {
         this.showSettingsModal();
       },
@@ -617,6 +636,7 @@ export class Game {
       onOpenLeaderboard: () => this.showLeaderboard(),
       onInvite: () => this.inviteFriends(),
       onOpenShop: () => this.showRubyShop(),
+      onOpenCourt: () => this.joinCourt(),
       dailyAvailable: dailyRewardsService.getState().canClaim,
       questsClaimable: dailyQuestsService.getState().claimable
     });
@@ -661,9 +681,104 @@ export class Game {
   }
 
   showRubyShop() {
-    const modal = new RubyShopModal(this.app, this.economy, () => this._saveToLocalStorage());
+    const modal = new RubyShopModal(this.app, this.economy, () => {
+      this._applyIncomeBuffs();
+      this._saveToLocalStorage();
+    });
     modal.zIndex = 9999999;
     this.app.stage.addChild(modal);
+  }
+
+  showStarterTribute() {
+    const modal = new StarterTributeModal(this.app, this.economy, () => this._applyIncomeBuffs(), () => this._saveToLocalStorage());
+    modal.zIndex = 9999999;
+    this.app.stage.addChild(modal);
+  }
+
+  openCollection() {
+    empireMeta.noteBest(empireMeta.worldIndex, this.maxCatLevel);
+    const modal = new CollectionModal(this.app, this.maxCatLevel, () => {
+      setCatWorld(empireMeta.worldIndex);
+    }, {
+      worldIndex: empireMeta.worldIndex,
+      bestByWorld: empireMeta.snapshot().bestByWorld,
+      worldsCleared: empireMeta.worldsCleared
+    });
+    modal.zIndex = 999999;
+    this.app.stage.addChild(modal);
+  }
+
+  _applyIncomeBuffs() {
+    if (!this.economy) return;
+    const x2 = incomeBoosterService.isActive() || empireMeta.isEdictActive() ? 2 : 1;
+    this.economy.setMintPercent(empireMeta.mint);
+    this.economy.setIncomeMultiplier(x2);
+    if (this.hud) this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
+  }
+
+  flyToNextWorld() {
+    const firstFlight = empireMeta.worldsCleared === 0;
+    empireMeta.noteBest(empireMeta.worldIndex, this.maxCatLevel);
+    const nextIndex = empireMeta.worldIndex + 1;
+    const overlay = new WorldFlightOverlay(this.app, nextIndex, () => {
+      empireMeta.flyToNextWorld(this.maxCatLevel);
+      setCatWorld(empireMeta.worldIndex);
+      const spawnLevel = BALANCE.getSpawnCatLevel(1, empireMeta.mint);
+      if (this.grid) {
+        this.grid.importState([
+          { slotIndex: 0, catLevel: spawnLevel },
+          { slotIndex: 1, catLevel: spawnLevel }
+        ]);
+        if (this.dragSystem) {
+          this.grid.slots.forEach((cat) => {
+            if (cat) this.dragSystem.makeDraggable(cat);
+          });
+        }
+      }
+      this.maxCatLevel = spawnLevel;
+      if (this.economy) {
+        this.economy.setBalance(this.economy.coins, this.economy.gems, 0, this.economy.totalMerges);
+        this._applyIncomeBuffs();
+      }
+      if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
+      if (this.liveOpsRow) this.liveOpsRow._tick();
+      if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
+      if (this.fillAllButton) this.fillAllButton.updateLabel();
+      this._saveToLocalStorage();
+      UIUtils.showToast(this.app.stage, 'Новая территория. Новые котики.');
+      if (firstFlight && !empireMeta.snapshot().vassalsSummoned) {
+        const vassals = new VassalsModal(this.app, this.economy, () => {
+          const vk = new VKService();
+          return vk.showInviteBox();
+        }, () => this._saveToLocalStorage());
+        this.app.stage.addChild(vassals);
+      }
+    });
+    this.app.stage.addChild(overlay);
+  }
+
+  async joinCourt() {
+    const vk = new VKService();
+    if (empireMeta.snapshot().communityJoined) {
+      UIUtils.showToast(this.app.stage, 'Ты уже во дворе');
+      return;
+    }
+    const result = await vk.joinGroup(VK_GROUP_ID);
+    if (result && result.noGroup) {
+      UIUtils.showToast(this.app.stage, 'Двор скоро откроется');
+      return;
+    }
+    if (result && result.success && !result.simulated) {
+      this.economy.addGems(5);
+      empireMeta.markCommunityJoined();
+      eventTracker.track('community_joined', { group_id: VK_GROUP_ID });
+      this._saveToLocalStorage();
+      UIUtils.showToast(this.app.stage, `Двор принял тебя. +${UIUtils.formatRubies(5)}`);
+    } else if (result && result.simulated) {
+      UIUtils.showToast(this.app.stage, 'Двор доступен внутри VK');
+    } else {
+      UIUtils.showToast(this.app.stage, 'Вступление отменено');
+    }
   }
 
   showRubyAd() {

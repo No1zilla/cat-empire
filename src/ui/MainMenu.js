@@ -17,6 +17,7 @@ export class MainMenu extends Container {
     onOpenLeaderboard,
     onInvite,
     onOpenShop,
+    onOpenCourt,
     dailyAvailable = false,
     questsClaimable = 0
   }) {
@@ -30,6 +31,7 @@ export class MainMenu extends Container {
     this.onOpenLeaderboard = onOpenLeaderboard || (() => {});
     this.onInvite = onInvite || (() => {});
     this.onOpenShop = onOpenShop || (() => {});
+    this.onOpenCourt = onOpenCourt || (() => {});
     this.dailyAvailable = dailyAvailable;
     this.questsClaimable = questsClaimable;
 
@@ -216,10 +218,21 @@ export class MainMenu extends Container {
     shopBtn.addChild(shopGem);
     this.addChild(shopBtn);
 
-    const settingsBtn = UIUtils.createButton(
+    const courtBtn = UIUtils.createButton(
       btnX,
       508,
-      btnW,
+      halfW,
+      44,
+      'ДВОР',
+      0x2ecc71,
+      () => this.onOpenCourt()
+    );
+    this.addChild(courtBtn);
+
+    const settingsBtn = UIUtils.createButton(
+      btnX + halfW + gap,
+      508,
+      halfW,
       44,
       '⚙️ НАСТРОЙКИ',
       0xA55EEA,

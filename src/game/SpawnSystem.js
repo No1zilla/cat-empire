@@ -242,7 +242,8 @@ export class SpawnSystem extends Container {
     }
 
     const maxCatLvl = (window.game && window.game.maxCatLevel) ? window.game.maxCatLevel : 1;
-    const spawnLevel = BALANCE.getSpawnCatLevel(maxCatLvl);
+    const mint = (window.game && window.game.economy && window.game.economy.mintPercent) || 0;
+    const spawnLevel = BALANCE.getSpawnCatLevel(maxCatLvl, mint);
     const cat = new Cat(spawnLevel, emptySlot);
     cat.scale.set(0);
     this.grid.addCat(cat, emptySlot);

@@ -12,13 +12,14 @@ import { isDesktopVK } from '../services/PlatformService.js';
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
  */
 export class AdModal extends Container {
-  constructor(app, economy, onRewardGranted, rewardGems = 5, customTitle = null) {
+  constructor(app, economy, onRewardGranted, rewardGems = 5, customTitle = null, skipInviteFallback = false) {
     super();
     this.app = app;
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
     this.rewardGems = rewardGems;
     this.customTitle = customTitle;
+    this.skipInviteFallback = Boolean(skipInviteFallback);
     this.adType = customTitle && customTitle.includes('Заполнение')
       ? 'fill_free'
       : (customTitle && customTitle.includes('Бустер')
@@ -87,6 +88,10 @@ export class AdModal extends Container {
       ? this.app.stage
       : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
     this._close();
+    if (this.skipInviteFallback) {
+      if (stage) UIUtils.showToast(stage, 'Идол не видит снов. Зайди с телефона');
+      return;
+    }
     if (stage) {
       const inviteModal = new DesktopRewardModal(this.app, this.economy, this.onRewardGranted, this.rewardGems);
       inviteModal.zIndex = 9999999;
