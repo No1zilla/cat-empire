@@ -8,7 +8,7 @@ import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
 
-export const INVITE_FALLBACK_GEMS = 15;
+export const INVITE_FALLBACK_GEMS = 5;
 
 export class DesktopRewardModal extends Container {
   constructor(app, economy, onRewardGranted, rewardGems = 5) {
@@ -16,7 +16,7 @@ export class DesktopRewardModal extends Container {
     this.app = app;
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
-    this.rewardGems = Math.max(Number(rewardGems) || 0, INVITE_FALLBACK_GEMS);
+    this.rewardGems = INVITE_FALLBACK_GEMS;
     this.vkService = new VKService();
     this._isClosed = false;
 
