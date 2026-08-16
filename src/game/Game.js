@@ -32,6 +32,7 @@ import { dailyQuestsService } from './DailyQuests.js';
 import { soundManager } from '../audio/SoundManager.js';
 import { VKService } from '../vk/VKBridge.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { INVITE_FALLBACK_GEMS } from '../ui/DesktopRewardModal.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
@@ -643,9 +644,9 @@ export class Game {
     const vk = new VKService();
     const result = await vk.showInviteBox();
     if (result && result.success && !result.simulated) {
-      if (this.economy) this.economy.addGems(15);
+      if (this.economy) this.economy.addGems(INVITE_FALLBACK_GEMS);
       this._saveToLocalStorage();
-      UIUtils.showToast(this.app.stage, `🤝 +${UIUtils.formatRubies(15)} за приглашение друзей!`);
+      UIUtils.showToast(this.app.stage, `🤝 +${UIUtils.formatRubies(INVITE_FALLBACK_GEMS)} за приглашение друзей!`);
     } else if (result && result.simulated) {
       UIUtils.showToast(this.app.stage, '🤝 Приглашения доступны внутри VK');
     } else {
