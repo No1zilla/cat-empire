@@ -191,6 +191,32 @@ export class VKService {
     return { success: false, reason: 'not_vk', simulated: true };
   }
 
+  // TASK-SHARE: Покупка предмета за голоса VK
+  async showOrderBox(item) {
+    try {
+      if (!this.bridge || typeof this.bridge.send !== 'function' || !isVkEnvironment()) {
+        return { success: false, unavailable: true };
+      }
+      const res = await this.bridge.send('VKWebAppShowOrderBox', {
+        type: 'item',
+        item: String(item)
+      });
+      console.log('💳 VKWebAppShowOrderBox result:', res);
+      if (res && res.success === false) {
+        return { success: false, cancelled: true, res };
+      }
+      return {
+        success: true,
+        orderId: res && (res.order_id || res.app_order_id) ? String(res.order_id || res.app_order_id) : null,
+        res
+      };
+    } catch (e) {
+      console.warn('⚠️ VKWebAppShowOrderBox error/cancelled:', e);
+      const cancelled = !!(e && (e.error_type === 'client_error' || e.error_code === 4 || String(e.error_data && e.error_data.error_reason || '').toLowerCase().includes('cancel')));
+      return { success: false, cancelled, error: e };
+    }
+  }
+
   // TASK-015B: Тактильная отдача (вибрация VK Haptics)
   triggerHaptic(style = 'medium') {
     try {

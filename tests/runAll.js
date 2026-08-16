@@ -10,6 +10,7 @@ import { runSyncManagerTests } from './unit/syncManager.test.js';
 import { runAntiCheatTests } from './unit/antiCheat.test.js';
 import { runDailyLiveOpsTests } from './unit/dailyLiveOps.test.js';
 import { runVkAdsTests } from './unit/vkAds.test.js';
+import { runMonetizationTests } from './unit/monetization.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -28,6 +29,7 @@ async function main() {
     runAntiCheatTests();
     runDailyLiveOpsTests();
     await runVkAdsTests();
+    runMonetizationTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {

@@ -7,11 +7,13 @@ import { TOKENS } from '../styles/design-tokens.js';
  * Премиальный HUD AAA-уровня с подключением TOKENS (TASK-047)
  */
 export class HUD extends Container {
-  constructor(app, onOpenCollection, onOpenMenu) {
+  constructor(app, onOpenCollection, onOpenMenu, extra = {}) {
     super();
     this.app = app;
     this.onOpenCollection = onOpenCollection || (() => {});
     this.onOpenMenu = onOpenMenu || (() => {});
+    this.onOpenShop = extra.onOpenShop || (() => {});
+    this.onWatchRubyAd = extra.onWatchRubyAd || (() => {});
     this._coinsText = null;
     this._gemsText = null;
     this._ipsText = null;
@@ -63,16 +65,19 @@ export class HUD extends Container {
     // Левый край поля = 0px, правый = 409px. 
     // Отступы по краям делаем одинаковыми по 5px:
     const cap1X = 5;
-    const cap1W = 128; // 🪙 Монеты (5..133)
+    const cap1W = 112;
 
-    const cap2X = 139;
-    const cap2W = 60;  // рубины (139..199)
+    const cap2X = 121;
+    const cap2W = 54;
 
-    const cap3X = 205;
-    const cap3W = 128; // 📈 Доход (205..333)
+    const plus5X = 179;
+    const plus5W = 40;
 
-    const menuBtnX = 339;
-    const menuBtnW = 65; // 🐾 Меню (339..404 -> ровно 5px до края 409px!)
+    const cap3X = 223;
+    const cap3W = 108;
+
+    const menuBtnX = 335;
+    const menuBtnW = 70;
 
     this._cap1X = cap1X;
     this._cap1W = cap1W;
@@ -115,6 +120,44 @@ export class HUD extends Container {
     this._cap2X = cap2X;
     this._cap2W = cap2W;
     this._repositionGemContent();
+
+    const gemHit = new Container();
+    gemHit.eventMode = 'static';
+    gemHit.cursor = 'pointer';
+    gemHit.hitArea = new Rectangle(cap2X, capY, cap2W, capH);
+    gemHit.on('pointertap', (e) => {
+      if (e && e.stopPropagation) e.stopPropagation();
+      this.onOpenShop();
+    });
+    this.addChild(gemHit);
+
+    const plus5 = new Container();
+    plus5.position.set(plus5X, capY);
+    plus5.eventMode = 'static';
+    plus5.cursor = 'pointer';
+    plus5.hitArea = new Rectangle(0, 0, plus5W, capH);
+    const plusBg = new Graphics();
+    plusBg.roundRect(0, 0, plus5W, capH, capRadius);
+    plusBg.fill(0xE53935);
+    plusBg.stroke({ color: 0xffffff, alpha: 0.45, width: 1.5 });
+    plus5.addChild(plusBg);
+    const plusText = new Text({
+      text: '+5',
+      style: new TextStyle({
+        fontFamily: font,
+        fontSize: 13,
+        fontWeight: 'bold',
+        fill: '#ffffff'
+      })
+    });
+    plusText.anchor.set(0.5);
+    plusText.position.set(plus5W / 2, capH / 2);
+    plus5.addChild(plusText);
+    plus5.on('pointertap', (e) => {
+      if (e && e.stopPropagation) e.stopPropagation();
+      this.onWatchRubyAd();
+    });
+    this.addChild(plus5);
 
     // 4. КАПСУЛА 3: Доход в секунду
     this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));

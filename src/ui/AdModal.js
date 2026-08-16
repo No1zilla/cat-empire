@@ -19,7 +19,11 @@ export class AdModal extends Container {
     this.onRewardGranted = onRewardGranted || (() => {});
     this.rewardGems = rewardGems;
     this.customTitle = customTitle;
-    this.adType = customTitle && customTitle.includes('Заполнение') ? 'fill_free' : (rewardGems === 0 ? 'auto_merge' : 'reward_gems');
+    this.adType = customTitle && customTitle.includes('Заполнение')
+      ? 'fill_free'
+      : (customTitle && customTitle.includes('Бустер')
+        ? 'income_booster'
+        : (rewardGems === 0 ? 'auto_merge' : 'reward_gems'));
     this._interval = null;
     this._startTime = Date.now();
     this._isClosed = false;

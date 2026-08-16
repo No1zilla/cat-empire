@@ -11,6 +11,7 @@ export class Economy {
     this.totalCatsBought = 0;
     this.totalMerges = 0;
     this.incomePerSecond = 0;
+    this.incomeMultiplier = 1;
     this._ticker = null;
     this.onUpdate = null; // (coins, gems, incomePerSecond) => void
   }
@@ -45,7 +46,13 @@ export class Economy {
         }
       });
     }
-    this.incomePerSecond = totalIncome;
+    this.incomePerSecond = Math.floor(totalIncome * (this.incomeMultiplier || 1));
+  }
+
+  setIncomeMultiplier(multiplier = 1) {
+    this.incomeMultiplier = Math.max(1, Number(multiplier) || 1);
+    this._recalcIncome();
+    this._notify();
   }
 
   // Запустить секундомер начисления оффлайн/онлайн пассивного дохода

@@ -8,6 +8,7 @@ import leaderboardRouter from './routes/leaderboard.js';
 import eventsRouter from './routes/events.js';
 import analyticsRouter from './routes/analytics.js';
 import adminRouter from './routes/admin.js';
+import paymentsRouter from './routes/payments.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -46,6 +47,7 @@ app.use('/api/leaderboard', leaderboardRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Запуск сервера — слушаем на 0.0.0.0 для Railway (v1.1.0 - Analytics & Admin Dashboard)
 app.listen(PORT, '0.0.0.0', () => {

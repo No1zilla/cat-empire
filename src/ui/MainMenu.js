@@ -16,6 +16,7 @@ export class MainMenu extends Container {
     onOpenQuests,
     onOpenLeaderboard,
     onInvite,
+    onOpenShop,
     dailyAvailable = false,
     questsClaimable = 0
   }) {
@@ -28,6 +29,7 @@ export class MainMenu extends Container {
     this.onOpenQuests = onOpenQuests || (() => {});
     this.onOpenLeaderboard = onOpenLeaderboard || (() => {});
     this.onInvite = onInvite || (() => {});
+    this.onOpenShop = onOpenShop || (() => {});
     this.dailyAvailable = dailyAvailable;
     this.questsClaimable = questsClaimable;
 
@@ -189,13 +191,24 @@ export class MainMenu extends Container {
     const deckBtn = UIUtils.createButton(
       btnX,
       452,
-      btnW,
+      halfW,
       44,
       '📖 КОТОПЕДИЯ',
       0xFF9F43,
       () => this.onOpenCollection()
     );
     this.addChild(deckBtn);
+
+    const shopBtn = UIUtils.createButton(
+      btnX + halfW + gap,
+      452,
+      halfW,
+      44,
+      'РУБИНЫ',
+      0xE53935,
+      () => this.onOpenShop()
+    );
+    this.addChild(shopBtn);
 
     const settingsBtn = UIUtils.createButton(
       btnX,

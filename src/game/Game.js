@@ -18,6 +18,10 @@ import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
+import { AdModal } from '../ui/AdModal.js';
+import { RubyShopModal } from '../ui/RubyShopModal.js';
+import { IncomeBoosterButton } from '../ui/IncomeBoosterButton.js';
+import { incomeBoosterService } from './IncomeBooster.js';
 import { MainMenu } from '../ui/MainMenu.js';
 import { OfflineEarningsModal } from '../ui/OfflineEarningsModal.js';
 import { SettingsModal } from '../ui/SettingsModal.js';
@@ -33,6 +37,7 @@ import { soundManager } from '../audio/SoundManager.js';
 import { VKService } from '../vk/VKBridge.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { INVITE_FALLBACK_GEMS } from '../ui/DesktopRewardModal.js';
+import { RUBY_AD_REWARD } from '../config/rubyShop.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
 // Главный класс игры (3 яркие сочные кнопки + 📖 Котопедия + Главное Меню п. 4.2.10)
@@ -103,7 +108,10 @@ export class Game {
       this.showMainMenu();
     };
 
-    this.hud = new HUD(this.app, openCollection, openMenu);
+    this.hud = new HUD(this.app, openCollection, openMenu, {
+      onOpenShop: () => this.showRubyShop(),
+      onWatchRubyAd: () => this.showRubyAd()
+    });
     this.hud.position.set(0, 0);
     this.hud.zIndex = 100;
     this.hud.update(startCoins, startGems, 0);
@@ -142,6 +150,7 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
     };
     this.economy.setBalance(startCoins, startGems, startTotalCatsBought, startTotalMerges);
+    this.economy.setIncomeMultiplier(incomeBoosterService.getMultiplier());
     this.economy.startTicker();
 
     // Синхронизируем максимально объединенный прогресс со всеми хранилищами (VK Storage, LocalStorage, DB) при старте
@@ -260,11 +269,21 @@ export class Game {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       this._saveToLocalStorage();
       return count;
-    });
+    }, () => this.showRubyShop());
     this.autoMergeButton.x = 274;
     this.autoMergeButton.y = buttonRowY;
     this.autoMergeButton.zIndex = 10;
     this.gameContainer.addChild(this.autoMergeButton);
+
+    this.incomeBoosterButton = new IncomeBoosterButton(this.app, this.economy, () => {
+      if (this.hud && this.economy) {
+        this.hud.update(this.economy.coins, this.economy.gems, this.economy.incomePerSecond);
+      }
+    });
+    this.incomeBoosterButton.x = 8;
+    this.incomeBoosterButton.y = buttonRowY + 52;
+    this.incomeBoosterButton.zIndex = 10;
+    this.gameContainer.addChild(this.incomeBoosterButton);
 
     // 7. Панель «📖 Котопедия» прямо на главном экране под кнопками управления
     this.catDeck = new CatDeck(this.app, this.maxCatLevel, (level, isUnlocked) => {
@@ -274,7 +293,7 @@ export class Game {
         this.app.stage.addChild(detailModal);
       }
     });
-    this.catDeck.y = buttonRowY + 58;
+    this.catDeck.y = buttonRowY + 92;
     this.catDeck.zIndex = 70;
     this.gameContainer.addChild(this.catDeck);
 
@@ -597,6 +616,7 @@ export class Game {
       onOpenQuests: () => this.showDailyQuests(),
       onOpenLeaderboard: () => this.showLeaderboard(),
       onInvite: () => this.inviteFriends(),
+      onOpenShop: () => this.showRubyShop(),
       dailyAvailable: dailyRewardsService.getState().canClaim,
       questsClaimable: dailyQuestsService.getState().claimable
     });
@@ -638,6 +658,20 @@ export class Game {
       coins: this.economy ? this.economy.coins : 0
     });
     this.app.stage.addChild(modal);
+  }
+
+  showRubyShop() {
+    const modal = new RubyShopModal(this.app, this.economy, () => this._saveToLocalStorage());
+    modal.zIndex = 9999999;
+    this.app.stage.addChild(modal);
+  }
+
+  showRubyAd() {
+    const stage = this.app.stage;
+    stage.sortableChildren = true;
+    const modal = new AdModal(this.app, this.economy, () => this._saveToLocalStorage(), RUBY_AD_REWARD, 'Получение рубинов через:');
+    modal.zIndex = 9999999;
+    stage.addChild(modal);
   }
 
   async inviteFriends() {
