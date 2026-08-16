@@ -222,7 +222,7 @@ export class DesktopRewardModal extends Container {
 
         const stage = (this.app && this.app.stage) ? this.app.stage : this.parent;
         if (stage) {
-          UIUtils.showToast(stage, `🤝 Друзья приглашены! +${this.rewardGems} 💎`);
+          UIUtils.showToast(stage, `🤝 Друзья приглашены! +${UIUtils.formatRubies(this.rewardGems)}`);
         }
 
         this._close();

@@ -277,7 +277,7 @@ export class AutoMergeButton extends Container {
       if (mergesDone > 0) {
         try {
           this.economy.spendGems(GEM_COST);
-          this._showWarning(`-5 💎 (Слито ${mergesDone} пар!) ⚡`);
+          this._showWarning(`−${UIUtils.formatRubies(5)} (Слито ${mergesDone} пар!) ⚡`);
         } catch (e) {
           this._showWarning('Мало рубинов!');
           return;

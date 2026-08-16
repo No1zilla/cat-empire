@@ -70,7 +70,7 @@ export class AscensionModal extends Container {
     }
 
     const reward = new Text({
-      text: 'Империя покорила небеса!\nНаграда: +50 💎 и легендарный бейдж',
+      text: 'Империя покорила небеса!\nНаграда: +50 рубинов и легендарный бейдж',
       style: new TextStyle({
         fontFamily: font,
         fontSize: 14,

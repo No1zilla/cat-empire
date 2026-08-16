@@ -64,14 +64,13 @@ export const UIUtils = {
   },
 
   /**
-   * Рисует объёмный 3D огранённый кристалл гема (Розово-рубиновый бриллиант)
+   * Рисует объёмный 3D огранённый рубин (красный, не голубой 💎)
    * @param {number} size - размер
    * @returns {Container}
    */
   createGemIcon: (size = 11) => {
     const container = new Container();
 
-    // Тень от кристалла
     const shadow = new Graphics();
     shadow.ellipse(0, size + 2, size * 0.8, size * 0.3);
     shadow.fill({ color: 0x000000, alpha: 0.4 });
@@ -79,27 +78,21 @@ export const UIUtils = {
 
     const g = new Graphics();
 
-    // 1. Нижняя пик-грань (основное конусное основание)
     g.poly([-size, -size * 0.3, 0, size, size, -size * 0.3]);
-    g.fill(0xd81b60); // Насыщенный рубин
+    g.fill(0xb71c1c);
 
-    // 2. Верхняя корона трапеция
     g.poly([-size, -size * 0.3, -size * 0.6, -size, size * 0.6, -size, size, -size * 0.3]);
-    g.fill(0xff4081); // Розовый неон
+    g.fill(0xe53935);
 
-    // 3. Центральная острая грань
     g.poly([-size * 0.4, -size * 0.3, 0, size, size * 0.4, -size * 0.3, 0, -size]);
-    g.fill(0xff80ab); // Светлый блеск
+    g.fill(0xff5252);
 
-    // 4. Левая корона грань
     g.poly([-size, -size * 0.3, -size * 0.6, -size, -size * 0.4, -size * 0.3]);
-    g.fill(0xc2185b);
+    g.fill(0x7f0000);
 
-    // 5. Правая корона грань
     g.poly([size, -size * 0.3, size * 0.6, -size, size * 0.4, -size * 0.3]);
-    g.fill(0xff80ab);
+    g.fill(0xff8a80);
 
-    // 6. Блик белого света на главной грани
     g.moveTo(-size * 0.3, -size * 0.7);
     g.lineTo(0, -size * 0.9);
     g.lineTo(size * 0.3, -size * 0.7);
@@ -107,6 +100,21 @@ export const UIUtils = {
 
     container.addChild(g);
     return container;
+  },
+
+  /**
+   * Подпись валюты в UI: «5 рубинов», «+1 рубин». Без голубого 💎.
+   */
+  formatRubies(amount, signed = false) {
+    const num = Math.trunc(Number(amount) || 0);
+    const abs = Math.abs(num);
+    const mod10 = abs % 10;
+    const mod100 = abs % 100;
+    let word = 'рубинов';
+    if (mod10 === 1 && mod100 !== 11) word = 'рубин';
+    else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) word = 'рубина';
+    const sign = signed && num > 0 ? '+' : (num < 0 ? '−' : '');
+    return `${sign}${abs} ${word}`;
   },
 
   /**

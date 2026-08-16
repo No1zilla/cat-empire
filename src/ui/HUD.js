@@ -66,7 +66,7 @@ export class HUD extends Container {
     const cap1W = 128; // 🪙 Монеты (5..133)
 
     const cap2X = 139;
-    const cap2W = 60;  // 💎 Гемы (139..199)
+    const cap2W = 60;  // рубины (139..199)
 
     const cap3X = 205;
     const cap3W = 128; // 📈 Доход (205..333)
@@ -95,7 +95,7 @@ export class HUD extends Container {
     this.addChild(this._coinsText);
     this._repositionCoinContent();
 
-    // 3. КАПСУЛА 2: Гемы
+    // 3. КАПСУЛА 2: Рубины
     this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
 
     this._gemIcon = UIUtils.createGemIcon(10);

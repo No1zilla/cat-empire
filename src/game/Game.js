@@ -645,7 +645,7 @@ export class Game {
     if (result && result.success && !result.simulated) {
       if (this.economy) this.economy.addGems(15);
       this._saveToLocalStorage();
-      UIUtils.showToast(this.app.stage, '🤝 +15 💎 за приглашение друзей!');
+      UIUtils.showToast(this.app.stage, `🤝 +${UIUtils.formatRubies(15)} за приглашение друзей!`);
     } else if (result && result.simulated) {
       UIUtils.showToast(this.app.stage, '🤝 Приглашения доступны внутри VK');
     } else {
@@ -659,7 +659,7 @@ export class Game {
     if (slot < 0) {
       const gems = Math.max(5, Number(level) * 2);
       if (this.economy) this.economy.addGems(gems);
-      UIUtils.showToast(this.app.stage, `Поле полно — +${gems} 💎 вместо котика`);
+      UIUtils.showToast(this.app.stage, `Поле полно — +${UIUtils.formatRubies(gems)} вместо котика`);
       return false;
     }
     const cat = new Cat(Math.max(1, Number(level) || 1), slot);
