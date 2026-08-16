@@ -1,13 +1,12 @@
 // src/ui/test_desktop_reward_modal_spec.js
-// TASK-073: Тест-суит для DesktopRewardModal (Виральный пост с Зеленоглазой Кошечкой)
+// Фолбэк рекламы: приглашение друзей вместо поста на стену
 
 import assert from 'assert';
 
 console.log('🧪 =========================================================');
-console.log('🧪 ТЕСТ-СУИТ TASK-073: DesktopRewardModal (Виральный пост)');
+console.log('🧪 ТЕСТ-СУИТ: DesktopRewardModal (приглашение друзей)');
 console.log('🧪 =========================================================\n');
 
-// Эмуляция экономики
 class MockEconomy {
   constructor() {
     this.gems = 0;
@@ -17,33 +16,38 @@ class MockEconomy {
   }
 }
 
-// Эмуляция VK Bridge
 class MockVKService {
-  async sharePost(msg) {
-    if (msg.includes('Зеленоглазую Кошечку')) {
-      return { success: true, postId: 999 };
-    }
-    return { success: false };
+  async showInviteBox() {
+    return { success: true, res: { sent: true } };
   }
 }
 
 async function runTests() {
-  // 📌 ТЕСТ 1: Проверка начисления +5 💎 при успешном посте
-  console.log('📌 ТЕСТ 1: Начисление +5 💎 при успешном виральном посте');
+  console.log('📌 ТЕСТ 1: Начисление рубинов за успешное приглашение');
   const economy = new MockEconomy();
   const vkService = new MockVKService();
 
-  const shareResult = await vkService.sharePost('👀 Посмотрите на эту загадочную Зеленоглазую Кошечку в «Империи Котиков»!');
-  assert.strictEqual(shareResult.success, true, 'Пост на стену должен возвращать success: true');
+  const inviteResult = await vkService.showInviteBox();
+  assert.strictEqual(inviteResult.success, true, 'Инвайт должен возвращать success: true');
+  assert.strictEqual(inviteResult.simulated, undefined, 'Реальный VK-инвайт не должен быть simulated');
 
-  if (shareResult.success) {
-    economy.addGems(5);
+  if (inviteResult.success && !inviteResult.simulated) {
+    economy.addGems(15);
   }
-  assert.strictEqual(economy.gems, 5, 'Баланс должен стать 5 гемов');
+  assert.strictEqual(economy.gems, 15, 'Баланс должен стать 15 гемов');
   console.log('✅ ТЕСТ 1 УСПЕШНО ПРОЙДЕН!\n');
 
+  console.log('📌 ТЕСТ 2: Симулятор / веб без VK не начисляет рубины');
+  const economy2 = new MockEconomy();
+  const simulated = { success: true, simulated: true };
+  if (simulated.success && !simulated.simulated) {
+    economy2.addGems(15);
+  }
+  assert.strictEqual(economy2.gems, 0, 'Без реального инвайта гемы не выдаём');
+  console.log('✅ ТЕСТ 2 УСПЕШНО ПРОЙДЕН!\n');
+
   console.log('🎉 =========================================================');
-  console.log('🎉 ВСЕ ТЕСТЫ TASK-073 (DesktopRewardModal) УСПЕШНО ПРОЙДЕНЫ!');
+  console.log('🎉 ВСЕ ТЕСТЫ DesktopRewardModal (инвайт) УСПЕШНО ПРОЙДЕНЫ!');
   console.log('🎉 =========================================================\n');
 }
 

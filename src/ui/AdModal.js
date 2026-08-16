@@ -76,17 +76,17 @@ export class AdModal extends Container {
     this.addChild(hint);
   }
 
-  _openWallPostFallback(reason) {
-    console.log('🎬 Нативная реклама VK недоступна. Фолбэк: пост на стену.', reason);
+  _openInviteFallback(reason) {
+    console.log('🎬 Нативная реклама VK недоступна. Фолбэк: приглашение друзей.', reason);
     eventTracker.trackAdFailed(this.adType, reason || 'ads_unavailable');
     const stage = (this.app && this.app.stage)
       ? this.app.stage
       : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
     this._close();
     if (stage) {
-      const desktopModal = new DesktopRewardModal(this.app, this.economy, this.onRewardGranted, this.rewardGems);
-      desktopModal.zIndex = 9999999;
-      stage.addChild(desktopModal);
+      const inviteModal = new DesktopRewardModal(this.app, this.economy, this.onRewardGranted, this.rewardGems);
+      inviteModal.zIndex = 9999999;
+      stage.addChild(inviteModal);
     }
   }
 
@@ -114,12 +114,12 @@ export class AdModal extends Container {
         eventTracker.trackAdSkipped(this.adType);
         this._close();
       } else {
-        this._openWallPostFallback(realAdRes ? realAdRes.reason : 'ads_unavailable');
+        this._openInviteFallback(realAdRes ? realAdRes.reason : 'ads_unavailable');
       }
     } catch (e) {
       console.warn('⚠️ Ошибка нативной рекламы VK:', e);
       if (isDesktopVK()) {
-        this._openWallPostFallback(e && e.message ? e.message : 'native_ad_error');
+        this._openInviteFallback(e && e.message ? e.message : 'native_ad_error');
         return;
       }
       this._drawOverlayShield();
