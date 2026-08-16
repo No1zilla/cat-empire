@@ -104,25 +104,26 @@ export class RubyShopModal extends Container {
     this.addChild(sub);
 
     RUBY_PACKS.forEach((pack, index) => {
-      const y = modalY + 92 + index * 86;
+      const y = modalY + 96 + index * 84;
       const btn = UIUtils.createButton(
-        modalX + 24,
+        modalX + 22,
         y,
-        modalW - 48,
-        72,
+        modalW - 44,
+        70,
         '',
-        index === 1 ? 0xE53935 : 0x3d356c,
+        index === 1 ? parseInt(TOKENS.colors.gems.replace('#', '0x')) : 0x3d356c,
         () => this._buy(pack)
       );
       this.addChild(btn);
 
       const packTitle = new Text({
-        text: `${pack.title}  •  ${UIUtils.formatRubies(pack.rubies)}`,
+        text: `${pack.title}  ·  ${UIUtils.formatRubies(pack.rubies)}`,
         style: new TextStyle({
           fontFamily: font,
           fontSize: 16,
           fontWeight: 'bold',
-          fill: '#ffffff'
+          fill: '#ffffff',
+          dropShadow: { color: '#000000', alpha: 0.45, blur: 2, distance: 1 }
         })
       });
       packTitle.anchor.set(0.5, 0);
@@ -134,7 +135,7 @@ export class RubyShopModal extends Container {
         style: new TextStyle({
           fontFamily: font,
           fontSize: 12,
-          fill: '#FFD15C'
+          fill: TOKENS.colors.gold
         })
       });
       packPrice.anchor.set(0.5, 0);

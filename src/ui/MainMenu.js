@@ -205,9 +205,15 @@ export class MainMenu extends Container {
       halfW,
       44,
       'РУБИНЫ',
-      0xE53935,
+      parseInt(TOKENS.colors.gems.replace('#', '0x')),
       () => this.onOpenShop()
     );
+    shopBtn.children.forEach((child) => {
+      if (child instanceof Text) child.position.x = halfW / 2 + 8;
+    });
+    const shopGem = UIUtils.createGemIcon(8);
+    shopGem.position.set(22, 22);
+    shopBtn.addChild(shopGem);
     this.addChild(shopBtn);
 
     const settingsBtn = UIUtils.createButton(

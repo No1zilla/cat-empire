@@ -37,53 +37,54 @@ export class HUD extends Container {
     const capY = 10;
     const capRadius = TOKENS.radii.hud || 14;
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
+    const panelFill = parseInt(TOKENS.colors.panelBg.replace('#', '0x'));
+    const panelStroke = parseInt(TOKENS.colors.panelBorder.replace('#', '0x'));
+    const gemsFill = parseInt(TOKENS.colors.gems.replace('#', '0x'));
 
-    // Вспомогательный хелпер для рисования 3D-капсулы с токенами
-    const createCapsuleBg = (x, y, w, h) => {
-      const cContainer = new Container();
+    const createChip = (x, y, w, h, fill, stroke, strokeAlpha = 1) => {
+      const chip = new Container();
+      chip.position.set(x, y);
 
       const cShadow = new Graphics();
-      cShadow.roundRect(x, y + 2, w, h, capRadius);
+      cShadow.roundRect(0, 2, w, h, capRadius);
       cShadow.fill({ color: 0x000000, alpha: 0.35 });
-      cContainer.addChild(cShadow);
+      chip.addChild(cShadow);
 
       const cBg = new Graphics();
-      cBg.roundRect(x, y, w, h, capRadius);
-      cBg.fill(parseInt(TOKENS.colors.panelBg.replace('#', '0x')));
-      cBg.stroke({ color: parseInt(TOKENS.colors.panelBorder.replace('#', '0x')), width: 1.5 });
-      cContainer.addChild(cBg);
+      cBg.roundRect(0, 0, w, h, capRadius);
+      cBg.fill(fill);
+      cBg.stroke({ color: stroke, width: 1.5, alpha: strokeAlpha });
+      chip.addChild(cBg);
 
       const shine = new Graphics();
-      shine.roundRect(x + 2, y + 2, w - 4, 12, 10);
-      shine.fill({ color: 0xffffff, alpha: 0.12 });
-      cContainer.addChild(shine);
+      shine.roundRect(2, 2, w - 4, 11, 10);
+      shine.fill({ color: 0xffffff, alpha: 0.14 });
+      chip.addChild(shine);
 
-      return cContainer;
+      return chip;
     };
 
-    // Симметричный расчёт позиций HUD точно по краям игрового поля (409px)
-    // Левый край поля = 0px, правый = 409px. 
-    // Отступы по краям делаем одинаковыми по 5px:
-    const cap1X = 5;
-    const cap1W = 112;
+    // 6px поля + 6px щели: 108 + 62 + 44 + 96 + 64 = 374, всего 410
+    const cap1X = 6;
+    const cap1W = 108;
 
-    const cap2X = 121;
-    const cap2W = 54;
+    const cap2X = 120;
+    const cap2W = 62;
 
-    const plus5X = 179;
-    const plus5W = 40;
+    const plus5X = 188;
+    const plus5W = 44;
 
-    const cap3X = 223;
-    const cap3W = 108;
+    const cap3X = 238;
+    const cap3W = 96;
 
-    const menuBtnX = 335;
-    const menuBtnW = 70;
+    const menuBtnX = 340;
+    const menuBtnW = 64;
 
     this._cap1X = cap1X;
     this._cap1W = cap1W;
 
     // 2. КАПСУЛА 1: Монеты
-    this.addChild(createCapsuleBg(cap1X, capY, cap1W, capH));
+    this.addChild(createChip(cap1X, capY, cap1W, capH, panelFill, panelStroke));
 
     this._coinIcon = UIUtils.createCoinIcon(10);
     this.addChild(this._coinIcon);
@@ -101,7 +102,7 @@ export class HUD extends Container {
     this._repositionCoinContent();
 
     // 3. КАПСУЛА 2: Рубины
-    this.addChild(createCapsuleBg(cap2X, capY, cap2W, capH));
+    this.addChild(createChip(cap2X, capY, cap2W, capH, panelFill, panelStroke));
 
     this._gemIcon = UIUtils.createGemIcon(10);
     this.addChild(this._gemIcon);
@@ -131,23 +132,18 @@ export class HUD extends Container {
     });
     this.addChild(gemHit);
 
-    const plus5 = new Container();
-    plus5.position.set(plus5X, capY);
+    const plus5 = createChip(plus5X, capY, plus5W, capH, gemsFill, 0xffffff, 0.4);
     plus5.eventMode = 'static';
     plus5.cursor = 'pointer';
     plus5.hitArea = new Rectangle(0, 0, plus5W, capH);
-    const plusBg = new Graphics();
-    plusBg.roundRect(0, 0, plus5W, capH, capRadius);
-    plusBg.fill(0xE53935);
-    plusBg.stroke({ color: 0xffffff, alpha: 0.45, width: 1.5 });
-    plus5.addChild(plusBg);
     const plusText = new Text({
       text: '+5',
       style: new TextStyle({
         fontFamily: font,
         fontSize: 13,
         fontWeight: 'bold',
-        fill: '#ffffff'
+        fill: '#ffffff',
+        dropShadow: { color: '#000000', alpha: 0.55, blur: 2, distance: 1 }
       })
     });
     plusText.anchor.set(0.5);
@@ -160,7 +156,7 @@ export class HUD extends Container {
     this.addChild(plus5);
 
     // 4. КАПСУЛА 3: Доход в секунду
-    this.addChild(createCapsuleBg(cap3X, capY, cap3W, capH));
+    this.addChild(createChip(cap3X, capY, cap3W, capH, panelFill, panelStroke));
 
     const ipsStyle = new TextStyle({
       fontFamily: font,
@@ -175,22 +171,10 @@ export class HUD extends Container {
     this.addChild(this._ipsText);
 
     // 5. КНОПКА «🐾» Меню (auto-positioned)
-    const menuBtnContainer = new Container();
-    menuBtnContainer.position.set(menuBtnX, capY);
-
-    const menuBg = new Graphics();
-    menuBg.roundRect(0, 0, menuBtnW, capH, capRadius);
-    menuBg.fill(0x8e44ad);
-    menuBg.stroke({ color: 0x9b59b6, width: 1.5 });
-    menuBtnContainer.addChild(menuBg);
-
-    const menuShine = new Graphics();
-    menuShine.roundRect(2, 2, menuBtnW - 4, 12, 10);
-    menuShine.fill({ color: 0xffffff, alpha: 0.15 });
-    menuBtnContainer.addChild(menuShine);
+    const menuBtnContainer = createChip(menuBtnX, capY, menuBtnW, capH, 0x8e44ad, 0x9b59b6);
 
     const catPawIcon = UIUtils.createCatPawIcon(10);
-    catPawIcon.position.set(menuBtnW / 2, capH / 2 - 1);
+    catPawIcon.position.set(menuBtnW / 2, capH / 2);
     menuBtnContainer.addChild(catPawIcon);
 
     menuBtnContainer.eventMode = 'static';
@@ -239,9 +223,9 @@ export class HUD extends Container {
     const capH = 34;
 
     const iconW = 14;
-    const gap = 5;
+    const gap = 4;
     const totalW = iconW + gap + this._coinsText.width;
-    const startX = cap1X + Math.max(4, (cap1W - totalW) / 2);
+    const startX = cap1X + Math.max(6, (cap1W - totalW) / 2);
 
     this._coinIcon.position.set(startX + iconW / 2, capY + capH / 2);
     this._coinsText.position.set(startX + iconW + gap, capY + capH / 2);
@@ -257,7 +241,7 @@ export class HUD extends Container {
     const iconW = 14;
     const gap = 4;
     const totalW = iconW + gap + this._gemsText.width;
-    const startX = cap2X + Math.max(4, (cap2W - totalW) / 2);
+    const startX = cap2X + Math.max(6, (cap2W - totalW) / 2);
 
     this._gemIcon.position.set(startX + iconW / 2, capY + capH / 2);
     this._gemsText.position.set(startX + iconW + gap, capY + capH / 2);

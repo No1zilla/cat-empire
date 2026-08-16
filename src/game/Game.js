@@ -253,7 +253,7 @@ export class Game {
         console.error('Ошибка фонового сохранения после массовой покупки:', e);
       });
     });
-    this.fillAllButton.x = 141;
+    this.fillAllButton.x = 144;
     this.fillAllButton.y = buttonRowY;
     this.fillAllButton.zIndex = 10;
     this.gameContainer.addChild(this.fillAllButton);
@@ -270,7 +270,7 @@ export class Game {
       this._saveToLocalStorage();
       return count;
     }, () => this.showRubyShop());
-    this.autoMergeButton.x = 274;
+    this.autoMergeButton.x = 280;
     this.autoMergeButton.y = buttonRowY;
     this.autoMergeButton.zIndex = 10;
     this.gameContainer.addChild(this.autoMergeButton);
@@ -281,7 +281,7 @@ export class Game {
       }
     });
     this.incomeBoosterButton.x = 8;
-    this.incomeBoosterButton.y = buttonRowY + 52;
+    this.incomeBoosterButton.y = buttonRowY + 54;
     this.incomeBoosterButton.zIndex = 10;
     this.gameContainer.addChild(this.incomeBoosterButton);
 
@@ -293,7 +293,7 @@ export class Game {
         this.app.stage.addChild(detailModal);
       }
     });
-    this.catDeck.y = buttonRowY + 92;
+    this.catDeck.y = buttonRowY + 94;
     this.catDeck.zIndex = 70;
     this.gameContainer.addChild(this.catDeck);
 
