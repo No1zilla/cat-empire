@@ -2,11 +2,12 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
-import { RUBY_PACKS } from '../config/rubyShop.js';
+import { RUBY_PACKS, EDICT_PACK } from '../config/rubyShop.js';
 import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
-import { empireMeta } from '../game/EmpireMeta.js';
+import { empireMeta, EDICT } from '../game/EmpireMeta.js';
+import { purchaseVkItem } from '../game/iapBuy.js';
 import { StarterTributeModal } from './StarterTributeModal.js';
 
 const PROCESSED_ORDERS_KEY = 'cat_empire_iap_orders';
@@ -66,7 +67,8 @@ export class RubyShopModal extends Container {
     this.addChild(overlay);
 
     const modalW = 340;
-    const modalH = empireMeta.starterOpen ? 490 : 430;
+    const showEdict = !empireMeta.isEdictActive();
+    const modalH = 430 + (empireMeta.starterOpen ? 54 : 0) + (showEdict ? 52 : 0);
     const modalX = (W - modalW) / 2;
     const modalY = (H - modalH) / 2;
 
@@ -165,6 +167,20 @@ export class RubyShopModal extends Container {
       this.addChild(packPrice);
     });
 
+    if (showEdict) {
+      const edictY = packsTop + RUBY_PACKS.length * 84;
+      const edictBtn = UIUtils.createButton(
+        modalX + 22,
+        edictY,
+        modalW - 44,
+        44,
+        `Указ семи ночей · ${EDICT.votes} голосов`,
+        parseInt(TOKENS.colors.gems.replace('#', '0x')),
+        () => this._buyEdict()
+      );
+      this.addChild(edictBtn);
+    }
+
     const closeBtn = UIUtils.createButton(
       modalX + (modalW - 160) / 2,
       modalY + modalH - 52,
@@ -215,6 +231,38 @@ export class RubyShopModal extends Container {
       this._close();
     } catch (e) {
       console.warn('Ruby shop buy error:', e);
+      if (stage) UIUtils.showToast(stage, 'Не удалось открыть оплату VK');
+    } finally {
+      this._busy = false;
+    }
+  }
+
+  async _buyEdict() {
+    if (this._busy || empireMeta.isEdictActive()) return;
+    this._busy = true;
+    const stage = this.app && this.app.stage ? this.app.stage : this.parent;
+    try {
+      const result = await purchaseVkItem(EDICT_PACK.id);
+      if (result.cancelled) {
+        if (stage) UIUtils.showToast(stage, 'Покупка отменена');
+        return;
+      }
+      if (result.unavailable) {
+        if (stage) UIUtils.showToast(stage, 'Покупки доступны внутри VK');
+        return;
+      }
+      if (!result.ok) {
+        if (stage) UIUtils.showToast(stage, result.duplicate ? 'Этот заказ уже зачислен' : 'Оплата не прошла');
+        return;
+      }
+      if (this.economy) this.economy.addGems(EDICT.rubies);
+      empireMeta.activateEdict();
+      eventTracker.track('iap_edict_bought', { rubies: EDICT.rubies });
+      try { await saveProgress({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
+      if (stage) UIUtils.showToast(stage, 'Указ издан. Семь ночей ×2 и паёк каждый день');
+      this._close();
+    } catch (e) {
+      console.warn('Edict buy error:', e);
       if (stage) UIUtils.showToast(stage, 'Не удалось открыть оплату VK');
     } finally {
       this._busy = false;

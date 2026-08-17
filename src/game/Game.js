@@ -161,6 +161,7 @@ export class Game {
 
     // 6. Ряд из 3-х кнопок управления:
     const buttonRowY = this.grid.y + gridWidth + 12;
+    this._buttonRowY = buttonRowY;
 
     // A) 🐱 Купить (128px) — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
@@ -291,10 +292,11 @@ export class Game {
 
     this.liveOpsRow = new LiveOpsRow(this.app, this.economy, {
       onBuffs: () => this._applyIncomeBuffs(),
-      onPortal: () => this.flyToNextWorld()
+      onPortal: () => this.flyToNextWorld(),
+      onLayout: () => this._layoutChrome(),
+      idolUnlocked: this.maxCatLevel > 1
     });
     this.liveOpsRow.x = 8;
-    this.liveOpsRow.y = buttonRowY + 88;
     this.liveOpsRow.zIndex = 10;
     this.gameContainer.addChild(this.liveOpsRow);
 
@@ -308,9 +310,9 @@ export class Game {
     });
     this.catDeck.worldTitle = getWorldTitle(empireMeta.worldIndex);
     this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
-    this.catDeck.y = buttonRowY + 122;
     this.catDeck.zIndex = 70;
     this.gameContainer.addChild(this.catDeck);
+    this._layoutChrome();
 
     // 8. Движок Merge и Drag
     const onMerge = (newLevel, slotIndex) => {
@@ -327,6 +329,7 @@ export class Game {
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
         empireMeta.noteBest(empireMeta.worldIndex, this.maxCatLevel);
+        if (this.liveOpsRow && this.maxCatLevel > 1) this.liveOpsRow.setIdolUnlocked(true);
         eventTracker.trackMaxCatLevelReached(newLevel);
         eventBus.emit('NEW_CAT_UNLOCKED', { level: newLevel });
         if (this.spawnSystem) this.spawnSystem._stopHold();
@@ -680,10 +683,27 @@ export class Game {
     this.app.stage.addChild(modal);
   }
 
+  _layoutChrome() {
+    const y = this._buttonRowY;
+    if (y == null) return;
+    if (this.incomeBoosterButton) this.incomeBoosterButton.y = y + 52;
+    const opsY = y + 88;
+    if (this.liveOpsRow) {
+      this.liveOpsRow.x = 8;
+      this.liveOpsRow.y = opsY;
+    }
+    const opsH = this.liveOpsRow && this.liveOpsRow.visibleHeight ? this.liveOpsRow.visibleHeight : 0;
+    if (this.catDeck) {
+      this.catDeck.y = opsH ? opsY + opsH + 8 : opsY;
+    }
+  }
+
   showRubyShop() {
     const modal = new RubyShopModal(this.app, this.economy, () => {
       this._applyIncomeBuffs();
       this._saveToLocalStorage();
+      if (this.liveOpsRow) this.liveOpsRow._tick();
+      this._layoutChrome();
     });
     modal.zIndex = 9999999;
     this.app.stage.addChild(modal);
@@ -736,6 +756,7 @@ export class Game {
         }
       }
       this.maxCatLevel = spawnLevel;
+      if (this.liveOpsRow) this.liveOpsRow.setIdolUnlocked(this.maxCatLevel > 1);
       if (this.economy) {
         this.economy.setBalance(this.economy.coins, this.economy.gems, 0, this.economy.totalMerges);
         this._applyIncomeBuffs();

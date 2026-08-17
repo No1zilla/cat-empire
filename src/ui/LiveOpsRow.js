@@ -3,44 +3,45 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { AdModal } from './AdModal.js';
-import { empireMeta, EDICT } from '../game/EmpireMeta.js';
+import { empireMeta } from '../game/EmpireMeta.js';
+import { getLiveOpsLayout } from '../game/liveOpsLayout.js';
 import { rollIdolReward } from '../game/idolRewards.js';
 import { incomeBoosterService } from '../game/IncomeBooster.js';
-import { purchaseVkItem } from '../game/iapBuy.js';
 import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 
-function formatDays(ms) {
-  const d = Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
-  return d;
-}
+const ROW_H = 32;
+const ORANGE = parseInt(TOKENS.colors.btnFill.replace('#', '0x'));
+const ORANGE_SHADOW = 0xb35400;
+const MUTED = 0x3d356c;
+const MUTED_SHADOW = 0x1a1230;
+const GREEN = 0x2ecc71;
+const GREEN_SHADOW = 0x1e8449;
+const PORTAL = 0xFF6B6B;
+const PORTAL_SHADOW = 0x8e2a2a;
 
 export class LiveOpsRow extends Container {
-  constructor(app, economy, { onBuffs, onPortal } = {}) {
+  constructor(app, economy, { onBuffs, onPortal, onLayout, idolUnlocked = false } = {}) {
     super();
     this.app = app;
     this.economy = economy;
     this.onBuffs = onBuffs || (() => {});
     this.onPortal = onPortal || (() => {});
+    this.onLayout = onLayout || (() => {});
+    this.idolUnlocked = Boolean(idolUnlocked);
+    this.visibleHeight = 0;
     this._timer = null;
-    this._draw();
-    this._timer = setInterval(() => this._tick(), 1000);
+    this._layoutKey = '';
+    this._left = null;
+    this._right = null;
+    this._mode = 'hidden';
     this._tick();
+    this._timer = setInterval(() => this._tick(), 1000);
   }
 
-  _draw() {
-    this.removeChildren();
-    const gap = 10;
-    const w = (CONFIG.GAME_WIDTH - 16 - gap) / 2;
-    const h = 32;
-
-    this._left = this._chip(0, 0, w, h, 'Идол');
-    this._right = this._chip(w + gap, 0, w, h, 'Указ');
-    this.addChild(this._left.wrap);
-    this.addChild(this._right.wrap);
-
-    this._left.wrap.on('pointertap', () => this._onLeft());
-    this._right.wrap.on('pointertap', () => this._onRight());
+  setIdolUnlocked(value) {
+    this.idolUnlocked = Boolean(value);
+    this._tick();
   }
 
   _chip(x, y, w, h, label) {
@@ -52,12 +53,12 @@ export class LiveOpsRow extends Container {
 
     const shadow = new Graphics();
     shadow.roundRect(0, 3, w, h, 14);
-    shadow.fill(0x9f1239);
+    shadow.fill(ORANGE_SHADOW);
     wrap.addChild(shadow);
 
     const bg = new Graphics();
     bg.roundRect(0, 0, w, h, 14);
-    bg.fill(parseInt(TOKENS.colors.gems.replace('#', '0x')));
+    bg.fill(ORANGE);
     bg.stroke({ color: 0xffffff, alpha: 0.4, width: 1.5 });
     wrap.addChild(bg);
 
@@ -84,6 +85,7 @@ export class LiveOpsRow extends Container {
   }
 
   _paint(chip, active, fill, shadow) {
+    if (!chip) return;
     chip.bg.clear();
     chip.bg.roundRect(0, 0, chip.w, chip.h, 14);
     chip.bg.fill(fill);
@@ -94,37 +96,91 @@ export class LiveOpsRow extends Container {
     chip.wrap.alpha = active ? 1 : 0.85;
   }
 
-  _tick() {
-    const pending = empireMeta.snapshot().pendingFlight;
-    const leftLeft = empireMeta.idolRemaining();
-    if (pending) {
-      this._paint(this._left, true, 0xFF6B6B, 0x8e2a2a);
-      this._left.text.text = 'Портал открыт';
-    } else if (leftLeft <= 0) {
-      this._paint(this._left, false, 0x3d356c, 0x1a1230);
-      this._left.text.text = 'Идол сыт';
-    } else {
-      this._paint(this._left, true, parseInt(TOKENS.colors.gems.replace('#', '0x')), 0x9f1239);
-      this._left.text.text = `Идол · ${leftLeft}/3`;
-    }
+  _rebuild(layout) {
+    this.removeChildren();
+    this._left = null;
+    this._right = null;
+    this._mode = layout.mode;
+    this.visibleHeight = layout.visible ? ROW_H : 0;
+    this.visible = layout.visible;
+    if (!layout.visible) return;
 
-    if (empireMeta.isEdictActive()) {
-      this._paint(this._right, true, 0x2ecc71, 0x1e8449);
-      const nights = formatDays(empireMeta.edictRemainingMs());
-      this._right.text.text = empireMeta.canClaimEdictDaily()
-        ? `Паёк · ${nights}н`
-        : `Указ · ${nights}н`;
-    } else {
-      this._paint(this._right, true, parseInt(TOKENS.colors.gems.replace('#', '0x')), 0x9f1239);
-      this._right.text.text = 'Указ 7 ночей';
+    const gap = 10;
+    const fullW = CONFIG.GAME_WIDTH - 16;
+    const halfW = (fullW - gap) / 2;
+    const split = layout.mode === 'split';
+    const leftW = split ? halfW : fullW;
+
+    this._left = this._chip(0, 0, leftW, ROW_H, layout.left);
+    this.addChild(this._left.wrap);
+    this._left.wrap.on('pointertap', () => this._onLeft());
+
+    if (split) {
+      this._right = this._chip(halfW + gap, 0, halfW, ROW_H, layout.right);
+      this.addChild(this._right.wrap);
+      this._right.wrap.on('pointertap', () => this._onRight());
     }
   }
 
+  _paintFromLayout(layout) {
+    if (layout.mode === 'portal') {
+      this._paint(this._left, true, PORTAL, PORTAL_SHADOW);
+      return;
+    }
+    if (layout.mode === 'ration') {
+      this._paint(this._left, true, GREEN, GREEN_SHADOW);
+      return;
+    }
+
+    const idolLeft = empireMeta.idolRemaining() > 0;
+    const idolFill = idolLeft ? ORANGE : MUTED;
+    const idolShadow = idolLeft ? ORANGE_SHADOW : MUTED_SHADOW;
+    this._paint(this._left, idolLeft, idolFill, idolShadow);
+
+    if (layout.mode === 'split') {
+      this._paint(this._right, true, GREEN, GREEN_SHADOW);
+    }
+  }
+
+  _tick() {
+    const layout = getLiveOpsLayout({
+      pendingFlight: empireMeta.snapshot().pendingFlight,
+      idolUnlocked: this.idolUnlocked,
+      idolRemaining: empireMeta.idolRemaining(),
+      edictActive: empireMeta.isEdictActive(),
+      canClaimDaily: empireMeta.canClaimEdictDaily(),
+      edictRemainingMs: empireMeta.edictRemainingMs()
+    });
+    const key = `${layout.mode}|${layout.left}|${layout.right}|${layout.visible}`;
+    if (key !== this._layoutKey) {
+      this._layoutKey = key;
+      this._rebuild(layout);
+      this._paintFromLayout(layout);
+      this.onLayout();
+      return;
+    }
+    if (this._left && layout.left) this._left.text.text = layout.left;
+    if (this._right && layout.right) this._right.text.text = layout.right;
+    this._paintFromLayout(layout);
+  }
+
   _onLeft() {
-    if (empireMeta.snapshot().pendingFlight) {
+    if (this._mode === 'portal') {
       this.onPortal();
       return;
     }
+    if (this._mode === 'ration') {
+      this._claimRation();
+      return;
+    }
+    this._offerIdol();
+  }
+
+  _onRight() {
+    this._claimRation();
+  }
+
+  _offerIdol() {
     if (empireMeta.idolRemaining() <= 0) {
       const stage = this.app.stage;
       if (stage) UIUtils.showToast(stage, 'Идол сыт до завтра');
@@ -153,43 +209,20 @@ export class LiveOpsRow extends Container {
     stage.addChild(modal);
   }
 
-  async _onRight() {
+  async _claimRation() {
     const stage = this.app.stage;
-    if (empireMeta.isEdictActive()) {
-      const gained = empireMeta.claimEdictDaily();
-      if (!gained) {
-        if (stage) UIUtils.showToast(stage, 'Паёк уже взят сегодня');
-        return;
-      }
-      this.economy.addGems(gained);
-      eventTracker.track('edict_daily_claimed', { rubies: gained });
-      try { await saveProgress({ gems: this.economy.gems }); } catch (e) {}
-      this.onBuffs();
-      this._tick();
-      if (stage) UIUtils.showToast(stage, `Паёк указа: +${UIUtils.formatRubies(gained)}`);
+    if (!empireMeta.isEdictActive()) return;
+    const gained = empireMeta.claimEdictDaily();
+    if (!gained) {
+      if (stage) UIUtils.showToast(stage, 'Паёк уже взят сегодня');
       return;
     }
-    if (!stage) return;
-    const result = await purchaseVkItem(EDICT.id);
-    if (result.cancelled) {
-      UIUtils.showToast(stage, 'Покупка отменена');
-      return;
-    }
-    if (result.unavailable) {
-      UIUtils.showToast(stage, 'Покупки доступны внутри VK');
-      return;
-    }
-    if (!result.ok) {
-      UIUtils.showToast(stage, 'Оплата не прошла');
-      return;
-    }
-    this.economy.addGems(EDICT.rubies);
-    empireMeta.activateEdict();
-    eventTracker.track('iap_edict_bought', { rubies: EDICT.rubies });
+    this.economy.addGems(gained);
+    eventTracker.track('edict_daily_claimed', { rubies: gained });
     try { await saveProgress({ gems: this.economy.gems }); } catch (e) {}
     this.onBuffs();
     this._tick();
-    UIUtils.showToast(stage, 'Указ издан. Семь ночей ×2 и паёк каждый день');
+    if (stage) UIUtils.showToast(stage, `Паёк указа: +${UIUtils.formatRubies(gained)}`);
   }
 
   destroy(options) {

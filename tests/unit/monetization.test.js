@@ -13,6 +13,7 @@ import { EmpireMetaService } from '../../src/game/EmpireMeta.js';
 import { rollIdolReward, IDOL_REWARDS } from '../../src/game/idolRewards.js';
 import { BALANCE } from '../../src/config/balance.js';
 import { getCatData, setCatWorld } from '../../src/utils/catVisuals.js';
+import { getLiveOpsLayout } from '../../src/game/liveOpsLayout.js';
 import {
   getPaymentRubyPack,
   handleVkPaymentNotification,
@@ -165,6 +166,30 @@ export function runMonetizationTests() {
   assert.strictEqual(getCatData(15).name, 'Кото-Бог дюн');
   setCatWorld(1);
   assert.strictEqual(getCatData(15).name, 'Кото-Бог');
+
+  const freshField = getLiveOpsLayout({ idolUnlocked: false, edictActive: false });
+  assert.strictEqual(freshField.visible, false, 'До первого слияния на поле нет идола и указа');
+  assert.strictEqual(freshField.mode, 'hidden');
+
+  const afterMerge = getLiveOpsLayout({ idolUnlocked: true, idolRemaining: 3 });
+  assert.strictEqual(afterMerge.visible, true);
+  assert.strictEqual(afterMerge.mode, 'idol');
+  assert.strictEqual(afterMerge.left, 'Идол · 3/3');
+  assert.strictEqual(afterMerge.right, null, 'Покупку указа на поле не показываем');
+
+  const withEdict = getLiveOpsLayout({
+    idolUnlocked: true,
+    idolRemaining: 2,
+    edictActive: true,
+    canClaimDaily: true,
+    edictRemainingMs: 3 * 24 * 60 * 60 * 1000
+  });
+  assert.strictEqual(withEdict.mode, 'split');
+  assert.ok(String(withEdict.right).includes('Паёк'));
+
+  const portal = getLiveOpsLayout({ pendingFlight: true, idolUnlocked: false });
+  assert.strictEqual(portal.mode, 'portal');
+  assert.strictEqual(portal.left, 'Портал открыт');
 
   const minted = new Economy({ slots: [{ level: 1 }, { level: 2 }, null] });
   minted.setBalance(0, 0);

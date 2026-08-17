@@ -72,8 +72,8 @@ export class IncomeBoosterButton extends Container {
     const w = this._w;
     const h = this._h;
     const radius = 14;
-    const fill = active ? 0x2ecc71 : parseInt(TOKENS.colors.gems.replace('#', '0x'));
-    const shadow = active ? 0x1e8449 : 0x9f1239;
+    const fill = active ? 0x2ecc71 : parseInt(TOKENS.colors.btnMerge.replace('#', '0x'));
+    const shadow = active ? 0x1e8449 : 0x6c3483;
 
     this._shadow.clear();
     this._shadow.roundRect(0, 3, w, h, radius);
