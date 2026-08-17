@@ -32,7 +32,13 @@ jobs:
         run: npm install
 
       - name: Build frontend
-        run: npm run build
+        run: PLATFORM=vk npm run build
+
+      - name: Mirror build to /dev/ for the VK iframe URL
+        run: |
+          mkdir -p site/dev
+          cp -a dist/. site/
+          cp -a dist/. site/dev/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -40,7 +46,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './site'
 
       - name: Deploy to GitHub Pages
         id: deployment
