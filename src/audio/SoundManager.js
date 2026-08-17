@@ -15,17 +15,20 @@ const E5 = 659.25;
 const F5 = 698.46;
 const G5 = 783.99;
 const A5 = 880.00;
-const C6 = 1046.50;
 
 /**
- * Двор Империи Котиков: мажор, щипок + бас, не похоронная синусоида.
- * 32 восьмых при 116 BPM — прыгает вверх, садится в до, не ползёт вниз.
+ * Тёплый двор: мажор, без писка C6 и без хэтов.
+ * Тише и мягче, но не похоронная синусоида.
  */
 export const BGM_LOOP = {
-  bpm: 116,
+  bpm: 100,
+  melodyGain: 0.02,
+  bassGain: 0.024,
+  cutoffHz: 980,
+  hats: false,
   melody: [
-    C5, E5, G5, C6, A5, G5, E5, G5,
-    C5, D5, E5, G5, A5, C6, G5, E5,
+    C5, E5, G5, E5, A5, G5, E5, G5,
+    C5, D5, E5, G5, A5, G5, E5, D5,
     F5, A5, G5, E5, D5, E5, G5, A5,
     G5, E5, C5, E5, D5, C5, G4, C5
   ],
@@ -42,7 +45,7 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
 }
 
 /**
- * Звуковой менеджер: короткие SFX + живой мажорный BGM на Web Audio API.
+ * Звуковой менеджер: короткие SFX + тихий мажорный BGM на Web Audio API.
  * Mute читается из localStorage и синхронизируется с окном настроек.
  */
 export class SoundManager {
@@ -54,7 +57,6 @@ export class SoundManager {
     this._bgmStep = 0;
     this._bgmNextTime = 0;
     this._bgmGen = 0;
-    this._noiseBuffer = null;
     this._unlocked = false;
     this._loadPrefs();
     this._initListeners();
@@ -125,23 +127,27 @@ export class SoundManager {
     this._ensureContext();
     if (!this.audioCtx) return;
     const when = this.audioCtx.currentTime + delay;
-    this._scheduleTone(freq, type, duration, gainVal, when);
+    this._scheduleTone(freq, type, duration, gainVal, when, { cutoff: 1500, attack: 0.02 });
   }
 
-  _scheduleTone(freq, type, duration, gainVal, when) {
+  _scheduleTone(freq, type, duration, gainVal, when, mix = {}) {
     if (!freq || freq <= 0 || !this.audioCtx) return;
+    const cutoff = mix.cutoff || 1200;
+    const attack = mix.attack || 0.03;
     try {
       const osc = this.audioCtx.createOscillator();
       const filter = this.audioCtx.createBiquadFilter();
       const gain = this.audioCtx.createGain();
 
-      osc.type = type;
+      osc.type = type === 'square' || type === 'sawtooth' ? 'triangle' : type;
       osc.frequency.setValueAtTime(freq, when);
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(type === 'sine' ? 1400 : 2200, when);
+      filter.frequency.setValueAtTime(cutoff, when);
+      filter.Q.setValueAtTime(0.7, when);
 
+      const peak = Math.max(0.0002, gainVal);
       gain.gain.setValueAtTime(0.0001, when);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, gainVal), when + 0.012);
+      gain.gain.exponentialRampToValueAtTime(peak, when + attack);
       gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
 
       osc.connect(filter);
@@ -149,76 +155,44 @@ export class SoundManager {
       gain.connect(this.audioCtx.destination);
 
       osc.start(when);
-      osc.stop(when + duration + 0.02);
+      osc.stop(when + duration + 0.03);
     } catch {
       // Игнорируем фоновые аудиоошибки
     }
   }
 
-  _ensureNoise() {
-    if (this._noiseBuffer || !this.audioCtx) return;
-    const length = Math.max(1, Math.floor(this.audioCtx.sampleRate * 0.04));
-    const buffer = this.audioCtx.createBuffer(1, length, this.audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    this._noiseBuffer = buffer;
-  }
-
-  _playHat(when) {
-    if (!this.audioCtx) return;
-    try {
-      this._ensureNoise();
-      if (!this._noiseBuffer) return;
-      const src = this.audioCtx.createBufferSource();
-      src.buffer = this._noiseBuffer;
-      const filter = this.audioCtx.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.setValueAtTime(7000, when);
-      const gain = this.audioCtx.createGain();
-      gain.gain.setValueAtTime(0.01, when);
-      gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.035);
-      src.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.audioCtx.destination);
-      src.start(when);
-      src.stop(when + 0.04);
-    } catch {
-      // ignore
-    }
-  }
-
   playMerge(combo = 1) {
     const boost = Math.min(3, Math.max(1, Number(combo) || 1));
-    this.playTone(523.25, 'triangle', 0.16, 0.12);
-    this.playTone(659.25, 'triangle', 0.18, 0.1, 0.05);
-    this.playTone(783.99 + boost * 20, 'sine', 0.22, 0.08, 0.1);
+    this.playTone(523.25, 'triangle', 0.18, 0.07);
+    this.playTone(659.25, 'triangle', 0.2, 0.055, 0.06);
+    this.playTone(783.99 + boost * 12, 'sine', 0.26, 0.045, 0.12);
   }
 
   playBuy() {
-    this.playTone(880, 'square', 0.07, 0.05);
-    this.playTone(1174.66, 'sine', 0.12, 0.08, 0.05);
+    this.playTone(784, 'triangle', 0.1, 0.035);
+    this.playTone(1046.5, 'sine', 0.14, 0.04, 0.06);
   }
 
   playMeow() {
-    this.playTone(620, 'sawtooth', 0.09, 0.045);
-    this.playTone(480, 'triangle', 0.14, 0.05, 0.06);
+    this.playTone(540, 'triangle', 0.12, 0.03);
+    this.playTone(430, 'sine', 0.16, 0.028, 0.07);
   }
 
   playLevelUp() {
-    this.playTone(523.25, 'triangle', 0.12, 0.1);
-    this.playTone(659.25, 'triangle', 0.12, 0.1, 0.1);
-    this.playTone(783.99, 'triangle', 0.14, 0.1, 0.2);
-    this.playTone(1046.5, 'sine', 0.28, 0.12, 0.32);
+    this.playTone(523.25, 'triangle', 0.14, 0.055);
+    this.playTone(659.25, 'triangle', 0.14, 0.055, 0.1);
+    this.playTone(783.99, 'sine', 0.18, 0.05, 0.2);
+    this.playTone(987.77, 'sine', 0.28, 0.045, 0.32);
   }
 
   playClick() {
-    this.playTone(740, 'square', 0.05, 0.035);
+    this.playTone(660, 'triangle', 0.06, 0.018);
   }
 
   playReward() {
-    this.playTone(659.25, 'sine', 0.12, 0.09);
-    this.playTone(880, 'sine', 0.16, 0.1, 0.08);
-    this.playTone(1318.5, 'triangle', 0.22, 0.08, 0.16);
+    this.playTone(659.25, 'sine', 0.14, 0.05);
+    this.playTone(783.99, 'sine', 0.16, 0.045, 0.08);
+    this.playTone(987.77, 'triangle', 0.22, 0.04, 0.16);
   }
 
   startBgm() {
@@ -251,13 +225,12 @@ export class SoundManager {
     const i = ((step % BGM_LOOP.melody.length) + BGM_LOOP.melody.length) % BGM_LOOP.melody.length;
     const melody = BGM_LOOP.melody[i];
     const bass = BGM_LOOP.bass[i];
-    const swing = i % 2 === 1 ? 0.018 : 0;
+    const swing = i % 2 === 1 ? 0.012 : 0;
     const t = when + swing;
+    const mix = { cutoff: BGM_LOOP.cutoffHz, attack: 0.05 };
 
-    if (melody) this._scheduleTone(melody, 'triangle', 0.2, 0.042, t);
-    if (bass) this._scheduleTone(bass, 'sine', 0.34, 0.038, t);
-    if (i % 2 === 1) this._playHat(t);
-    if (i % 8 === 0 && melody) this._scheduleTone(melody * 2, 'sine', 0.12, 0.012, t);
+    if (melody) this._scheduleTone(melody, 'sine', 0.28, BGM_LOOP.melodyGain, t, mix);
+    if (bass) this._scheduleTone(bass, 'sine', 0.42, BGM_LOOP.bassGain, t, { cutoff: 520, attack: 0.06 });
   }
 
   stopBgm() {
