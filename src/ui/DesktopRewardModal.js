@@ -1,12 +1,13 @@
 // src/ui/DesktopRewardModal.js
 // Фолбэк, когда реклама VK недоступна: приглашение друзей вместо поста на стену.
 
-import { Container, Graphics, Text, TextStyle, Sprite, Assets } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
+import { loadGreenEyesTexture } from '../utils/catTextures.js';
 
 export const INVITE_FALLBACK_GEMS = 5;
 
@@ -79,22 +80,22 @@ export class DesktopRewardModal extends Container {
     titleContainer.position.set(W / 2, modalY + 16);
     this.addChild(titleContainer);
 
-    // 4. Фотореалистичный арт Зеленоглазой Кошечки (180x180px)
+    // 4. Зеленоглазая киса: сразу нарисовать глаза, затем подменить фото
     const imgContainer = new Container();
     imgContainer.position.set(W / 2, modalY + 145);
     imgContainer.zIndex = 5;
     this.addChild(imgContainer);
+    drawGreenEyedCatFallback(imgContainer);
 
     try {
-      const base = (import.meta.env ? import.meta.env.BASE_URL : '/').replace(/\/?$/, '/');
-      const texture = await Assets.load(`${base}assets/cats/green_eyes_gift.jpg`);
+      const texture = await loadGreenEyesTexture();
       if (texture && !this._isClosed) {
+        imgContainer.removeChildren();
         const sprite = new Sprite(texture);
         sprite.width = 170;
         sprite.height = 170;
         sprite.anchor.set(0.5, 0.5);
 
-        // Рамка вокруг картинки
         const imgBorder = new Graphics();
         imgBorder.roundRect(-88, -88, 176, 176, 16);
         imgBorder.fill(0x0a0718);
@@ -104,10 +105,7 @@ export class DesktopRewardModal extends Container {
         imgContainer.addChild(sprite);
       }
     } catch (e) {
-      console.warn('⚠️ Ошибка загрузки арта green_eyes_gift.jpg:', e);
-      const fallbackText = new Text({ text: '👀🐱', style: new TextStyle({ fontSize: 64 }) });
-      fallbackText.anchor.set(0.5, 0.5);
-      imgContainer.addChild(fallbackText);
+      console.warn('⚠️ Ошибка загрузки арта green_eyes_gift.jpg, оставляем нарисованную кису:', e);
     }
 
     // 5. Двухстрочное аккуратное центрированное описание акции
@@ -253,4 +251,38 @@ export class DesktopRewardModal extends Container {
     }
     this.destroy({ children: true });
   }
+}
+
+/** Чёрная киса с изумрудными глазами — если jpeg ещё грузится или не открылся. */
+export function drawGreenEyedCatFallback(container) {
+  const frame = new Graphics();
+  frame.roundRect(-88, -88, 176, 176, 16);
+  frame.fill(0x0a0718);
+  frame.stroke({ color: 0x2ecc71, width: 2.5 });
+  container.addChild(frame);
+
+  const cat = new Graphics();
+  cat.moveTo(-46, -18);
+  cat.lineTo(-30, -74);
+  cat.lineTo(-10, -28);
+  cat.fill(0x1a1210);
+  cat.moveTo(46, -18);
+  cat.lineTo(30, -74);
+  cat.lineTo(10, -28);
+  cat.fill(0x1a1210);
+  cat.circle(0, 10, 64);
+  cat.fill(0x1a1210);
+
+  cat.ellipse(-22, -4, 18, 20);
+  cat.fill(0x2ecc71);
+  cat.ellipse(22, -4, 18, 20);
+  cat.fill(0x2ecc71);
+  cat.ellipse(-22, -4, 5, 14);
+  cat.fill(0x0a0718);
+  cat.ellipse(22, -4, 5, 14);
+  cat.fill(0x0a0718);
+
+  cat.ellipse(0, 22, 10, 7);
+  cat.fill(0x3d2a24);
+  container.addChild(cat);
 }
