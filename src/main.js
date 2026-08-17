@@ -210,5 +210,6 @@ function _createBackgroundAndParticles(app) {
 
 initApp().catch((error) => {
   console.error('Ошибка при инициализации приложения:', error);
-  hideSplashScreen();
+  const txt = document.getElementById('splash-status-text');
+  if (txt) txt.innerText = 'Не вышло загрузить. Закрой мини-приложение и зайди снова.';
 });

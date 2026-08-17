@@ -45,11 +45,21 @@ app.get('/api/health', (req, res) => {
 app.post('/', replyVkPayment);
 app.get('/', (req, res) => {
   if (isVkPaymentPayload(req)) return replyVkPayment(req, res);
-  res.json({
-    status: 'ok',
-    serverTime: new Date().toISOString(),
-    payments: '/api/payments/vk'
-  });
+  const qs = new URLSearchParams(req.query || {}).toString();
+  const dest = `https://no1zilla.github.io/cat-empire/${qs ? `?${qs}` : ''}`;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0;url=${dest}">
+  <title>Империя Котиков</title>
+  <script>location.replace(${JSON.stringify(dest)}+location.hash);</script>
+</head>
+<body style="margin:0;background:#0d0a1c;color:#ffd15c;font-family:sans-serif;text-align:center;padding:48px 16px">
+  Империя Котиков загружается…
+</body>
+</html>`);
 });
 
 // Подключение основных маршрутов API

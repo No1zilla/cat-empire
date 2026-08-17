@@ -70,7 +70,17 @@ export class Game {
   // Асинхронный метод инициализации игровой сцены
   async init(userName = 'Тест Игрок') {
     // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
-    const progress = await storageService.loadProgress();
+    const progress = await Promise.race([
+      storageService.loadProgress(),
+      new Promise((resolve) => setTimeout(() => resolve(null), 8000))
+    ]) || {
+      coins: 100,
+      gems: 10,
+      maxCatLevel: 1,
+      totalCatsBought: 0,
+      totalMerges: 0,
+      gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
+    };
 
     if (progress && progress.vkId) {
       eventTracker.setUserId(progress.vkId);

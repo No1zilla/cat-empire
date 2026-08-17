@@ -18,21 +18,23 @@ export async function loadCatTextures() {
 
   for (let level = 1; level <= 15; level++) {
     try {
-      textures[level] = await Assets.load(`${base}assets/cats/cat_${level}.png`);
+      textures[level] = await withTimeout(
+        Assets.load(`${base}assets/cats/cat_${level}.png`),
+        2500,
+        `cat_${level}`
+      );
     } catch (e) {
       console.warn(`Failed to load cat_${level}.png, fallback to emoji:`, e);
       textures[level] = null;
     }
   }
 
-  try { uiTextures.pedestal_gold = await Assets.load(`${base}assets/ui/pedestal_gold.jpg`); } catch (e) {}
-  try { uiTextures.logo = await Assets.load(`${base}assets/ui/logo_cat_empire.jpg`); } catch (e) {}
-  try { uiTextures.btn_buy_pink = await Assets.load(`${base}assets/ui/btn_buy_pink.jpg`); } catch (e) {}
-  try {
-    await loadGreenEyesTexture();
-  } catch (e) {
+  try { uiTextures.pedestal_gold = await withTimeout(Assets.load(`${base}assets/ui/pedestal_gold.jpg`), 2500, 'pedestal'); } catch (e) {}
+  try { uiTextures.logo = await withTimeout(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`), 2500, 'logo'); } catch (e) {}
+  try { uiTextures.btn_buy_pink = await withTimeout(Assets.load(`${base}assets/ui/btn_buy_pink.jpg`), 2500, 'btn'); } catch (e) {}
+  loadGreenEyesTexture().catch((e) => {
     console.warn('⚠️ Не удалось предзагрузить green_eyes_gift.jpg:', e);
-  }
+  });
 
   console.log('🎨 Текстуры загружены!');
   return textures;
@@ -61,11 +63,25 @@ async function loadTextureFromImage(url) {
   return Texture.from(img);
 }
 
+async function withTimeout(promise, ms, label) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`timeout ${label}`)), ms);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function tryLoadTexture(url) {
   try {
-    return await Assets.load(url);
+    return await withTimeout(Assets.load(url), 2500, url);
   } catch (e) {
-    return await loadTextureFromImage(url);
+    return await withTimeout(loadTextureFromImage(url), 2500, url);
   }
 }
 
