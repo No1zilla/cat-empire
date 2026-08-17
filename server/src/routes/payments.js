@@ -7,7 +7,12 @@ function collectParams(req) {
   return { ...(req.query || {}), ...(req.body || {}) };
 }
 
-function replyVkPayment(req, res) {
+export function isVkPaymentPayload(req) {
+  const params = collectParams(req);
+  return Boolean(params.notification_type || params.item || params.item_id);
+}
+
+export function replyVkPayment(req, res) {
   const params = collectParams(req);
   const secret = process.env.VK_APP_SECRET || process.env.VK_SECRET || '';
   const payload = handleVkPaymentNotification(params, secret);
@@ -17,5 +22,7 @@ function replyVkPayment(req, res) {
 // VK шлёт callback POST (form/json); GET оставляем на случай ручной проверки.
 router.post('/vk', replyVkPayment);
 router.get('/vk', replyVkPayment);
+router.post('/', replyVkPayment);
+router.get('/', replyVkPayment);
 
 export default router;

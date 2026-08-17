@@ -8,7 +8,7 @@ import leaderboardRouter from './routes/leaderboard.js';
 import eventsRouter from './routes/events.js';
 import analyticsRouter from './routes/analytics.js';
 import adminRouter from './routes/admin.js';
-import paymentsRouter from './routes/payments.js';
+import paymentsRouter, { replyVkPayment, isVkPaymentPayload } from './routes/payments.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -41,6 +41,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', serverTime: new Date().toISOString() });
 });
 
+// VK Payments: кабинет часто вставляет домен без /api/payments/vk — HTML 404 ломает get_item.
+app.post('/', replyVkPayment);
+app.get('/', (req, res) => {
+  if (isVkPaymentPayload(req)) return replyVkPayment(req, res);
+  res.json({
+    status: 'ok',
+    serverTime: new Date().toISOString(),
+    payments: '/api/payments/vk'
+  });
+});
+
 // Подключение основных маршрутов API
 app.use('/api/user', userRouter);
 app.use('/api/leaderboard', leaderboardRouter);
@@ -48,6 +59,13 @@ app.use('/api/events', eventsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/payments', paymentsRouter);
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: { error_code: 11, error_msg: 'Not found' },
+    payments: '/api/payments/vk'
+  });
+});
 
 // Запуск сервера — слушаем на 0.0.0.0 для Railway (v1.1.0 - Analytics & Admin Dashboard)
 app.listen(PORT, '0.0.0.0', () => {

@@ -103,10 +103,16 @@ export function runMonetizationTests() {
   getItem.sig = signPayment(getItem, secret);
   assert.strictEqual(verifyVkPaymentSig(getItem, secret), true);
 
-  const itemRes = handleVkPaymentNotification(getItem, secret);
-  assert.strictEqual(itemRes.response.item_id, 'gems_pack_50');
-  assert.strictEqual(itemRes.response.price, 4);
-  assert.ok(String(itemRes.response.title).includes('рубинов'));
+  const itemTest = {
+    app_id: '54702054',
+    item: 'gems_pack_10',
+    notification_type: 'get_item_test',
+    user_id: '816275327'
+  };
+  itemTest.sig = signPayment(itemTest, secret);
+  const itemTestRes = handleVkPaymentNotification(itemTest, secret);
+  assert.strictEqual(itemTestRes.response.item_id, 'gems_pack_10');
+  assert.strictEqual(itemTestRes.response.price, 1);
 
   const badSig = { ...getItem, sig: 'deadbeef' };
   const badRes = handleVkPaymentNotification(badSig, secret);
