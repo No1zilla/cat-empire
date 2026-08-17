@@ -25,7 +25,10 @@ jobs:
         run: npm ci
 
       - name: Build for VK (prod)
-        run: PLATFORM=vk npm run build
+        run: VK_PAGES_BASE=https://no1zilla.github.io/cat-empire/ PLATFORM=vk npm run build
+
+      - name: Copy index.html for VK iframe (no 301)
+        run: cp dist/index.html dist/vk.html
 
       - name: Deploy to gh-pages (root)
         uses: peaceiris/actions-gh-pages@v4
