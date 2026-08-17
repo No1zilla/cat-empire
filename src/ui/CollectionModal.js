@@ -1,18 +1,23 @@
 import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
-import { getCatData } from '../utils/catVisuals.js';
+import { getCatData, setCatWorld } from '../utils/catVisuals.js';
 import { CatDetailModal } from './CatDetailModal.js';
+import { getWorldTitle } from '../config/worlds.js';
+import { UIUtils } from '../utils/UIUtils.js';
 
 /**
  * TASK-018B: Переработанная Котопедия AAA качества (1 в 1 с промо-скриншотом №2)
  */
 export class CollectionModal extends Container {
-  constructor(app, maxUnlockedLevel = 1, onClose) {
+  constructor(app, maxUnlockedLevel = 1, onClose, extra = {}) {
     super();
     this.app = app;
     this.maxUnlockedLevel = Math.max(1, Math.min(15, maxUnlockedLevel || 1));
     this.onClose = onClose || (() => {});
+    this.viewWorld = extra.worldIndex || 1;
+    this.bestByWorld = extra.bestByWorld || {};
+    this.worldsCleared = Number(extra.worldsCleared || 0);
 
     this.eventMode = 'static';
     this._draw();
@@ -46,6 +51,9 @@ export class CollectionModal extends Container {
 
   _draw() {
     this.removeChildren();
+    setCatWorld(this.viewWorld);
+    const viewedMax = Math.max(1, Number(this.bestByWorld[this.viewWorld] || this.maxUnlockedLevel));
+    this.maxUnlockedLevel = viewedMax;
 
     const W = CONFIG.GAME_WIDTH;
     const H = CONFIG.GAME_HEIGHT;
@@ -97,7 +105,7 @@ export class CollectionModal extends Container {
       dropShadow: { color: '#000000', alpha: 0.8, blur: 2, distance: 1 }
     });
     const title = new Text({
-      text: `КОЛЛЕКЦИЯ КОТИКОВ (${this.maxUnlockedLevel}/15)`,
+      text: `${getWorldTitle(this.viewWorld).toUpperCase()} (${this.maxUnlockedLevel}/15)`,
       style: titleStyle
     });
     title.anchor.set(0.5, 0.5);
@@ -115,6 +123,26 @@ export class CollectionModal extends Container {
     subTitle.anchor.set(0.5, 0);
     subTitle.position.set(W / 2, cardY + 52);
     this.addChild(subTitle);
+
+    if (this.worldsCleared >= 1) {
+      const tabW = 90;
+      ['Луга', 'Дюны'].forEach((label, i) => {
+        const world = i + 1;
+        const btn = UIUtils.createButton(
+          W / 2 - 96 + i * 102,
+          cardY + 70,
+          tabW,
+          28,
+          label,
+          world === this.viewWorld ? 0xFF6B6B : 0x3d356c,
+          () => {
+            this.viewWorld = world;
+            this._draw();
+          }
+        );
+        this.addChild(btn);
+      });
+    }
 
     // Кнопка закрытия ✕
     const closeBtn = new Graphics();
@@ -144,11 +172,11 @@ export class CollectionModal extends Container {
     // 4. Сетка 3x5 золотых карточек
     const cols = 3;
     const slotW = 108;
-    const slotH = 96;
+    const slotH = this.worldsCleared >= 1 ? 88 : 96;
     const padX = 12;
-    const padY = 10;
+    const padY = this.worldsCleared >= 1 ? 6 : 10;
     const gridStartX = cardX + (cardW - (cols * slotW + (cols - 1) * padX)) / 2;
-    const gridStartY = cardY + 70;
+    const gridStartY = cardY + (this.worldsCleared >= 1 ? 100 : 70);
 
     for (let level = 1; level <= 15; level++) {
       const col = (level - 1) % cols;

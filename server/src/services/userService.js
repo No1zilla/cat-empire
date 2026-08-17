@@ -108,6 +108,16 @@ export class UserService {
     const { rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]);
     return formatUser(rows[0]);
   }
+
+  async addGems(vkUserId, amount) {
+    const vkId = String(vkUserId);
+    const gems = Math.max(0, Number(amount) || 0);
+    if (!vkId || gems <= 0) return null;
+    await this.getOrCreateUser(vkId);
+    await pool.query('UPDATE users SET gems = gems + $1 WHERE vk_id = $2', [gems, vkId]);
+    const { rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]);
+    return formatUser(rows[0]);
+  }
 }
 
 export default new UserService();

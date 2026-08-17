@@ -5,12 +5,12 @@
 
 export const DAILY_REWARD_TABLE = [
   { day: 1, coins: 500, gems: 0, catLevel: 0, label: '500 🪙' },
-  { day: 2, coins: 0, gems: 10, catLevel: 0, label: '10 💎' },
+  { day: 2, coins: 0, gems: 10, catLevel: 0, label: '10 рубинов' },
   { day: 3, coins: 0, gems: 0, catLevel: 3, label: 'Кот 3 ур.' },
   { day: 4, coins: 2500, gems: 0, catLevel: 0, label: '2 500 🪙' },
-  { day: 5, coins: 0, gems: 25, catLevel: 0, label: '25 💎' },
+  { day: 5, coins: 0, gems: 25, catLevel: 0, label: '25 рубинов' },
   { day: 6, coins: 0, gems: 0, catLevel: 5, label: 'Кот 5 ур.' },
-  { day: 7, coins: 0, gems: 50, catLevel: 7, label: 'Кот 7 ур. + 50 💎' }
+  { day: 7, coins: 0, gems: 50, catLevel: 7, label: 'Кот 7 ур. + 50 рубинов' }
 ];
 
 const STORAGE_KEY = 'cat_empire_daily_v1';

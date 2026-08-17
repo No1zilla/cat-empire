@@ -9,6 +9,9 @@ import { runTutorialAndBridgeTests } from './unit/tutorialAndBridge.test.js';
 import { runSyncManagerTests } from './unit/syncManager.test.js';
 import { runAntiCheatTests } from './unit/antiCheat.test.js';
 import { runDailyLiveOpsTests } from './unit/dailyLiveOps.test.js';
+import { runVkAdsTests } from './unit/vkAds.test.js';
+import { runMonetizationTests } from './unit/monetization.test.js';
+import { runFirstSessionTests } from './unit/firstSession.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -26,6 +29,9 @@ async function main() {
     await runSyncManagerTests();
     runAntiCheatTests();
     runDailyLiveOpsTests();
+    await runVkAdsTests();
+    runMonetizationTests();
+    runFirstSessionTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {

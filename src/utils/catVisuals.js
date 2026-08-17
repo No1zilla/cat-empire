@@ -1,5 +1,7 @@
 // Данные о котиках по уровням (1-15)
 
+import { DUNE_CATS, getWorldLineId, getWorldTint } from '../config/worlds.js';
+
 const CAT_DATA_MAP = {
   1:  { name: 'Обычный котик',      emoji: '🐱',   color: '#4a90e2' },
   2:  { name: 'Весёлый котик',      emoji: '😺',   color: '#5ba35f' },
@@ -18,21 +20,33 @@ const CAT_DATA_MAP = {
   15: { name: 'Кото-Бог',           emoji: '🏆',   color: '#1a1a1a' },
 };
 
-/**
- * Возвращает визуальные данные и доходность для котика определённого уровня
- * @param {number} level - уровень котика (1-15)
- * @returns {{ name: string, emoji: string, color: string, income: number }}
- */
-export function getCatData(level) {
+let currentWorldIndex = 1;
+
+export function setCatWorld(index = 1) {
+  currentWorldIndex = Math.max(1, Number(index) || 1);
+}
+
+export function getCatWorld() {
+  return currentWorldIndex;
+}
+
+export function getCatWorldTint(index = currentWorldIndex) {
+  return getWorldTint(index);
+}
+
+export function getCatData(level, worldIndex = currentWorldIndex) {
   const currentLevel = Math.max(1, Math.min(15, level || 1));
   const baseData = CAT_DATA_MAP[currentLevel] || CAT_DATA_MAP[1];
-  
-  // income = Math.pow(2, level - 1)
   const income = Math.pow(2, currentLevel - 1);
+  const line = getWorldLineId(worldIndex);
+  const dune = line === 2 ? DUNE_CATS[currentLevel] : null;
 
   return {
     ...baseData,
-    income
+    name: dune ? dune.name : baseData.name,
+    color: dune ? dune.color : baseData.color,
+    income,
+    worldIndex: Math.max(1, Number(worldIndex) || 1)
   };
 }
 

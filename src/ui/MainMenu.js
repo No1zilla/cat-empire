@@ -16,6 +16,8 @@ export class MainMenu extends Container {
     onOpenQuests,
     onOpenLeaderboard,
     onInvite,
+    onOpenShop,
+    onOpenCourt,
     dailyAvailable = false,
     questsClaimable = 0
   }) {
@@ -28,6 +30,8 @@ export class MainMenu extends Container {
     this.onOpenQuests = onOpenQuests || (() => {});
     this.onOpenLeaderboard = onOpenLeaderboard || (() => {});
     this.onInvite = onInvite || (() => {});
+    this.onOpenShop = onOpenShop || (() => {});
+    this.onOpenCourt = onOpenCourt || (() => {});
     this.dailyAvailable = dailyAvailable;
     this.questsClaimable = questsClaimable;
 
@@ -189,7 +193,7 @@ export class MainMenu extends Container {
     const deckBtn = UIUtils.createButton(
       btnX,
       452,
-      btnW,
+      halfW,
       44,
       '📖 КОТОПЕДИЯ',
       0xFF9F43,
@@ -197,10 +201,38 @@ export class MainMenu extends Container {
     );
     this.addChild(deckBtn);
 
-    const settingsBtn = UIUtils.createButton(
+    const shopBtn = UIUtils.createButton(
+      btnX + halfW + gap,
+      452,
+      halfW,
+      44,
+      'РУБИНЫ',
+      parseInt(TOKENS.colors.gems.replace('#', '0x')),
+      () => this.onOpenShop()
+    );
+    shopBtn.children.forEach((child) => {
+      if (child instanceof Text) child.position.x = halfW / 2 + 8;
+    });
+    const shopGem = UIUtils.createGemIcon(8);
+    shopGem.position.set(22, 22);
+    shopBtn.addChild(shopGem);
+    this.addChild(shopBtn);
+
+    const courtBtn = UIUtils.createButton(
       btnX,
       508,
-      btnW,
+      halfW,
+      44,
+      'ДВОР',
+      0x2ecc71,
+      () => this.onOpenCourt()
+    );
+    this.addChild(courtBtn);
+
+    const settingsBtn = UIUtils.createButton(
+      btnX + halfW + gap,
+      508,
+      halfW,
       44,
       '⚙️ НАСТРОЙКИ',
       0xA55EEA,

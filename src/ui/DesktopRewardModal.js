@@ -1,5 +1,5 @@
 // src/ui/DesktopRewardModal.js
-// TASK-073: Модальное окно награды за виральный пост на стену VK с Зеленоглазой Кошечкой (Десктоп VK Fallback)
+// Фолбэк, когда реклама VK недоступна: приглашение друзей вместо поста на стену.
 
 import { Container, Graphics, Text, TextStyle, Sprite, Assets } from 'pixi.js';
 import { CONFIG } from '../config.js';
@@ -8,13 +8,15 @@ import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
 
+export const INVITE_FALLBACK_GEMS = 5;
+
 export class DesktopRewardModal extends Container {
   constructor(app, economy, onRewardGranted, rewardGems = 5) {
     super();
     this.app = app;
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
-    this.rewardGems = rewardGems;
+    this.rewardGems = INVITE_FALLBACK_GEMS;
     this.vkService = new VKService();
     this._isClosed = false;
 
@@ -120,13 +122,13 @@ export class DesktopRewardModal extends Container {
       align: 'center'
     });
 
-    const line1 = new Text({ text: 'Опубликуй открытку на стене VK', style: descStyle });
+    const line1 = new Text({ text: 'Пригласи друзей в Империю Котиков', style: descStyle });
     line1.anchor.set(0.5, 0);
     line1.position.set(0, 0);
     descGroup.addChild(line1);
 
     const line2Container = new Container();
-    const t1 = new Text({ text: 'и получи +5 ', style: descStyle });
+    const t1 = new Text({ text: `и получи +${this.rewardGems} `, style: descStyle });
     t1.position.set(0, 0);
 
     const descGem = UIUtils.createGemIcon(9);
@@ -153,31 +155,29 @@ export class DesktopRewardModal extends Container {
     descGroup.position.set(W / 2, modalY + 238);
     this.addChild(descGroup);
 
-    // 6. Сочная 3D кнопка «📢 Опубликовать пост (+5 [розовый гем])»
     const btnW = 280;
     const btnH = 46;
     const btnX = (W - btnW) / 2;
     const btnY = modalY + 322;
 
-    const postBtn = UIUtils.createButton(
+    const inviteBtn = UIUtils.createButton(
       btnX,
       btnY,
       btnW,
       btnH,
-      `📢 Опубликовать пост (+${this.rewardGems}) `,
-      0x2ecc71,
+      `🤝 Пригласить друзей (+${this.rewardGems}) `,
+      0x0077FF,
       async () => {
-        await this._handlePostAndReward();
+        await this._handleInviteAndReward();
       }
     );
 
-    // Добавляем 3D розовый гем внутрь кнопки
     const btnGem = UIUtils.createGemIcon(10);
     btnGem.position.set(btnW - 22, btnH / 2);
-    postBtn.addChild(btnGem);
+    inviteBtn.addChild(btnGem);
 
-    postBtn.zIndex = 10;
-    this.addChild(postBtn);
+    inviteBtn.zIndex = 10;
+    this.addChild(inviteBtn);
 
     // 7. Кнопка «Закрыть ✕»
     const closeBtnContainer = new Container();
@@ -204,18 +204,16 @@ export class DesktopRewardModal extends Container {
     this.addChild(closeBtnContainer);
   }
 
-  async _handlePostAndReward() {
-    if (this._isPosting) return;
-    this._isPosting = true;
+  async _handleInviteAndReward() {
+    if (this._isInviting) return;
+    this._isInviting = true;
 
     try {
-      const shareRes = await this.vkService.sharePost(
-        '👀 Посмотрите на эту загадочную Зеленоглазую Кошечку в «Империи Котиков»! Присоединяйтесь к игре!'
-      );
+      const inviteRes = await this.vkService.showInviteBox();
 
-      if (shareRes && shareRes.success) {
-        console.log('✅ Виральный пост с Зеленоглазой Кошечкой успешно выложен!');
-        eventTracker.track('wall_post_reward_granted', { reward_gems: this.rewardGems });
+      if (inviteRes && inviteRes.success && !inviteRes.simulated) {
+        console.log('✅ Приглашение друзей отправлено, начисляем рубины');
+        eventTracker.track('invite_reward_granted', { reward_gems: this.rewardGems, source: 'ad_fallback' });
 
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
@@ -224,7 +222,7 @@ export class DesktopRewardModal extends Container {
 
         const stage = (this.app && this.app.stage) ? this.app.stage : this.parent;
         if (stage) {
-          UIUtils.showToast(stage, `🎉 Пост выложен! Начислено +${this.rewardGems} 💎`);
+          UIUtils.showToast(stage, `🤝 Друзья приглашены! +${UIUtils.formatRubies(this.rewardGems)}`);
         }
 
         this._close();
@@ -232,15 +230,18 @@ export class DesktopRewardModal extends Container {
           this.onRewardGranted();
         }
       } else {
-        this._isPosting = false;
+        this._isInviting = false;
         const stage = (this.app && this.app.stage) ? this.app.stage : this.parent;
         if (stage) {
-          UIUtils.showToast(stage, '⚠️ Публикация отменена');
+          const msg = inviteRes && inviteRes.simulated
+            ? '🤝 Приглашения доступны внутри VK'
+            : 'Приглашение отменено';
+          UIUtils.showToast(stage, msg);
         }
       }
     } catch (e) {
-      console.error('Ошибка публикации поста:', e);
-      this._isPosting = false;
+      console.error('Ошибка приглашения друзей:', e);
+      this._isInviting = false;
     }
   }
 

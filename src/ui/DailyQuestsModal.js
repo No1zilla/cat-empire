@@ -84,7 +84,7 @@ export class DailyQuestsModal extends Container {
       this.addChild(qTitle);
 
       const progress = new Text({
-        text: `${Math.min(quest.progress, quest.target)} / ${quest.target}   •   +${quest.rewardGems} 💎`,
+        text: `${Math.min(quest.progress, quest.target)} / ${quest.target}   •   +${UIUtils.formatRubies(quest.rewardGems)}`,
         style: new TextStyle({ fontFamily: font, fontSize: 12, fill: TOKENS.colors.textSecondary })
       });
       progress.position.set(modalX + 32, y + 34);
@@ -141,7 +141,7 @@ export class DailyQuestsModal extends Container {
     if (this.economy) this.economy.addGems(quest.rewardGems);
     eventBus.emit('REWARD_CLAIMED', quest);
     eventTracker.track('quest_claimed', { quest_id: quest.id, gems: quest.rewardGems });
-    UIUtils.showToast(this.app.stage, `+${quest.rewardGems} 💎 за задание!`);
+    UIUtils.showToast(this.app.stage, `+${UIUtils.formatRubies(quest.rewardGems)} за задание!`);
     this._draw();
   }
 
