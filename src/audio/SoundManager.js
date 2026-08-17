@@ -1,7 +1,48 @@
 import { eventBus } from '../utils/EventBus.js';
 
+const C3 = 130.81;
+const E3 = 164.81;
+const F3 = 174.61;
+const G3 = 196.00;
+const A3 = 220.00;
+const B3 = 246.94;
+const C4 = 261.63;
+const D4 = 293.66;
+const G4 = 392.00;
+const C5 = 523.25;
+const D5 = 587.33;
+const E5 = 659.25;
+const F5 = 698.46;
+const G5 = 783.99;
+const A5 = 880.00;
+const C6 = 1046.50;
+
 /**
- * Звуковой менеджер: короткие SFX + тихий lo-fi BGM на Web Audio API.
+ * Двор Империи Котиков: мажор, щипок + бас, не похоронная синусоида.
+ * 32 восьмых при 116 BPM — прыгает вверх, садится в до, не ползёт вниз.
+ */
+export const BGM_LOOP = {
+  bpm: 116,
+  melody: [
+    C5, E5, G5, C6, A5, G5, E5, G5,
+    C5, D5, E5, G5, A5, C6, G5, E5,
+    F5, A5, G5, E5, D5, E5, G5, A5,
+    G5, E5, C5, E5, D5, C5, G4, C5
+  ],
+  bass: [
+    C3, 0, G3, 0, C3, 0, E3, 0,
+    G3, 0, D4, 0, G3, 0, B3, 0,
+    F3, 0, C4, 0, F3, 0, A3, 0,
+    C3, 0, G3, 0, C4, 0, C3, 0
+  ]
+};
+
+export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
+  return 60 / bpm / 2;
+}
+
+/**
+ * Звуковой менеджер: короткие SFX + живой мажорный BGM на Web Audio API.
  * Mute читается из localStorage и синхронизируется с окном настроек.
  */
 export class SoundManager {
@@ -11,6 +52,9 @@ export class SoundManager {
     this.musicEnabled = true;
     this._bgmTimer = null;
     this._bgmStep = 0;
+    this._bgmNextTime = 0;
+    this._bgmGen = 0;
+    this._noiseBuffer = null;
     this._unlocked = false;
     this._loadPrefs();
     this._initListeners();
@@ -78,28 +122,68 @@ export class SoundManager {
 
   playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1, delay = 0) {
     if (!this.enabled) return;
-    try {
-      this._ensureContext();
-      if (!this.audioCtx) return;
+    this._ensureContext();
+    if (!this.audioCtx) return;
+    const when = this.audioCtx.currentTime + delay;
+    this._scheduleTone(freq, type, duration, gainVal, when);
+  }
 
+  _scheduleTone(freq, type, duration, gainVal, when) {
+    if (!freq || freq <= 0 || !this.audioCtx) return;
+    try {
       const osc = this.audioCtx.createOscillator();
+      const filter = this.audioCtx.createBiquadFilter();
       const gain = this.audioCtx.createGain();
-      const startAt = this.audioCtx.currentTime + delay;
 
       osc.type = type;
-      osc.frequency.setValueAtTime(freq, startAt);
+      osc.frequency.setValueAtTime(freq, when);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(type === 'sine' ? 1400 : 2200, when);
 
-      gain.gain.setValueAtTime(0.0001, startAt);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, gainVal), startAt + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, gainVal), when + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
 
-      osc.connect(gain);
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.audioCtx.destination);
 
-      osc.start(startAt);
-      osc.stop(startAt + duration + 0.02);
+      osc.start(when);
+      osc.stop(when + duration + 0.02);
     } catch {
       // Игнорируем фоновые аудиоошибки
+    }
+  }
+
+  _ensureNoise() {
+    if (this._noiseBuffer || !this.audioCtx) return;
+    const length = Math.max(1, Math.floor(this.audioCtx.sampleRate * 0.04));
+    const buffer = this.audioCtx.createBuffer(1, length, this.audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    this._noiseBuffer = buffer;
+  }
+
+  _playHat(when) {
+    if (!this.audioCtx) return;
+    try {
+      this._ensureNoise();
+      if (!this._noiseBuffer) return;
+      const src = this.audioCtx.createBufferSource();
+      src.buffer = this._noiseBuffer;
+      const filter = this.audioCtx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(7000, when);
+      const gain = this.audioCtx.createGain();
+      gain.gain.setValueAtTime(0.01, when);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.035);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      src.start(when);
+      src.stop(when + 0.04);
+    } catch {
+      // ignore
     }
   }
 
@@ -144,19 +228,42 @@ export class SoundManager {
     this._ensureContext();
     if (!this.audioCtx) return;
 
-    const scale = [196, 246.94, 293.66, 329.63, 392, 329.63, 293.66, 246.94];
+    const stepDur = getBgmStepSeconds();
+    const gen = ++this._bgmGen;
     this._bgmStep = 0;
-    this._bgmTimer = setInterval(() => {
-      if (!this.enabled || !this.musicEnabled) return;
-      const note = scale[this._bgmStep % scale.length];
-      this.playTone(note, 'sine', 0.42, 0.028);
-      this._bgmStep += 1;
-    }, 520);
+    this._bgmNextTime = this.audioCtx.currentTime;
+
+    const tick = () => {
+      if (gen !== this._bgmGen) return;
+      if (!this.enabled || !this.musicEnabled || !this.audioCtx) return;
+      const horizon = this.audioCtx.currentTime + 0.18;
+      while (this._bgmNextTime < horizon) {
+        this._playBgmStep(this._bgmStep, this._bgmNextTime);
+        this._bgmStep += 1;
+        this._bgmNextTime += stepDur;
+      }
+      this._bgmTimer = setTimeout(tick, 40);
+    };
+    tick();
+  }
+
+  _playBgmStep(step, when) {
+    const i = ((step % BGM_LOOP.melody.length) + BGM_LOOP.melody.length) % BGM_LOOP.melody.length;
+    const melody = BGM_LOOP.melody[i];
+    const bass = BGM_LOOP.bass[i];
+    const swing = i % 2 === 1 ? 0.018 : 0;
+    const t = when + swing;
+
+    if (melody) this._scheduleTone(melody, 'triangle', 0.2, 0.042, t);
+    if (bass) this._scheduleTone(bass, 'sine', 0.34, 0.038, t);
+    if (i % 2 === 1) this._playHat(t);
+    if (i % 8 === 0 && melody) this._scheduleTone(melody * 2, 'sine', 0.12, 0.012, t);
   }
 
   stopBgm() {
+    this._bgmGen += 1;
     if (this._bgmTimer) {
-      clearInterval(this._bgmTimer);
+      clearTimeout(this._bgmTimer);
       this._bgmTimer = null;
     }
   }
