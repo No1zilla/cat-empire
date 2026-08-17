@@ -20,7 +20,6 @@ import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
-import { IncomeBoosterButton } from '../ui/IncomeBoosterButton.js';
 import { incomeBoosterService } from './IncomeBooster.js';
 import { MainMenu } from '../ui/MainMenu.js';
 import { OfflineEarningsModal } from '../ui/OfflineEarningsModal.js';
@@ -148,6 +147,10 @@ export class Game {
     // 5. Экономика
     this.economy = new Economy(this.grid);
     this.economy.onUpdate = (coins, gems, ips) => {
+      const wantX2 = incomeBoosterService.isActive() || empireMeta.isEdictActive() ? 2 : 1;
+      if (this.economy.incomeMultiplier !== wantX2 || this.economy.mintPercent !== empireMeta.mint) {
+        this._applyIncomeBuffs();
+      }
       if (this.hud) this.hud.update(coins, gems, ips);
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();
@@ -283,19 +286,10 @@ export class Game {
     this.autoMergeButton.zIndex = 10;
     this.gameContainer.addChild(this.autoMergeButton);
 
-    this.incomeBoosterButton = new IncomeBoosterButton(this.app, this.economy, () => {
-      this._applyIncomeBuffs();
-    });
-    this.incomeBoosterButton.x = 8;
-    this.incomeBoosterButton.y = buttonRowY + 52;
-    this.incomeBoosterButton.zIndex = 10;
-    this.gameContainer.addChild(this.incomeBoosterButton);
-
     this.liveOpsRow = new LiveOpsRow(this.app, this.economy, {
       onBuffs: () => this._applyIncomeBuffs(),
       onPortal: () => this.flyToNextWorld(),
-      onLayout: () => this._layoutChrome(),
-      idolUnlocked: this.maxCatLevel > 1
+      onLayout: () => this._layoutChrome()
     });
     this.liveOpsRow.x = 8;
     this.liveOpsRow.zIndex = 10;
@@ -332,7 +326,6 @@ export class Game {
       if (newLevel > this.maxCatLevel) {
         this.maxCatLevel = newLevel;
         empireMeta.noteBest(empireMeta.worldIndex, this.maxCatLevel);
-        if (this.liveOpsRow && this.maxCatLevel > 1) this.liveOpsRow.setIdolUnlocked(true);
         eventTracker.trackMaxCatLevelReached(newLevel);
         eventBus.emit('NEW_CAT_UNLOCKED', { level: newLevel });
         if (this.spawnSystem) this.spawnSystem._stopHold();
@@ -704,8 +697,7 @@ export class Game {
   _layoutChrome() {
     const y = this._buttonRowY;
     if (y == null) return;
-    if (this.incomeBoosterButton) this.incomeBoosterButton.y = y + 52;
-    const opsY = y + 88;
+    const opsY = y + 52;
     if (this.liveOpsRow) {
       this.liveOpsRow.x = 8;
       this.liveOpsRow.y = opsY;
@@ -721,12 +713,11 @@ export class Game {
       maxCatLevel: this.maxCatLevel,
       totalMerges: this.economy ? this.economy.totalMerges : 0
     });
-    [this.fillAllButton, this.autoMergeButton, this.incomeBoosterButton].forEach((btn) => {
+    [this.fillAllButton, this.autoMergeButton].forEach((btn) => {
       if (!btn) return;
       btn.visible = show;
       btn.eventMode = show ? 'static' : 'none';
     });
-    if (this.liveOpsRow) this.liveOpsRow.setIdolUnlocked(show && this.maxCatLevel > 1);
     this._layoutChrome();
   }
 

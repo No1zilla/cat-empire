@@ -167,25 +167,22 @@ export function runMonetizationTests() {
   setCatWorld(1);
   assert.strictEqual(getCatData(15).name, 'Кото-Бог');
 
-  const freshField = getLiveOpsLayout({ idolUnlocked: false, edictActive: false });
-  assert.strictEqual(freshField.visible, false, 'До первого слияния на поле нет идола и указа');
+  const freshField = getLiveOpsLayout({ edictActive: false });
+  assert.strictEqual(freshField.visible, false, 'На поле нет идола, 2× и витрины указа');
   assert.strictEqual(freshField.mode, 'hidden');
 
-  const afterMerge = getLiveOpsLayout({ idolUnlocked: true, idolRemaining: 3 });
-  assert.strictEqual(afterMerge.visible, true);
-  assert.strictEqual(afterMerge.mode, 'idol');
-  assert.strictEqual(afterMerge.left, 'Идол · 3/3');
-  assert.strictEqual(afterMerge.right, null, 'Покупку указа на поле не показываем');
+  const afterMerge = getLiveOpsLayout({ edictActive: false });
+  assert.strictEqual(afterMerge.visible, false, 'После слияния рекламный ряд не появляется');
+  assert.strictEqual(afterMerge.mode, 'hidden');
 
   const withEdict = getLiveOpsLayout({
-    idolUnlocked: true,
-    idolRemaining: 2,
     edictActive: true,
     canClaimDaily: true,
     edictRemainingMs: 3 * 24 * 60 * 60 * 1000
   });
-  assert.strictEqual(withEdict.mode, 'split');
-  assert.ok(String(withEdict.right).includes('Паёк'));
+  assert.strictEqual(withEdict.mode, 'ration');
+  assert.ok(String(withEdict.left).includes('Паёк'));
+  assert.strictEqual(withEdict.right, null);
 
   const portal = getLiveOpsLayout({ pendingFlight: true, idolUnlocked: false });
   assert.strictEqual(portal.mode, 'portal');
