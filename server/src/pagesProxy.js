@@ -1,4 +1,6 @@
 const PAGES_ORIGIN = 'https://no1zilla.github.io/cat-empire';
+const CACHE_MS = 120000;
+const cache = new Map();
 
 export function rewriteGithubPages(body, contentType = '') {
   if (!contentType || !/html|javascript|css|json/i.test(contentType)) return body;
@@ -20,7 +22,12 @@ export function shouldProxyToPages(req) {
 }
 
 export async function fetchGithubPages(reqPath, search = '') {
-  const url = `${PAGES_ORIGIN}${pagesUpstreamPath(reqPath)}${search || ''}`;
+  const path = pagesUpstreamPath(reqPath);
+  const cached = cache.get(path);
+  if (cached && cached.exp > Date.now()) {
+    return cached.val;
+  }
+  const url = `${PAGES_ORIGIN}${path}${search || ''}`;
   const upstream = await fetch(url, {
     redirect: 'follow',
     headers: { Accept: '*/*' }
@@ -30,5 +37,7 @@ export async function fetchGithubPages(reqPath, search = '') {
   const rewritten = /html|javascript|css/i.test(contentType)
     ? Buffer.from(rewriteGithubPages(buf.toString('utf8'), contentType))
     : buf;
-  return { status: upstream.status, contentType, body: rewritten };
+  const val = { status: upstream.status, contentType, body: rewritten };
+  cache.set(path, { exp: Date.now() + CACHE_MS, val });
+  return val;
 }

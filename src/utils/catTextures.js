@@ -16,22 +16,33 @@ export async function loadCatTextures() {
   textures = {};
   uiTextures = {};
 
+  const jobs = [];
   for (let level = 1; level <= 15; level++) {
-    try {
-      textures[level] = await withTimeout(
-        Assets.load(`${base}assets/cats/cat_${level}.png`),
-        2500,
-        `cat_${level}`
-      );
-    } catch (e) {
-      console.warn(`Failed to load cat_${level}.png, fallback to emoji:`, e);
-      textures[level] = null;
-    }
+    jobs.push(
+      withTimeout(Assets.load(`${base}assets/cats/cat_${level}.png`), 2500, `cat_${level}`)
+        .then((tex) => { textures[level] = tex; })
+        .catch((e) => {
+          console.warn(`Failed to load cat_${level}.png, fallback to emoji:`, e);
+          textures[level] = null;
+        })
+    );
   }
-
-  try { uiTextures.pedestal_gold = await withTimeout(Assets.load(`${base}assets/ui/pedestal_gold.jpg`), 2500, 'pedestal'); } catch (e) {}
-  try { uiTextures.logo = await withTimeout(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`), 2500, 'logo'); } catch (e) {}
-  try { uiTextures.btn_buy_pink = await withTimeout(Assets.load(`${base}assets/ui/btn_buy_pink.jpg`), 2500, 'btn'); } catch (e) {}
+  jobs.push(
+    withTimeout(Assets.load(`${base}assets/ui/pedestal_gold.jpg`), 2500, 'pedestal')
+      .then((tex) => { uiTextures.pedestal_gold = tex; })
+      .catch(() => {})
+  );
+  jobs.push(
+    withTimeout(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`), 2500, 'logo')
+      .then((tex) => { uiTextures.logo = tex; })
+      .catch(() => {})
+  );
+  jobs.push(
+    withTimeout(Assets.load(`${base}assets/ui/btn_buy_pink.jpg`), 2500, 'btn')
+      .then((tex) => { uiTextures.btn_buy_pink = tex; })
+      .catch(() => {})
+  );
+  await Promise.all(jobs);
   loadGreenEyesTexture().catch((e) => {
     console.warn('⚠️ Не удалось предзагрузить green_eyes_gift.jpg:', e);
   });
