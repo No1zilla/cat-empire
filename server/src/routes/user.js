@@ -28,7 +28,8 @@ router.post('/save', vkAuth, async (req, res) => {
       gridState: body.gridState ?? body.grid_state,
       firstName: body.firstName ?? body.first_name,
       lastName: body.lastName ?? body.last_name,
-      avatar: body.avatar
+      avatar: body.avatar,
+      isReset: body.isReset || body.is_reset || false
     });
     res.json({ success: true, user });
   } catch (error) {

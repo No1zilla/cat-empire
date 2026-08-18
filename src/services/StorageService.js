@@ -4,6 +4,20 @@ import { vkIdentity } from './VkIdentity.js';
 
 const vkService = new VKService();
 const STORAGE_KEY = 'cat_empire_progress';
+const BEST_LEVEL_KEY = 'cat_empire_best_max_level';
+const BEST_MERGES_KEY = 'cat_empire_best_merges';
+
+export function progressRank(state = {}) {
+  return (Number(state.maxCatLevel) || 1) * 1_000_000
+    + (Number(state.totalMerges) || 0) * 100
+    + (Number(state.totalCatsBought) || 0);
+}
+
+export function isStarterSnapshot(state = {}) {
+  return (Number(state.maxCatLevel) || 1) <= 1
+    && (Number(state.totalMerges) || 0) <= 0
+    && (Number(state.totalCatsBought) || 0) <= 2;
+}
 
 /**
  * Единый Сервис Хранения Данных с Алгоритмом Трехсторонней Конвергенции (Smart Tri-State Merger)
@@ -28,7 +42,9 @@ export class StorageService {
         Array.isArray(item) ? { slotIndex: item[0], catLevel: item[1] } : item
       );
     } else {
-      gridState = [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }];
+      gridState = (Number(maxCatLevel) || 1) > 1
+        ? []
+        : [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }];
     }
 
     let updatedAt = raw.t !== undefined ? raw.t : (raw.updatedAt !== undefined ? raw.updatedAt : (raw.updated_at !== undefined ? (typeof raw.updated_at === 'string' ? Date.parse(raw.updated_at) : raw.updated_at) : 0));
@@ -53,7 +69,7 @@ export class StorageService {
   }
 
   /**
-   * Слить состояния из разных источников по максимальным прогрессивным показателям
+   * Слить снимки по прогрессу, не по часам. Свежая пустая катка не затирает империю.
    */
   mergeStates(stateA, stateB) {
     const a = this._normalizeState(stateA);
@@ -62,35 +78,22 @@ export class StorageService {
     if (!a) return b || {};
     if (!b) return a || {};
 
-    // 1. Приоритет флага жестокого сброса
-    if (a.isReset && !b.isReset) return a;
-    if (b.isReset && !a.isReset) return b;
+    if (a.isReset && !b.isReset && isStarterSnapshot(a)) return a;
+    if (b.isReset && !a.isReset && isStarterSnapshot(b)) return b;
     if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
       if (a.coins === 100 && a.totalMerges === 0) return a;
       if (b.coins === 100 && b.totalMerges === 0) return b;
     }
 
-    // 2. Векторная Временная Синхронизация (Vector Clock): Снимок с более свежим таймстемпом побеждает 100%!
+    const rankA = progressRank(a);
+    const rankB = progressRank(b);
+    if (rankB !== rankA) return rankB > rankA ? b : a;
+
     const timeA = Number(a.updatedAt) || 0;
     const timeB = Number(b.updatedAt) || 0;
+    if (timeB !== timeA) return timeB > timeA ? b : a;
 
-    // Если разница по времени между снимками превышает 2 секунды — забираем более свежий снимок целиком!
-    if (Math.abs(timeA - timeB) > 2000) {
-      console.log(`⏱️ Векторный выбор снимка по времени: timeA (${timeA}) vs timeB (${timeB}) -> победитель: ${timeA > timeB ? 'A (Local)' : 'B (Cloud)'}`);
-      return timeA > timeB ? a : b;
-    }
-
-    // 3. Фолбэк для одновременных снимков
-    const mergesA = Number(a.totalMerges) || 0;
-    const mergesB = Number(b.totalMerges) || 0;
-    const boughtA = Number(a.totalCatsBought) || 0;
-    const boughtB = Number(b.totalCatsBought) || 0;
-
-    let chooseB = false;
-    if (mergesB > mergesA) chooseB = true;
-    else if (mergesB === mergesA && boughtB > boughtA) chooseB = true;
-
-    return chooseB ? b : a;
+    return (Number(b.coins) || 0) > (Number(a.coins) || 0) ? b : a;
   }
 
   async loadProgress() {
@@ -114,44 +117,45 @@ export class StorageService {
       return cleanResetState;
     }
 
-    // 1. Извлечение из LocalStorage (быстрый кэш браузера)
+    const hasLocalCache = typeof localStorage !== 'undefined' && (
+      localStorage.getItem('cat_empire_last_updated_at') ||
+      localStorage.getItem('cat_empire_grid_state') ||
+      localStorage.getItem('cat_empire_last_max_level')
+    );
+
     let localData = null;
-    try {
-      const raw = localStorage.getItem('cat_empire_grid_state');
-      localData = this._normalizeState({
-        coins: parseFloat(localStorage.getItem('cat_empire_last_coins') || '100'),
-        gems: parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10),
-        maxCatLevel: parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10),
-        totalCatsBought: parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10),
-        totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
-        updatedAt: parseInt(localStorage.getItem('cat_empire_last_updated_at') || '0', 10),
-        gridState: raw ? JSON.parse(raw) : null
-      });
-    } catch (e) {}
-
-    let resultState = localData;
-
-    // 2. Извлечение из Нативного Облачного Хранилища VK (VKWebAppStorageGet)
-    try {
-      const vkStorage = await vkService.storageGet([STORAGE_KEY]);
-      if (vkStorage && vkStorage[STORAGE_KEY]) {
-        const raw = vkStorage[STORAGE_KEY];
-        const vkState = this._normalizeState(raw);
-        resultState = this.mergeStates(resultState, vkState);
-      }
-    } catch (e) {
-      console.warn('Ошибка загрузки из VK Storage:', e);
+    if (hasLocalCache) {
+      try {
+        const raw = localStorage.getItem('cat_empire_grid_state');
+        localData = this._normalizeState({
+          coins: parseFloat(localStorage.getItem('cat_empire_last_coins') || '100'),
+          gems: parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10),
+          maxCatLevel: parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10),
+          totalCatsBought: parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10),
+          totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
+          updatedAt: parseInt(localStorage.getItem('cat_empire_last_updated_at') || '0', 10),
+          gridState: raw ? JSON.parse(raw) : null
+        });
+      } catch (e) {}
     }
 
-    // 3. Извлечение из центрального сервера PostgreSQL (HTTPS API)
-    try {
-      const serverProfile = await fetchProfile();
-      if (serverProfile && serverProfile.user) {
-        const serverState = this._normalizeState(serverProfile.user);
-        resultState = this.mergeStates(resultState, serverState);
-      }
-    } catch (e) {
-      console.warn('Ошибка загрузки с бэкенда:', e);
+    let resultState = localData;
+    const [vkStorage, serverProfile] = await Promise.all([
+      vkService.storageGet([STORAGE_KEY]).catch((e) => {
+        console.warn('Ошибка загрузки из VK Storage:', e);
+        return null;
+      }),
+      fetchProfile().catch((e) => {
+        console.warn('Ошибка загрузки с бэкенда:', e);
+        return null;
+      })
+    ]);
+
+    if (vkStorage && vkStorage[STORAGE_KEY]) {
+      resultState = this.mergeStates(resultState, this._normalizeState(vkStorage[STORAGE_KEY]));
+    }
+    if (serverProfile && serverProfile.user) {
+      resultState = this.mergeStates(resultState, this._normalizeState(serverProfile.user));
     }
 
     const finalState = this._normalizeState(resultState) || {
@@ -164,16 +168,36 @@ export class StorageService {
       gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
     };
 
-    await this.saveProgress(finalState);
+    this._writeLocalCache(finalState, Number(finalState.updatedAt) || Date.now());
+    this._rememberHighWater(finalState);
     return finalState;
   }
 
-  async saveProgress(data) {
-    if (!data) return;
+  _rememberHighWater(data) {
+    if (typeof localStorage === 'undefined' || !data) return;
+    try {
+      const bestLvl = Math.max(Number(localStorage.getItem(BEST_LEVEL_KEY)) || 1, Number(data.maxCatLevel) || 1);
+      const bestMerges = Math.max(Number(localStorage.getItem(BEST_MERGES_KEY)) || 0, Number(data.totalMerges) || 0);
+      localStorage.setItem(BEST_LEVEL_KEY, String(bestLvl));
+      localStorage.setItem(BEST_MERGES_KEY, String(bestMerges));
+    } catch (e) {}
+  }
 
-    const timestamp = Number(data.updatedAt) || Date.now();
+  _isDowngrade(data) {
+    if (!data || data.isReset) return false;
+    try {
+      const bestLvl = Number(localStorage.getItem(BEST_LEVEL_KEY)) || 1;
+      const bestMerges = Number(localStorage.getItem(BEST_MERGES_KEY)) || 0;
+      const lvl = Number(data.maxCatLevel) || 1;
+      const merges = Number(data.totalMerges) || 0;
+      return lvl < bestLvl || (lvl === bestLvl && merges + 8 < bestMerges);
+    } catch (e) {
+      return false;
+    }
+  }
 
-    // A. Сохранение в LocalStorage
+  _writeLocalCache(data, timestamp) {
+    if (typeof localStorage === 'undefined' || !data) return;
     try {
       if (data.coins !== undefined) localStorage.setItem('cat_empire_last_coins', String(data.coins));
       if (data.gems !== undefined) localStorage.setItem('cat_empire_last_gems', String(data.gems));
@@ -183,35 +207,43 @@ export class StorageService {
       if (data.gridState) localStorage.setItem('cat_empire_grid_state', JSON.stringify(data.gridState));
       localStorage.setItem('cat_empire_last_updated_at', String(timestamp));
     } catch (e) {}
+  }
 
-    // B. Сохранение в Нативное Облако VK (VKWebAppStorageSet)
-    try {
-      const compactGrid = Array.isArray(data.gridState)
-        ? data.gridState.map(c => [c.slotIndex, c.catLevel])
-        : [];
-      const payload = {
-        c: Math.round(data.coins),
+  async saveProgress(data) {
+    if (!data) return;
+
+    const timestamp = Number(data.updatedAt) || Date.now();
+    const skipCloud = this._isDowngrade(data);
+    if (!skipCloud) this._rememberHighWater(data);
+    this._writeLocalCache(data, timestamp);
+
+    if (skipCloud) {
+      console.warn('🛑 Отказ писать в облако более слабый сейв, чем уже был');
+      return;
+    }
+
+    const compactGrid = Array.isArray(data.gridState)
+      ? data.gridState.map((c) => [c.slotIndex, c.catLevel])
+      : [];
+    const profile = vkIdentity.readProfile ? vkIdentity.readProfile() : {};
+    await Promise.allSettled([
+      vkService.storageSet(STORAGE_KEY, {
+        c: Math.round(Number(data.coins) || 0),
         g: data.gems,
         m: data.maxCatLevel,
         b: data.totalCatsBought,
         r: data.totalMerges,
         s: compactGrid,
         t: timestamp
-      };
-      await vkService.storageSet(STORAGE_KEY, payload);
-    } catch (e) {}
-
-    // C. Сохранение на центральный сервер PostgreSQL
-    try {
-      const profile = vkIdentity.readProfile ? vkIdentity.readProfile() : {};
-      await saveProgress({
+      }),
+      saveProgress({
         ...data,
         firstName: data.firstName || profile.firstName,
         lastName: data.lastName != null ? data.lastName : profile.lastName,
         avatar: data.avatar || profile.avatar,
         updatedAt: timestamp
-      });
-    } catch (e) {}
+      })
+    ]);
   }
 
   // Полный гарантийный сброс игрового прогресса в 0 во всех 3 элементах (LocalStorage, VK Storage и Сервер DB)
@@ -233,6 +265,8 @@ export class StorageService {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem('cat_empire_last_timestamp');
         localStorage.removeItem('cat_empire_tutorial_done');
+        localStorage.setItem(BEST_LEVEL_KEY, '1');
+        localStorage.setItem(BEST_MERGES_KEY, '0');
       } catch (e) {}
     }
 

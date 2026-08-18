@@ -76,7 +76,37 @@ export class UserService {
       }
     }
 
-    return formatUser(rows[0]);
+    return this._restoreProgressFloor(vkId, formatUser(rows[0]));
+  }
+
+  async _restoreProgressFloor(vkId, user) {
+    if (!user || !pool) return user;
+    const current = Number(user.maxCatLevel) || 1;
+    try {
+      const { rows } = await pool.query(
+        `
+        SELECT GREATEST(
+          COALESCE((SELECT MAX((props->>'level')::int) FROM analytics_events
+                    WHERE event = 'max_cat_level_reached' AND user_id = $1), 0),
+          COALESCE((SELECT MAX((props->>'level_to')::int) FROM analytics_events
+                    WHERE event = 'merge_manual' AND user_id = $1), 0)
+        ) AS peak
+        `,
+        [String(vkId)]
+      );
+      const peak = Number(rows[0] && rows[0].peak) || 0;
+      if (peak > current) {
+        await pool.query(
+          'UPDATE users SET max_cat_level = $1 WHERE vk_id = $2 AND max_cat_level < $1',
+          [peak, String(vkId)]
+        );
+        const again = await pool.query('SELECT * FROM users WHERE vk_id = $1', [String(vkId)]);
+        return formatUser(again.rows[0]) || user;
+      }
+    } catch (e) {
+      console.warn('restoreProgressFloor skipped:', e && e.message);
+    }
+    return user;
   }
 
   async saveUserProgress(vkUserId, {
@@ -89,11 +119,25 @@ export class UserService {
     gridState,
     firstName,
     lastName,
-    avatar
+    avatar,
+    isReset
   }) {
     const vkId = String(vkUserId);
     const now  = Math.floor(Date.now() / 1000);
-    await this.getOrCreateUser(vkId);
+    const existing = await this.getOrCreateUser(vkId);
+    const storedLvl = Number(existing && existing.maxCatLevel) || 1;
+    if (!isReset && maxCatLevel !== undefined && (Number(maxCatLevel) || 1) < storedLvl) {
+      if (firstName === undefined && lastName === undefined && avatar === undefined) {
+        return existing;
+      }
+      maxCatLevel = undefined;
+      coins = undefined;
+      gems = undefined;
+      totalCatsBought = undefined;
+      totalCatsCreated = undefined;
+      totalMerges = undefined;
+      gridState = undefined;
+    }
 
     const fields = ['last_offline_check = $1'];
     const values = [now];

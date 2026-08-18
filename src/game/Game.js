@@ -19,6 +19,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { quoteFillAll } from './fillAllPurchase.js';
+import { isStarterSnapshot } from '../services/StorageService.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
 import { incomeBoosterService } from './IncomeBooster.js';
@@ -72,10 +73,7 @@ export class Game {
     this.userName = userName;
     this.vkProfile = profile && typeof profile === 'object' ? profile : {};
     // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
-    const progress = await Promise.race([
-      storageService.loadProgress(),
-      new Promise((resolve) => setTimeout(() => resolve(null), 8000))
-    ]) || {
+    const progress = await storageService.loadProgress().catch(() => null) || {
       coins: 100,
       gems: 10,
       maxCatLevel: 1,
@@ -83,6 +81,7 @@ export class Game {
       totalMerges: 0,
       gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
     };
+    this._cloudSaveOk = !isStarterSnapshot(progress);
 
     if (progress && progress.vkId) {
       eventTracker.setUserId(progress.vkId);
@@ -172,8 +171,7 @@ export class Game {
     this._applyIncomeBuffs();
     this.economy.startTicker();
 
-    // Синхронизируем максимально объединенный прогресс со всеми хранилищами (VK Storage, LocalStorage, DB) при старте
-    this._saveToLocalStorage();
+    if (this._cloudSaveOk) this._saveToLocalStorage();
 
     // 6. Ряд из 3-х кнопок управления:
     const buttonRowY = this.grid.y + gridWidth + 12;
@@ -495,7 +493,10 @@ export class Game {
   // TASK-042a: Дебаунсированное сохранение через storageService (VK Storage + DB + localStorage)
   _syncToCloud() {
     if (!this.economy) return;
-    syncManager.scheduleSave(this._getStateSnapshot(), 800);
+    const snap = this._getStateSnapshot();
+    if (!this._cloudSaveOk && isStarterSnapshot(snap)) return;
+    this._cloudSaveOk = true;
+    syncManager.scheduleSave(snap, 800);
   }
 
   // Обратная совместимость: старый метод
@@ -509,7 +510,7 @@ export class Game {
       if (!this.economy) return;
 
       if (document.hidden) {
-        // Сворачивание — немедленный flush во все хранилища
+        if (!this._cloudSaveOk && isStarterSnapshot(this._getStateSnapshot())) return;
         await syncManager.flushImmediate(this._getStateSnapshot());
       } else {
         // Возврат на вкладку — подтянуть свежие данные из облака
@@ -556,7 +557,9 @@ export class Game {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('pagehide', () => {
-      if (this.economy) syncManager.flushImmediate(this._getStateSnapshot());
+      if (!this.economy) return;
+      if (!this._cloudSaveOk && isStarterSnapshot(this._getStateSnapshot())) return;
+      syncManager.flushImmediate(this._getStateSnapshot());
     });
   }
 
