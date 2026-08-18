@@ -1,10 +1,28 @@
 import { Router } from 'express';
-import { handleVkPaymentNotification } from '../utils/vkPayments.js';
+import {
+  handleVkPaymentNotification,
+  normalizeVkPaymentParams
+} from '../utils/vkPayments.js';
 
 const router = Router();
 
-function collectParams(req) {
-  return { ...(req.query || {}), ...(req.body || {}) };
+export function coerceVkPaymentContentType(req, _res, next) {
+  const path = String(req.path || '');
+  const pay = path === '/' || path.startsWith('/api/payments');
+  if (pay && req.method === 'POST') {
+    const ct = String(req.headers['content-type'] || '').toLowerCase();
+    if (!ct || ct.startsWith('text/') || ct.includes('octet-stream')) {
+      req.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
+  }
+  next();
+}
+
+export function collectParams(req) {
+  return {
+    ...normalizeVkPaymentParams(req.query),
+    ...normalizeVkPaymentParams(req.body)
+  };
 }
 
 export function isVkPaymentPayload(req) {
@@ -16,10 +34,17 @@ export function replyVkPayment(req, res) {
   const params = collectParams(req);
   const secret = process.env.VK_APP_SECRET || process.env.VK_SECRET || '';
   const payload = handleVkPaymentNotification(params, secret);
-  return res.json(payload);
+  const kind = payload.response ? 'ok' : `err:${payload.error && payload.error.error_code}`;
+  console.log(
+    '[vk-pay]',
+    params.notification_type || 'none',
+    params.item || params.item_id || '-',
+    kind
+  );
+  res.set('Content-Type', 'application/json; charset=utf-8');
+  return res.status(200).send(JSON.stringify(payload));
 }
 
-// VK шлёт callback POST (form/json); GET оставляем на случай ручной проверки.
 router.post('/vk', replyVkPayment);
 router.get('/vk', replyVkPayment);
 router.post('/', replyVkPayment);

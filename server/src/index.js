@@ -8,7 +8,11 @@ import leaderboardRouter from './routes/leaderboard.js';
 import eventsRouter from './routes/events.js';
 import analyticsRouter from './routes/analytics.js';
 import adminRouter from './routes/admin.js';
-import paymentsRouter, { replyVkPayment, isVkPaymentPayload } from './routes/payments.js';
+import paymentsRouter, {
+  replyVkPayment,
+  isVkPaymentPayload,
+  coerceVkPaymentContentType
+} from './routes/payments.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -27,6 +31,7 @@ const PORT = process.env.PORT || 3001;
 
 // Настройка middleware
 app.use(cors());
+app.use(coerceVkPaymentContentType);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

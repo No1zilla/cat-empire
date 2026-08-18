@@ -113,10 +113,14 @@ export function runMonetizationTests() {
   const itemTestRes = handleVkPaymentNotification(itemTest, secret);
   assert.strictEqual(itemTestRes.response.item_id, 'gems_pack_10');
   assert.strictEqual(itemTestRes.response.price, 1);
+  assert.strictEqual(typeof itemTestRes.response.price, 'number');
+  assert.ok(itemTestRes.response.title.length <= 48);
+  assert.strictEqual(itemTestRes.response.discount, undefined);
 
   const badSig = { ...getItem, sig: 'deadbeef' };
   const badRes = handleVkPaymentNotification(badSig, secret);
   assert.strictEqual(badRes.error.error_code, 10);
+  assert.strictEqual(badRes.error.critical, true);
 
   const unknown = {
     notification_type: 'get_item',
@@ -127,13 +131,15 @@ export function runMonetizationTests() {
   assert.strictEqual(unknownRes.error.error_code, 20);
 
   const order = {
-    app_order_id: '42',
+    order_id: '2044861',
     notification_type: 'order_status_change',
     status: 'chargeable'
   };
   order.sig = signPayment(order, secret);
   const orderRes = handleVkPaymentNotification(order, secret);
-  assert.strictEqual(orderRes.response.order_id, '42');
+  assert.strictEqual(orderRes.response.order_id, 2044861);
+  assert.strictEqual(typeof orderRes.response.order_id, 'number');
+  assert.strictEqual(orderRes.response.app_order_id, 2044861);
 
   assert.strictEqual(getRubyPack('starter_tribute_5').votes, 5);
   assert.strictEqual(getRubyPack('edict_seven_nights').rubies, 40);

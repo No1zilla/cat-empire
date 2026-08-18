@@ -11,6 +11,7 @@ import { runAntiCheatTests } from './unit/antiCheat.test.js';
 import { runDailyLiveOpsTests } from './unit/dailyLiveOps.test.js';
 import { runVkAdsTests } from './unit/vkAds.test.js';
 import { runMonetizationTests } from './unit/monetization.test.js';
+import { runVkPaymentHttpTests } from './unit/vkPaymentHttp.test.js';
 import { runFirstSessionTests } from './unit/firstSession.test.js';
 import { runPublicAssetTests } from './unit/publicAsset.test.js';
 
@@ -32,6 +33,7 @@ async function main() {
     runDailyLiveOpsTests();
     await runVkAdsTests();
     runMonetizationTests();
+    await runVkPaymentHttpTests();
     runFirstSessionTests();
     runPublicAssetTests();
     console.log('----------------------------------------------------');
