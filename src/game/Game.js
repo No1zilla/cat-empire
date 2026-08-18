@@ -44,7 +44,6 @@ import { VassalsModal } from '../ui/VassalsModal.js';
 import { empireMeta } from './EmpireMeta.js';
 import { shouldRevealMidgameChrome, shouldOfferDailyNow, shouldSkipBootMenu } from './firstSession.js';
 import { setCatWorld } from '../utils/catVisuals.js';
-import { getWorldTitle } from '../config/worlds.js';
 import { VK_GROUP_ID } from '../config/vkCommunity.js';
 // TASK-042: все сохранения через storageService (VK Storage + DB + localStorage)
 
@@ -313,8 +312,7 @@ export class Game {
         this.app.stage.addChild(detailModal);
       }
     });
-    this.catDeck.worldTitle = getWorldTitle(empireMeta.worldIndex);
-    this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
+    this.catDeck.updateMaxLevel(this.maxCatLevel);
     this.catDeck.zIndex = 70;
     this.gameContainer.addChild(this.catDeck);
     this._dailyOfferedThisBoot = false;
@@ -339,7 +337,7 @@ export class Game {
         eventTracker.trackMaxCatLevelReached(newLevel);
         eventBus.emit('NEW_CAT_UNLOCKED', { level: newLevel });
         if (this.spawnSystem) this.spawnSystem._stopHold();
-        if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
+        if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
 
         const isGodCat = newLevel >= 15;
         const alreadyAscended = empireMeta.wasGodClaimed(empireMeta.worldIndex);
@@ -807,7 +805,7 @@ export class Game {
         this._applyIncomeBuffs();
       }
       this._applyFirstSessionChrome();
-      if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel, getWorldTitle(empireMeta.worldIndex));
+      if (this.catDeck) this.catDeck.updateMaxLevel(this.maxCatLevel);
       if (this.liveOpsRow) this.liveOpsRow._tick();
       if (this.spawnSystem) this.spawnSystem.updateButtonLabel();
       if (this.fillAllButton) this.fillAllButton.updateLabel();

@@ -3,7 +3,6 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData, setCatWorld } from '../utils/catVisuals.js';
 import { CatDetailModal } from './CatDetailModal.js';
-import { getWorldTitle } from '../config/worlds.js';
 import { UIUtils } from '../utils/UIUtils.js';
 
 /**
@@ -105,7 +104,7 @@ export class CollectionModal extends Container {
       dropShadow: { color: '#000000', alpha: 0.8, blur: 2, distance: 1 }
     });
     const title = new Text({
-      text: `${getWorldTitle(this.viewWorld).toUpperCase()} (${this.maxUnlockedLevel}/15)`,
+      text: `КОТОПЕДИЯ (${this.maxUnlockedLevel}/15)`,
       style: titleStyle
     });
     title.anchor.set(0.5, 0.5);

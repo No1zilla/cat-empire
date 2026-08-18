@@ -14,7 +14,6 @@ export class CatDeck extends Container {
     this.app = app;
     this.maxUnlockedLevel = Math.max(1, Math.min(15, maxUnlockedLevel || 1));
     this.onCardClick = onCardClick || (() => {});
-    this.worldTitle = 'Котопедия';
 
     // Физика и параметры скролла
     this._currentX = 0;
@@ -56,7 +55,7 @@ export class CatDeck extends Container {
       fill: CONFIG.COLORS.GOLD || '#ffd700',
     });
     const titleText = new Text({
-        text: `📖 ${this.worldTitle || 'Котопедия'} (${this.maxUnlockedLevel}/15)`,
+        text: `📖 Котопедия (${this.maxUnlockedLevel}/15)`,
       style: titleStyle
     });
     titleText.position.set(22, 8);
@@ -419,9 +418,8 @@ export class CatDeck extends Container {
     this._targetX = Math.max(minX, Math.min(0, desiredX));
   }
 
-  updateMaxLevel(newMaxLevel, worldTitle) {
+  updateMaxLevel(newMaxLevel) {
     this.maxUnlockedLevel = Math.max(1, Math.min(15, newMaxLevel || 1));
-    if (worldTitle) this.worldTitle = worldTitle;
     this._draw();
     this.scrollToLevel(this.maxUnlockedLevel);
   }
