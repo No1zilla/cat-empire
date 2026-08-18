@@ -81,9 +81,9 @@ export class AdModal extends Container {
     this.addChild(hint);
   }
 
-  _openInviteFallback(reason) {
+  _openInviteFallback(reason, extra = {}) {
     console.log('🎬 Нативная реклама VK недоступна. Фолбэк: приглашение друзей.', reason);
-    eventTracker.trackAdFailed(this.adType, reason || 'ads_unavailable');
+    eventTracker.trackAdFailed(this.adType, reason || 'ads_unavailable', extra);
     const stage = (this.app && this.app.stage)
       ? this.app.stage
       : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
@@ -120,10 +120,16 @@ export class AdModal extends Container {
         }
       } else if (realAdRes && isAdUserClosed(realAdRes.reason)) {
         console.log('🎬 Нативная реклама VK закрыта пользователем:', realAdRes);
-        eventTracker.trackAdSkipped(this.adType);
+        eventTracker.trackAdSkipped(this.adType, {
+          error_reason: realAdRes.reason,
+          format: realAdRes.format || ''
+        });
         this._close();
       } else {
-        this._openInviteFallback(realAdRes ? realAdRes.reason : 'ads_unavailable');
+        this._openInviteFallback(
+          realAdRes ? realAdRes.reason : 'ads_unavailable',
+          { format: realAdRes && realAdRes.format ? realAdRes.format : '' }
+        );
       }
     } catch (e) {
       console.warn('⚠️ Ошибка нативной рекламы VK:', e);

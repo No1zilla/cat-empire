@@ -108,6 +108,11 @@ assert.ok(res4.data.events, 'Дашборд должен отдавать лен
 assert.ok(typeof res4.data.events.today_total === 'number');
 assert.ok(Array.isArray(res4.data.events.by_type));
 assert.ok(Array.isArray(res4.data.events.recent));
+assert.ok(res4.data.ads, 'Дашборд должен отдавать рекламу');
+assert.ok(typeof res4.data.ads.requested_today === 'number');
+assert.ok(Array.isArray(res4.data.ads.by_type));
+assert.ok(Array.isArray(res4.data.ads.reasons));
+assert.ok(Array.isArray(res4.data.ads.recent));
 console.log('  [Pass] Авторизация администратора прошла успешно, возвращены данные дашборда');
 console.log('✅ ТЕСТ 4 УСПЕШНО ПРОЙДЕН!\n');
 

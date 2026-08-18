@@ -138,6 +138,42 @@
 
   <div class="grid-charts">
     <div class="table-card">
+      <h2>Реклама — кто вызывает и чем кончается</h2>
+      <p class="hint" style="margin:0 0 12px">Запрос = игрок нажал. Показ / просмотр = VK отдал ролик. Провал = VK не дал рекламу (причина ниже).</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Откуда</th>
+            <th>Запрос сегодня</th>
+            <th>Показ</th>
+            <th>Просмотр</th>
+            <th>Провал</th>
+            <th>Закрыл</th>
+          </tr>
+        </thead>
+        <tbody id="ads-types-body"><tr><td colspan="6">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="table-card">
+      <h2>Почему не показалась</h2>
+      <table>
+        <thead>
+          <tr><th>Причина VK</th><th>Откуда</th><th>Сегодня</th><th>Всего</th></tr>
+        </thead>
+        <tbody id="ads-reasons-body"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+      </table>
+      <h2 style="margin-top:22px">Последние вызовы рекламы</h2>
+      <table>
+        <thead>
+          <tr><th>Когда</th><th>Событие</th><th>Откуда</th><th>Причина / формат</th></tr>
+        </thead>
+        <tbody id="ads-recent-body"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-charts">
+    <div class="table-card">
       <h2>Касса — покупки по пакам</h2>
       <table>
         <thead>
@@ -227,8 +263,34 @@
         document.getElementById('d1-val').innerText = data.retention ? Math.round((data.retention.d1_retention || 0) * 100) + '%' : '0%';
         document.getElementById('d7-val').innerText = data.retention ? Math.round((data.retention.d7_retention || 0) * 100) + '%' : '0%';
         document.getElementById('fillrate-val').innerText = data.monetization ? data.monetization.fill_rate_pct + '%' : '0%';
-        document.getElementById('test-ads-sub').innerText = 'Симуляторов на ПК: ' + (data.monetization ? (data.monetization.test_ads_shown_today || 0) : 0);
+        document.getElementById('test-ads-sub').innerText =
+          'запросов ' + (data.ads ? (data.ads.requested_today || 0) : 0)
+          + ', провалов ' + (data.ads ? (data.ads.failed_today || 0) : 0)
+          + ', симуляторов: ' + (data.monetization ? (data.monetization.test_ads_shown_today || 0) : 0);
         document.getElementById('ads-dau-val').innerText = data.monetization ? data.monetization.ads_per_dau : 0;
+
+        const adEventLabel = {
+          ad_requested: 'запрос',
+          ad_shown: 'показ',
+          ad_completed: 'просмотр',
+          ad_failed: 'провал',
+          ad_skipped: 'закрыл'
+        };
+        const ads = data.ads || {};
+        const adTypes = (ads.by_type || []).map((a) =>
+          `<tr><td>${a.label || a.ad_type}</td><td>${a.requested_today}</td><td>${a.shown_today}</td><td>${a.completed_today}</td><td>${a.failed_today}</td><td>${a.skipped_today}</td></tr>`
+        ).join('');
+        rowsOrEmpty(document.getElementById('ads-types-body'), 6, adTypes, 'Рекламу ещё не вызывали');
+
+        const reasons = (ads.reasons || []).map((r) =>
+          `<tr><td><code>${r.reason}</code></td><td>${r.label || r.ad_type}</td><td>${r.today}</td><td>${r.count}</td></tr>`
+        ).join('');
+        rowsOrEmpty(document.getElementById('ads-reasons-body'), 4, reasons, 'Провалов нет — или VK ещё не отвечал ошибкой');
+
+        const adRecent = (ads.recent || []).map((e) =>
+          `<tr><td>${fmtTime(e.created_at)}</td><td>${adEventLabel[e.event] || e.event}</td><td>${e.label || e.ad_type || '—'}</td><td>${[e.reason, e.format].filter(Boolean).join(' · ') || ''}</td></tr>`
+        ).join('');
+        rowsOrEmpty(document.getElementById('ads-recent-body'), 4, adRecent, 'Вызовов рекламы нет');
 
         const buy = data.purchases || {};
         document.getElementById('buy-today').innerText = buy.today || 0;

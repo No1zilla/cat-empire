@@ -38,6 +38,22 @@ const BUTTON_LABELS = {
   invite_reward_granted: 'Награда за друга'
 };
 
+const AD_EVENTS = ['ad_requested', 'ad_shown', 'ad_completed', 'ad_failed', 'ad_skipped'];
+
+const AD_TYPE_LABELS = {
+  fill_free: 'Заполнить поле',
+  auto_merge: 'Соединить',
+  reward_gems: 'Рубины',
+  income_booster: 'Бустер 2×',
+  daily_reward_double: 'Ежедневка ×2',
+  offline_bonus: 'Офлайн бонус'
+};
+
+function adTypeLabel(adType) {
+  const key = String(adType || '');
+  return AD_TYPE_LABELS[key] || key || '—';
+}
+
 /**
  * Middleware проверки Bearer токена или query-параметра token
  */
@@ -145,6 +161,56 @@ function simulatedDashboard() {
         }
       ]
     },
+    ads: {
+      requested_today: 12,
+      failed_today: 9,
+      skipped_today: 1,
+      by_type: [
+        {
+          ad_type: 'fill_free',
+          label: 'Заполнить поле',
+          requested: 8,
+          shown: 1,
+          completed: 1,
+          failed: 6,
+          skipped: 1,
+          requested_today: 8,
+          shown_today: 0,
+          completed_today: 0,
+          failed_today: 7,
+          skipped_today: 1
+        },
+        {
+          ad_type: 'reward_gems',
+          label: 'Рубины',
+          requested: 4,
+          shown: 0,
+          completed: 0,
+          failed: 4,
+          skipped: 0,
+          requested_today: 4,
+          shown_today: 0,
+          completed_today: 0,
+          failed_today: 2,
+          skipped_today: 0
+        }
+      ],
+      reasons: [
+        { reason: 'no_ads', ad_type: 'fill_free', label: 'Заполнить поле', count: 6, today: 6 },
+        { reason: 'TIMEOUT_NO_RESPONSE', ad_type: 'reward_gems', label: 'Рубины', count: 3, today: 3 }
+      ],
+      recent: [
+        {
+          created_at: new Date().toISOString(),
+          event: 'ad_failed',
+          user_id: 'usr_demo',
+          ad_type: 'fill_free',
+          label: 'Заполнить поле',
+          reason: 'no_ads',
+          format: 'reward'
+        }
+      ]
+    },
     top_users: [
       { user_id: 'usr_f8a912', session_count: 48, last_seen: '2026-08-13T14:30:00Z' }
     ],
@@ -158,7 +224,9 @@ function eventDetail(event, props = {}) {
   if (props.pack) bits.push(String(props.pack));
   if (props.rubies) bits.push(`${props.rubies}р`);
   if (props.votes) bits.push(`${props.votes} гол.`);
-  if (props.ad_type) bits.push(String(props.ad_type));
+  if (props.ad_type) bits.push(adTypeLabel(props.ad_type));
+  if (props.error_reason) bits.push(String(props.error_reason));
+  if (props.format) bits.push(String(props.format));
   if (props.cost != null && props.cost !== '') bits.push(`монет ${props.cost}`);
   if (props.type) bits.push(String(props.type));
   if (props.quest_id) bits.push(String(props.quest_id));
@@ -205,7 +273,11 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         buttonRows,
         eventCountRows,
         todayTotalRows,
-        eventRecentRows
+        eventRecentRows,
+        adTypeRows,
+        adReasonRows,
+        adRecentRows,
+        adTodayRows
       ] = await Promise.all([
         pool.query(`
           SELECT
@@ -356,6 +428,58 @@ router.get('/dashboard', adminAuth, async (req, res) => {
           FROM analytics_events
           ORDER BY id DESC
           LIMIT 40
+        `),
+        pool.query(
+          `
+          SELECT
+            COALESCE(NULLIF(props->>'ad_type', ''), 'unknown') AS ad_type,
+            COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested,
+            COUNT(*) FILTER (WHERE event = 'ad_shown')::int AS shown,
+            COUNT(*) FILTER (WHERE event = 'ad_completed')::int AS completed,
+            COUNT(*) FILTER (WHERE event = 'ad_failed')::int AS failed,
+            COUNT(*) FILTER (WHERE event = 'ad_skipped')::int AS skipped,
+            COUNT(*) FILTER (WHERE event = 'ad_requested' AND created_at >= CURRENT_DATE)::int AS requested_today,
+            COUNT(*) FILTER (WHERE event = 'ad_shown' AND created_at >= CURRENT_DATE)::int AS shown_today,
+            COUNT(*) FILTER (WHERE event = 'ad_completed' AND created_at >= CURRENT_DATE)::int AS completed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_failed' AND created_at >= CURRENT_DATE)::int AS failed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_skipped' AND created_at >= CURRENT_DATE)::int AS skipped_today
+          FROM analytics_events
+          WHERE event IN (${AD_EVENTS.map((_, i) => `$${i + 1}`).join(', ')})
+          GROUP BY 1
+          ORDER BY requested DESC
+          `,
+          AD_EVENTS
+        ),
+        pool.query(`
+          SELECT
+            COALESCE(NULLIF(props->>'error_reason', ''), 'unknown') AS reason,
+            COALESCE(NULLIF(props->>'ad_type', ''), 'unknown') AS ad_type,
+            COUNT(*)::int AS count,
+            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today
+          FROM analytics_events
+          WHERE event = 'ad_failed'
+          GROUP BY 1, 2
+          ORDER BY today DESC, count DESC
+          LIMIT 20
+        `),
+        pool.query(
+          `
+          SELECT event, user_id, platform, props, created_at
+          FROM analytics_events
+          WHERE event IN (${AD_EVENTS.map((_, i) => `$${i + 1}`).join(', ')})
+          ORDER BY id DESC
+          LIMIT 30
+          `,
+          AD_EVENTS
+        ),
+        pool.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested_today,
+            COUNT(*) FILTER (WHERE event = 'ad_failed')::int AS failed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_skipped')::int AS skipped_today
+          FROM analytics_events
+          WHERE created_at >= CURRENT_DATE
+            AND event IN ('ad_requested', 'ad_failed', 'ad_skipped')
         `)
       ]);
 
@@ -420,6 +544,44 @@ router.get('/dashboard', adminAuth, async (req, res) => {
           }))
         },
         buttons,
+        ads: {
+          requested_today: Number(adTodayRows.rows[0]?.requested_today || 0),
+          failed_today: Number(adTodayRows.rows[0]?.failed_today || 0),
+          skipped_today: Number(adTodayRows.rows[0]?.skipped_today || 0),
+          by_type: (adTypeRows.rows || []).map((row) => ({
+            ad_type: row.ad_type,
+            label: adTypeLabel(row.ad_type),
+            requested: Number(row.requested || 0),
+            shown: Number(row.shown || 0),
+            completed: Number(row.completed || 0),
+            failed: Number(row.failed || 0),
+            skipped: Number(row.skipped || 0),
+            requested_today: Number(row.requested_today || 0),
+            shown_today: Number(row.shown_today || 0),
+            completed_today: Number(row.completed_today || 0),
+            failed_today: Number(row.failed_today || 0),
+            skipped_today: Number(row.skipped_today || 0)
+          })),
+          reasons: (adReasonRows.rows || []).map((row) => ({
+            reason: row.reason,
+            ad_type: row.ad_type,
+            label: adTypeLabel(row.ad_type),
+            count: Number(row.count || 0),
+            today: Number(row.today || 0)
+          })),
+          recent: (adRecentRows.rows || []).map((row) => {
+            const props = row.props || {};
+            return {
+              created_at: row.created_at,
+              event: row.event,
+              user_id: maskUserId(row.user_id),
+              ad_type: props.ad_type || '',
+              label: adTypeLabel(props.ad_type),
+              reason: props.error_reason || '',
+              format: props.format || ''
+            };
+          })
+        },
         events: {
           today_total: Number(todayTotalRows.rows[0]?.today_total || 0),
           by_type: (eventCountRows.rows || []).map((row) => ({

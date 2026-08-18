@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { showRewardedAd } from '../api/client.js';
 import { saveProgress } from '../api/client.js';
+import { isAdUserClosed } from '../api/vkAds.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
@@ -175,11 +176,19 @@ export class OfflineEarningsModal extends Container {
     if (isTriple) {
       // Запускаем просмотр рекламы VK Ads для утраивания
       if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
+        eventTracker.trackAdRequested('offline_bonus');
         const adRes = await showRewardedAd();
         if (adRes && adRes.success) {
+          eventTracker.trackAdShown('offline_bonus', false);
+          eventTracker.trackAdCompleted('offline_bonus', 0);
           earned = this.tripleCoins;
         } else {
-          // Если игрок отменил просмотр или произошёл сбой VK SDK — показываем тост и разрешаем попробовать снова
+          const reason = adRes && adRes.reason ? adRes.reason : 'ads_unavailable';
+          if (adRes && isAdUserClosed(adRes.reason)) {
+            eventTracker.trackAdSkipped('offline_bonus', { error_reason: reason, format: adRes.format || '' });
+          } else {
+            eventTracker.trackAdFailed('offline_bonus', reason, { format: adRes && adRes.format ? adRes.format : '' });
+          }
           this._isClaiming = false;
           const stage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
           if (stage) {

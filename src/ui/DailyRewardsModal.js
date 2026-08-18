@@ -4,6 +4,7 @@ import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { DAILY_REWARD_TABLE, dailyRewardsService } from '../game/DailyRewards.js';
 import { showRewardedAd } from '../api/client.js';
+import { isAdUserClosed } from '../api/vkAds.js';
 import { eventBus } from '../utils/EventBus.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 
@@ -187,11 +188,19 @@ export class DailyRewardsModal extends Container {
 
     let multiplier = 1;
     if (doubleWithAd) {
+      eventTracker.trackAdRequested('daily_reward_double');
       const ad = await showRewardedAd();
       if (!ad || !ad.success) {
+        const reason = ad && ad.reason ? ad.reason : 'ads_unavailable';
+        if (ad && isAdUserClosed(ad.reason)) {
+          eventTracker.trackAdSkipped('daily_reward_double', { error_reason: reason, format: ad.format || '' });
+        } else {
+          eventTracker.trackAdFailed('daily_reward_double', reason, { format: ad && ad.format ? ad.format : '' });
+        }
         UIUtils.showToast(this.app.stage, 'Реклама недоступна — обычный подарок');
       } else {
         multiplier = 2;
+        eventTracker.trackAdShown('daily_reward_double', false);
         eventTracker.trackAdCompleted('daily_reward_double', before.reward.gems * 2);
       }
     }

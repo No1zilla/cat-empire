@@ -161,12 +161,19 @@ export class EventTracker {
     this.track('ad_completed', { ad_type: adType, reward_gems: Number(rewardGems) });
   }
 
-  trackAdFailed(adType, errorReason = 'unknown') {
-    this.track('ad_failed', { ad_type: adType, error_reason: String(errorReason) });
+  trackAdFailed(adType, errorReason = 'unknown', extra = {}) {
+    this.track('ad_failed', {
+      ad_type: adType,
+      error_reason: String(errorReason || 'unknown').slice(0, 160),
+      ...(extra && typeof extra === 'object' ? extra : {})
+    });
   }
 
-  trackAdSkipped(adType) {
-    this.track('ad_skipped', { ad_type: adType });
+  trackAdSkipped(adType, extra = {}) {
+    this.track('ad_skipped', {
+      ad_type: adType,
+      ...(extra && typeof extra === 'object' ? extra : {})
+    });
   }
 
   trackMaxCatLevelReached(level) {
