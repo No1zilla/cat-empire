@@ -16,6 +16,7 @@ import { runFirstSessionTests } from './unit/firstSession.test.js';
 import { runPublicAssetTests } from './unit/publicAsset.test.js';
 import { runPagesProxyTests } from './unit/pagesProxy.test.js';
 import { runSocialTests } from './unit/social.test.js';
+import { runFillAllTests } from './unit/fillAll.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -40,6 +41,7 @@ async function main() {
     runPublicAssetTests();
     runPagesProxyTests();
     await runSocialTests();
+    runFillAllTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {

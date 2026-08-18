@@ -18,6 +18,7 @@ import { CatDeck } from '../ui/CatDeck.js';
 import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
+import { quoteFillAll } from './fillAllPurchase.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
 import { incomeBoosterService } from './IncomeBooster.js';
@@ -196,7 +197,7 @@ export class Game {
     this.gameContainer.addChild(this.spawnSystem);
 
     // B) 📦 Заполнить (122px) — выкуп всех свободных слотов за 1 клик
-    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async (requestedCount, overrideCost) => {
+    this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
       const freeSlots = [];
       for (let i = 0; i < 25; i++) {
         if (this.grid.slots[i] === null) {
@@ -209,36 +210,19 @@ export class Game {
         return;
       }
 
-      let actualTotalCost = 0;
-      let spawnCount = 0;
       const currentBought = this.economy ? this.economy.totalCatsBought : 0;
-      const isFree = (overrideCost === 0);
+      const quote = quoteFillAll(freeSlots.length, this.economy ? this.economy.coins : 0, currentBought);
+      const spawnCount = quote.count;
+      const actualTotalCost = quote.cost;
 
-      if (isFree) {
-        spawnCount = Math.min(freeSlots.length, requestedCount || freeSlots.length);
-        actualTotalCost = 0;
-      } else {
-        for (let i = 0; i < freeSlots.length; i++) {
-          const catCost = BALANCE.calculateCatCost(currentBought + i);
-          if (this.economy && this.economy.coins >= actualTotalCost + catCost) {
-            actualTotalCost += catCost;
-            spawnCount++;
-          } else {
-            break;
-          }
-        }
-      }
-
-      if (spawnCount === 0) {
+      if (spawnCount === 0 || actualTotalCost <= 0) {
         if (this.fillAllButton) this.fillAllButton._showWarning('Мало 🪙!');
         return;
       }
 
       if (this.economy) {
-        if (actualTotalCost > 0) {
-          this.economy.spend(actualTotalCost);
-          this.economy.totalCatsBought += spawnCount;
-        }
+        this.economy.spend(actualTotalCost);
+        this.economy.totalCatsBought += spawnCount;
         this.economy.totalCatsCreated += spawnCount;
       }
 

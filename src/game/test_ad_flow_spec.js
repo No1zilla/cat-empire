@@ -21,14 +21,11 @@ async function runAdFlowTests() {
   const economy = new Economy();
   economy.setBalance(0, 0, 0, 0);
 
-  console.log('📌 ТЕСТ 1: Запуск AdModal при "Заполнить БЕСПЛАТНО" (0 монет)');
-  let fillCompleted = false;
-  const fillModal = new AdModal(app, economy, () => {
-    fillCompleted = true;
-  }, 0, 'Заполнение слотов через:');
-
-  console.assert(fillModal.customTitle === 'Заполнение слотов через:', '❌ customTitle должен быть "Заполнение слотов через:"');
-  console.assert(fillModal.rewardGems === 0, '❌ rewardGems должен быть 0 для бесплатного заполнения котиков');
+  console.log('📌 ТЕСТ 1: «Заполнить» больше не открывает рекламу при 0 монет');
+  const { quoteFillAll } = await import('./fillAllPurchase.js');
+  const fillQuote = quoteFillAll(25, 0, 0);
+  console.assert(fillQuote.count === 0, '❌ При 0 монет заполнение не покупает котов');
+  console.assert(fillQuote.fullCost > 0, '❌ Полная цена заполнения должна быть больше 0');
   console.log('✅ ТЕСТ 1 УСПЕШНО ПРОЙДЕН!\n');
 
   console.log('📌 ТЕСТ 2: Запуск AdModal при "⚡ Соединить" (0 гемов)');

@@ -1,9 +1,7 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { BALANCE } from '../config/balance.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { showRewardedAd } from '../api/client.js';
-import { AdModal } from './AdModal.js';
+import { quoteFillAll } from '../game/fillAllPurchase.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -32,32 +30,14 @@ export class FillAllButton extends Container {
     this._draw();
   }
 
-  // Расчёт стоимости и количества доступных котиков для массовой покупки (Последовательное нарастание стоимости каждого котика)
   getFillData() {
-    if (!this.grid || !this.economy) return { count: 0, cost: 0, freeSlotsCount: 0 };
-
+    if (!this.grid || !this.economy) return { count: 0, cost: 0, fullCost: 0, freeSlotsCount: 0 };
     const freeSlotsCount = this.grid.slots.filter((slot) => slot === null).length;
-    if (freeSlotsCount === 0) return { count: 0, cost: 0, freeSlotsCount: 0 };
-
-    let totalCost = 0;
-    let count = 0;
-    const currentBought = this.economy.totalCatsBought || 0;
-
-    for (let i = 0; i < freeSlotsCount; i++) {
-      const catCost = BALANCE.calculateCatCost(currentBought + i);
-      if (this.economy.coins >= totalCost + catCost) {
-        totalCost += catCost;
-        count++;
-      } else {
-        break;
-      }
-    }
-
-    return { count, cost: totalCost, freeSlotsCount };
+    return quoteFillAll(freeSlotsCount, this.economy.coins, this.economy.totalCatsBought || 0);
   }
 
   updateLabel() {
-    const { count, cost, freeSlotsCount } = this.getFillData();
+    const { count, cost, fullCost, freeSlotsCount } = this.getFillData();
 
     if (!this._subContainer) return;
     this._subContainer.removeChildren();
@@ -91,22 +71,11 @@ export class FillAllButton extends Container {
       this._subContainer.addChild(textObj);
       this._subContainer.pivot.set(0, 0);
       this._subContainer.position.set(btnWidth / 2, 33);
-    } else if (count === 0) {
-      if (this._btnText) {
-        this._btnText.text = '🎬 БЕСПЛАТНО';
-        this._btnText.style.fontSize = 13;
-        this._btnText.position.set(btnWidth / 2, 14);
-      }
-      if (this._btnBg) {
-        this._btnBg.fill(0x2ecc71);
-        this._btnBg.stroke({ color: '#ffffff', alpha: 0.8, width: 2 });
-      }
-      if (this._shadowBg) this._shadowBg.fill(0x1e8449);
-
-      this._subContainer.removeChildren();
     } else {
-      const formattedCost = UIUtils.formatNumber(cost);
-      const text1Obj = new Text({ text: `${count} шт (${formattedCost} `, style: subStyle });
+      const shownCount = count > 0 ? count : freeSlotsCount;
+      const shownCost = count > 0 ? cost : fullCost;
+      const formattedCost = UIUtils.formatNumber(shownCost);
+      const text1Obj = new Text({ text: `${shownCount} шт (${formattedCost} `, style: subStyle });
       text1Obj.anchor.set(0, 0.5);
       text1Obj.position.set(0, 0);
 
@@ -293,18 +262,7 @@ export class FillAllButton extends Container {
       }
 
       if (data.count === 0 || (this.economy && !this.economy.canAfford(data.cost))) {
-        // Гарантированный показ внутриигровой модалки AdModal с таймером и анимацией.
-        const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        if (appStage) {
-          appStage.sortableChildren = true;
-          const modal = new AdModal(this.app, this.economy, async () => {
-            const freshFreeSlots = this.grid ? this.grid.slots.filter((slot) => slot === null).length : data.freeSlotsCount;
-            await this.onTriggerFillAll(freshFreeSlots, 0);
-            this.updateLabel();
-          }, 0, 'Заполнение слотов через:');
-          modal.zIndex = 9999999;
-          appStage.addChild(modal);
-        }
+        this._showWarning('Мало 🪙!');
         return;
       }
 
