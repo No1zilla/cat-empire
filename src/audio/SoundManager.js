@@ -44,6 +44,16 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
   return 60 / bpm / 2;
 }
 
+/** Мягкий мажорный перезвон слияния: без щелчка и без писка. */
+export const MERGE_SFX = {
+  notes: [329.63, 392.0, 523.25],
+  delays: [0, 0.07, 0.14],
+  durations: [0.32, 0.36, 0.42],
+  gains: [0.028, 0.024, 0.02],
+  cutoff: 760,
+  attack: 0.06
+};
+
 /**
  * Звуковой менеджер: короткие SFX + тихий мажорный BGM на Web Audio API.
  * Mute читается из localStorage и синхронизируется с окном настроек.
@@ -122,12 +132,15 @@ export class SoundManager {
     }
   }
 
-  playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1, delay = 0) {
+  playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1, delay = 0, mix = {}) {
     if (!this.enabled) return;
     this._ensureContext();
     if (!this.audioCtx) return;
     const when = this.audioCtx.currentTime + delay;
-    this._scheduleTone(freq, type, duration, gainVal, when, { cutoff: 1500, attack: 0.02 });
+    this._scheduleTone(freq, type, duration, gainVal, when, {
+      cutoff: mix.cutoff || 1500,
+      attack: mix.attack || 0.02
+    });
   }
 
   _scheduleTone(freq, type, duration, gainVal, when, mix = {}) {
@@ -161,11 +174,12 @@ export class SoundManager {
     }
   }
 
-  playMerge(combo = 1) {
-    const boost = Math.min(3, Math.max(1, Number(combo) || 1));
-    this.playTone(523.25, 'triangle', 0.18, 0.07);
-    this.playTone(659.25, 'triangle', 0.2, 0.055, 0.06);
-    this.playTone(783.99 + boost * 12, 'sine', 0.26, 0.045, 0.12);
+  playMerge(_combo = 1) {
+    const mix = { cutoff: MERGE_SFX.cutoff, attack: MERGE_SFX.attack };
+    MERGE_SFX.notes.forEach((freq, i) => {
+      const type = i === MERGE_SFX.notes.length - 1 ? 'triangle' : 'sine';
+      this.playTone(freq, type, MERGE_SFX.durations[i], MERGE_SFX.gains[i], MERGE_SFX.delays[i], mix);
+    });
   }
 
   playBuy() {

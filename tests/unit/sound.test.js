@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { soundManager, BGM_LOOP, getBgmStepSeconds } from '../../src/audio/SoundManager.js';
+import { soundManager, BGM_LOOP, MERGE_SFX, getBgmStepSeconds } from '../../src/audio/SoundManager.js';
 import { eventBus } from '../../src/utils/EventBus.js';
 
 export function runSoundTests() {
@@ -26,6 +26,12 @@ export function runSoundTests() {
   assert.ok(Math.max(...melodyNotes) <= 880, 'Без визжащего C6');
   assert.ok(BGM_LOOP.bass.some((hz) => hz > 0), 'Нужен бас');
   assert.ok(BGM_LOOP.melody[BGM_LOOP.melody.length - 1] >= 523, 'Фраза садится в до');
+
+  assert.strictEqual(MERGE_SFX.notes.length, 3);
+  assert.ok(Math.max(...MERGE_SFX.gains) <= 0.035, 'Слияние тише щелчка');
+  assert.ok(MERGE_SFX.cutoff <= 900, 'Слияние без писка сверху');
+  assert.ok(MERGE_SFX.attack >= 0.05, 'Атака мягкая, без щелчка');
+  assert.ok(Math.max(...MERGE_SFX.notes) <= 523.25, 'Слияние не визжит выше C5');
 
   console.log('  ✅ Звуковой менеджер SoundManager успешно прошел все авто-тесты!');
 }

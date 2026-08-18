@@ -286,14 +286,6 @@ export class DragSystem {
     this._lastMergeAt = now;
     if (newCat) newCat._mergeCombo = this._comboCount;
 
-    // 1. Тактильная отдача VK Haptics
-    try {
-      if (window.vkBridge) {
-        window.vkBridge.send('VKWebAppTapticImpactOccurred', { style: 'medium' }).catch(() => {});
-      }
-    } catch (e) {}
-
-    this._shakeGrid();
     if (this._comboCount >= 2) this._showCombo(centerX, centerY);
 
     // 2. Золотая кольцевая ударная волна (Golden Shockwave Ring)
@@ -391,17 +383,13 @@ export class DragSystem {
     requestAnimationFrame(animateParticles);
 
     if (newCat) {
-      newCat.scale.set(0.8);
+      newCat.scale.set(0.92);
       const startScaleTime = Date.now();
       const animateScale = () => {
         const elapsed = Date.now() - startScaleTime;
-        if (elapsed < 150) {
-          const progress = elapsed / 150;
-          newCat.scale.set(0.8 + progress * 0.4);
-          requestAnimationFrame(animateScale);
-        } else if (elapsed < 250) {
-          const progress = (elapsed - 150) / 100;
-          newCat.scale.set(1.2 - progress * 0.2);
+        if (elapsed < 180) {
+          const progress = elapsed / 180;
+          newCat.scale.set(0.92 + progress * 0.1);
           requestAnimationFrame(animateScale);
         } else {
           newCat.scale.set(1.0);
@@ -409,26 +397,6 @@ export class DragSystem {
       };
       requestAnimationFrame(animateScale);
     }
-  }
-
-  _shakeGrid() {
-    const target = this.grid;
-    if (!target) return;
-    const ox = target.x;
-    const oy = target.y;
-    let frame = 0;
-    const shake = () => {
-      frame += 1;
-      if (frame < 8) {
-        target.x = ox + (Math.random() - 0.5) * 5;
-        target.y = oy + (Math.random() - 0.5) * 4;
-        requestAnimationFrame(shake);
-      } else {
-        target.x = ox;
-        target.y = oy;
-      }
-    };
-    requestAnimationFrame(shake);
   }
 
   _showCombo(x, y) {

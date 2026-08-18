@@ -1,4 +1,7 @@
 import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Чистые функции скрещивания
 export function canMergeCats(catA, catB) {
@@ -32,6 +35,13 @@ export function runMergeTests() {
   const cat15A = { level: 15 };
   const cat15B = { level: 15 };
   assert.strictEqual(canMergeCats(cat15A, cat15B), false, 'Коты максимального 15 уровня не скрещиваются');
+
+  const dragSrc = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '../../src/game/DragSystem.js'),
+    'utf8'
+  );
+  assert.ok(!dragSrc.includes('_shakeGrid'), 'Поле не должно дрожать при соединении');
+  assert.ok(!dragSrc.includes('TapticImpactOccurred'), 'Без вибрации телефона на merge');
 
   console.log('  ✅ Все юнит-тесты скрещивания Merge Engine успешно пройдены!');
 }
