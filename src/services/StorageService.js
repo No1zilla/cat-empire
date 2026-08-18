@@ -1,5 +1,6 @@
 import { saveProgress, fetchProfile } from '../api/client.js';
 import { VKService } from '../vk/VKBridge.js';
+import { vkIdentity } from './VkIdentity.js';
 
 const vkService = new VKService();
 const STORAGE_KEY = 'cat_empire_progress';
@@ -202,8 +203,12 @@ export class StorageService {
 
     // C. Сохранение на центральный сервер PostgreSQL
     try {
+      const profile = vkIdentity.readProfile ? vkIdentity.readProfile() : {};
       await saveProgress({
         ...data,
+        firstName: data.firstName || profile.firstName,
+        lastName: data.lastName != null ? data.lastName : profile.lastName,
+        avatar: data.avatar || profile.avatar,
         updatedAt: timestamp
       });
     } catch (e) {}

@@ -2,9 +2,21 @@
 import { showRewardedAd, showDesktopBannerAd } from './vkAds.js';
 export { showRewardedAd, showDesktopBannerAd };
 
-const BASE_URL = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
-  ? '/api'
-  : 'https://cat-empire-production.up.railway.app/api';
+function resolveApiBase() {
+  if (typeof window === 'undefined') return 'https://cat-empire-production.up.railway.app/api';
+  const origin = String(window.location.origin || '');
+  if (
+    origin.includes('railway.app') ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    origin.includes('vercel.app')
+  ) {
+    return '/api';
+  }
+  return 'https://cat-empire-production.up.railway.app/api';
+}
+
+const BASE_URL = resolveApiBase();
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign (с закэшированным сохранениям)
@@ -42,11 +54,13 @@ function getVkSignHeader() {
 }
 
 /**
- * Базовый метод для отправки HTTP запросов с тайм-аутом 3 секунды
+ * Базовый метод для отправки HTTP запросов с тайм-аутом 8 секунд
  */
 async function apiRequest(endpoint, options = {}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutMs = Number(options.timeoutMs) || 8000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const { timeoutMs: _ignored, ...fetchOptions } = options;
 
   try {
     const headers = {
@@ -56,7 +70,7 @@ async function apiRequest(endpoint, options = {}) {
     };
 
     const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
       signal: controller.signal
     });
@@ -105,7 +119,12 @@ export async function saveProgress(data) {
       grid_state: data.gridState,
       updatedAt: data.updatedAt || Date.now(),
       updated_at: new Date(data.updatedAt || Date.now()).toISOString(),
-      isReset: data.isReset || false
+      isReset: data.isReset || false,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      avatar: data.avatar,
+      first_name: data.firstName,
+      last_name: data.lastName
     };
     return await apiRequest('/user/save', {
       method: 'POST',
@@ -121,9 +140,9 @@ export async function saveProgress(data) {
  */
 export async function fetchLeaderboard() {
   try {
-    return await apiRequest('/leaderboard', { method: 'GET' });
+    return await apiRequest('/leaderboard', { method: 'GET', timeoutMs: 10000 });
   } catch (e) {
-    return { leaderboard: [] };
+    return null;
   }
 }
 

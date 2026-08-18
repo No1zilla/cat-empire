@@ -67,7 +67,9 @@ export class Game {
   }
 
   // Асинхронный метод инициализации игровой сцены
-  async init(userName = 'Тест Игрок') {
+  async init(userName = 'Тест Игрок', profile = null) {
+    this.userName = userName;
+    this.vkProfile = profile && typeof profile === 'object' ? profile : {};
     // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
     const progress = await Promise.race([
       storageService.loadProgress(),
@@ -695,9 +697,16 @@ export class Game {
   }
 
   showLeaderboard() {
+    let vkId = this.vkProfile && this.vkProfile.id ? String(this.vkProfile.id) : '';
+    try {
+      vkId = vkId || String(localStorage.getItem('cat_empire_vk_user_id') || '');
+    } catch (e) {}
     const modal = new LeaderboardModal(this.app, {
       maxCatLevel: this.maxCatLevel,
-      coins: this.economy ? this.economy.coins : 0
+      coins: this.economy ? this.economy.coins : 0,
+      vkId,
+      firstName: (this.vkProfile && this.vkProfile.firstName) || '',
+      lastName: (this.vkProfile && this.vkProfile.lastName) || ''
     });
     this.app.stage.addChild(modal);
   }

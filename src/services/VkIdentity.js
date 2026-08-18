@@ -63,6 +63,30 @@ export class VkIdentity {
     this.cachedVkUserId = String(foundId);
     return this.cachedVkUserId;
   }
+
+  persistProfile(info = {}) {
+    try {
+      if (info.id) localStorage.setItem('cat_empire_vk_user_id', String(info.id));
+      if (info.firstName != null) localStorage.setItem('cat_empire_vk_first_name', String(info.firstName || ''));
+      if (info.lastName != null) localStorage.setItem('cat_empire_vk_last_name', String(info.lastName || ''));
+      if (info.photo != null || info.avatar != null) {
+        localStorage.setItem('cat_empire_vk_avatar', String(info.photo || info.avatar || ''));
+      }
+    } catch (e) {}
+  }
+
+  readProfile() {
+    try {
+      return {
+        id: localStorage.getItem('cat_empire_vk_user_id') || '',
+        firstName: localStorage.getItem('cat_empire_vk_first_name') || '',
+        lastName: localStorage.getItem('cat_empire_vk_last_name') || '',
+        avatar: localStorage.getItem('cat_empire_vk_avatar') || ''
+      };
+    } catch (e) {
+      return { id: '', firstName: '', lastName: '', avatar: '' };
+    }
+  }
 }
 
 export const vkIdentity = new VkIdentity();

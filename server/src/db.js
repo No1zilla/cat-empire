@@ -39,6 +39,9 @@ async function initDB() {
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS total_cats_bought INTEGER DEFAULT 0;');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS total_cats_created INTEGER DEFAULT 0;');
     await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS total_merges INTEGER DEFAULT 0;');
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT DEFAULT '';");
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';");
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT DEFAULT '';");
   } catch (e) {
     // игнорируем если колонка уже существует
   }

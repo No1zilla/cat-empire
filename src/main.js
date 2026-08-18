@@ -6,6 +6,8 @@ import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 import { soundManager } from './audio/SoundManager.js';
 import { showDesktopBannerAd } from './api/vkAds.js';
+import { saveProgress } from './api/client.js';
+import { vkIdentity } from './services/VkIdentity.js';
 
 // Глобальная блокировка браузерного выделения текста и drag-out элементов
 if (typeof document !== 'undefined') {
@@ -65,7 +67,7 @@ async function initApp() {
     try {
       userInfo = await vkService.getUserInfo();
       if (userInfo && userInfo.id) {
-        localStorage.setItem('cat_empire_vk_user_id', String(userInfo.id));
+        vkIdentity.persistProfile(userInfo);
         if (!localStorage.getItem('cat_empire_vk_launch_params')) {
           localStorage.setItem('cat_empire_vk_launch_params', `vk_user_id=${userInfo.id}`);
         }
@@ -120,7 +122,15 @@ async function initApp() {
   if (typeof window !== 'undefined') {
     window.game = game;
   }
-  await game.init(userName);
+  await game.init(userName, userInfo);
+
+  if (userInfo && (userInfo.firstName || userInfo.lastName || userInfo.photo)) {
+    saveProgress({
+      firstName: userInfo.firstName,
+      lastName: userInfo.lastName,
+      avatar: userInfo.photo
+    }).catch(() => {});
+  }
 
   updateSplashProgress(100, 'Готово! 👑');
   // Скрывать сплэш строго после полной готовности сцены

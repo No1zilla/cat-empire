@@ -18,12 +18,17 @@ router.get('/profile', vkAuth, async (req, res) => {
 // POST /api/user/save - Сохранение прогресса игрока
 router.post('/save', vkAuth, async (req, res) => {
   try {
-    const { coins, gems, maxCatLevel, gridState } = req.body || {};
+    const body = req.body || {};
     const user = await userService.saveUserProgress(req.vkUserId, {
-      coins,
-      gems,
-      maxCatLevel,
-      gridState
+      coins: body.coins,
+      gems: body.gems,
+      maxCatLevel: body.maxCatLevel ?? body.max_cat_level,
+      totalCatsBought: body.totalCatsBought ?? body.total_cats_bought,
+      totalMerges: body.totalMerges ?? body.total_merges,
+      gridState: body.gridState ?? body.grid_state,
+      firstName: body.firstName ?? body.first_name,
+      lastName: body.lastName ?? body.last_name,
+      avatar: body.avatar
     });
     res.json({ success: true, user });
   } catch (error) {

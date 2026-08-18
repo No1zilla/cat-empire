@@ -140,8 +140,12 @@ export class SettingsModal extends Container {
       0x0077FF, // VK Brand Blue
       async () => {
         const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        if (appStage) UIUtils.showToast(appStage, '📢 Открываем VK Share...');
-        await vkService.shareLink('https://vk.com/app54702054');
+        const res = await vkService.shareLink();
+        if (!appStage) return;
+        if (res && res.success && !res.simulated) UIUtils.showToast(appStage, 'Ссылка отправлена');
+        else if (res && res.reason === 'user_cancelled') UIUtils.showToast(appStage, 'Отменено');
+        else if (res && res.simulated) UIUtils.showToast(appStage, 'Поделиться можно внутри VK');
+        else UIUtils.showToast(appStage, 'Не удалось поделиться');
       }
     );
     this.addChild(shareBtn);
@@ -155,8 +159,12 @@ export class SettingsModal extends Container {
       0x4A76A8, // VK Wall Post Blue
       async () => {
         const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        if (appStage) UIUtils.showToast(appStage, '📝 Публикуем на стену VK...');
-        await vkService.sharePost('👑 Моя Империя Котиков растет! Присоединяйся к игре: https://vk.com/app54702054');
+        const res = await vkService.sharePost('Моя Империя Котиков растёт. Заходи поиграть.');
+        if (!appStage) return;
+        if (res && res.success && !res.simulated) UIUtils.showToast(appStage, 'Пост на стене');
+        else if (res && res.reason === 'user_cancelled') UIUtils.showToast(appStage, 'Пост отменён');
+        else if (res && res.simulated) UIUtils.showToast(appStage, 'Стена открывается внутри VK');
+        else UIUtils.showToast(appStage, 'Не удалось открыть стену');
       }
     );
     this.addChild(wallBtn);

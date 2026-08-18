@@ -79,9 +79,21 @@ export class UserService {
     return formatUser(rows[0]);
   }
 
-  async saveUserProgress(vkUserId, { coins, gems, maxCatLevel, totalCatsBought, totalCatsCreated, totalMerges, gridState }) {
+  async saveUserProgress(vkUserId, {
+    coins,
+    gems,
+    maxCatLevel,
+    totalCatsBought,
+    totalCatsCreated,
+    totalMerges,
+    gridState,
+    firstName,
+    lastName,
+    avatar
+  }) {
     const vkId = String(vkUserId);
     const now  = Math.floor(Date.now() / 1000);
+    await this.getOrCreateUser(vkId);
 
     const fields = ['last_offline_check = $1'];
     const values = [now];
@@ -97,6 +109,18 @@ export class UserService {
       const gs = typeof gridState === 'string' ? gridState : JSON.stringify(gridState);
       fields.push(`grid_state = $${idx++}`);
       values.push(gs);
+    }
+    if (firstName !== undefined && String(firstName).trim()) {
+      fields.push(`first_name = $${idx++}`);
+      values.push(String(firstName).trim().slice(0, 64));
+    }
+    if (lastName !== undefined) {
+      fields.push(`last_name = $${idx++}`);
+      values.push(String(lastName || '').trim().slice(0, 64));
+    }
+    if (avatar !== undefined) {
+      fields.push(`avatar = $${idx++}`);
+      values.push(String(avatar || '').slice(0, 512));
     }
 
     values.push(vkId);

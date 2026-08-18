@@ -1,23 +1,48 @@
 import bridge from '@vkontakte/vk-bridge';
 import { eventTracker } from '../analytics/EventTracker.js';
 
+export const VK_APP_ID = 54702054;
+export const VK_APP_LINK = `https://vk.com/app${VK_APP_ID}`;
+
 if (typeof window !== 'undefined') {
   window.vkBridge = bridge;
 }
 
-function isVkEnvironment() {
+export function isVkEnvironment() {
   if (typeof window === 'undefined') return false;
   const urlStr = window.location.search + window.location.hash;
   if (urlStr.includes('vk_user_id') || urlStr.includes('vk_app_id') || urlStr.includes('vk_platform')) {
     return true;
   }
-  if (localStorage.getItem('cat_empire_vk_user_id') || localStorage.getItem('cat_empire_vk_launch_params')) {
-    return true;
-  }
+  try {
+    if (localStorage.getItem('cat_empire_vk_user_id') || localStorage.getItem('cat_empire_vk_launch_params')) {
+      return true;
+    }
+  } catch (e) {}
   if (window.self !== window.top) {
     return true;
   }
   return false;
+}
+
+export function isVkUserCancel(error) {
+  if (!error) return false;
+  if (error.error_type === 'client_error' || error.error_code === 4) return true;
+  const reason = String(
+    (error.error_data && (error.error_data.error_reason || error.error_data.error_msg)) ||
+    error.error_reason ||
+    error.message ||
+    ''
+  ).toLowerCase();
+  return reason.includes('cancel') || reason.includes('denied') || reason.includes('user deny');
+}
+
+export function wallPostMessage(message) {
+  const stripped = String(message || '')
+    .replace(/https?:\/\/(?:m\.)?vk\.(?:com|ru)\/app\d+\S*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped || 'Моя Империя Котиков растёт. Заходи поиграть.';
 }
 
 // Класс VKService для взаимодействия с VK Mini Apps SDK
@@ -124,51 +149,63 @@ export class VKService {
   }
 
   // TASK-SHARE: Расшаривание ссылки друзьям или в сообщения (VKWebAppShare)
-  async shareLink(customLink = 'https://vk.com/app54702054') {
+  async shareLink(customLink = VK_APP_LINK) {
     try {
       if (typeof eventTracker !== 'undefined' && eventTracker.trackShareTriggered) {
         eventTracker.trackShareTriggered('link');
       }
       if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
-        const res = await this.bridge.send('VKWebAppShare', { link: customLink });
+        const res = await this.bridge.send('VKWebAppShare', { link: customLink || VK_APP_LINK });
         console.log('📢 VKWebAppShare result:', res);
         return { success: true, res };
       }
     } catch (e) {
       console.warn('⚠️ VKWebAppShare error/cancelled:', e);
+      if (isVkEnvironment()) {
+        return { success: false, reason: isVkUserCancel(e) ? 'user_cancelled' : 'vk_error', error: e };
+      }
     }
     return { success: true, simulated: true };
   }
 
-  // TASK-SHARE: Пост записи на стену пользователя VK (VKWebAppShowWallPostBox)
-  async sharePost(message = '🐱 Моя Империя Котиков растет! Присоединяйся к игре!') {
+  // Пост на стену: одна ссылка во вложении (две ссылки VK режет). Без iframe-only и без фейкового success.
+  async sharePost(message = 'Моя Империя Котиков растёт. Заходи поиграть.') {
+    const text = wallPostMessage(message);
     try {
       if (typeof eventTracker !== 'undefined' && eventTracker.trackShareTriggered) {
         eventTracker.trackShareTriggered('wall_post');
       }
-      const inIframe = typeof window !== 'undefined' && window.self !== window.top;
-      if (this.bridge && typeof this.bridge.send === 'function' && inIframe) {
-        const res = await this.bridge.send('VKWebAppShowWallPostBox', {
-          message: message,
-          attachments: 'https://vk.com/app54702054'
-        });
-        console.log('📝 VKWebAppShowWallPostBox result:', res);
-        if (res && res.post_id) {
-          return { success: true, postId: res.post_id, res };
+      if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
+        let res;
+        try {
+          res = await this.bridge.send('VKWebAppShowWallPostBox', {
+            message: text,
+            attachments: VK_APP_LINK
+          });
+        } catch (firstError) {
+          if (isVkUserCancel(firstError)) {
+            return { success: false, reason: 'user_cancelled', error: firstError };
+          }
+          res = await this.bridge.send('VKWebAppShowWallPostBox', { message: text });
         }
-        return { success: false, reason: 'user_cancelled' };
+        console.log('📝 VKWebAppShowWallPostBox result:', res);
+        const postId = res && (res.post_id || res.postId);
+        if (postId) {
+          return { success: true, postId, res };
+        }
+        if (res) {
+          return { success: true, res };
+        }
+        return { success: false, reason: 'empty' };
       }
     } catch (e) {
       console.warn('⚠️ VKWebAppShowWallPostBox error/cancelled:', e);
-      if (e && (e.error_type === 'client_error' || e.error_code === 4)) {
+      if (isVkUserCancel(e)) {
         return { success: false, reason: 'user_cancelled', error: e };
       }
-    }
-
-    if (typeof window !== 'undefined') {
-      try {
-        window.open('https://vk.com/share.php?url=' + encodeURIComponent('https://vk.com/app54702054') + '&title=' + encodeURIComponent(message), '_blank');
-      } catch (e) {}
+      if (isVkEnvironment()) {
+        return { success: false, reason: 'vk_error', error: e };
+      }
     }
     return { success: true, simulated: true };
   }
@@ -182,11 +219,30 @@ export class VKService {
       if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
         const res = await this.bridge.send('VKWebAppShowInviteBox');
         console.log('🤝 VKWebAppShowInviteBox result:', res);
-        return { success: true, res };
+        if (res && res.success) {
+          return { success: true, res };
+        }
+        if (res && res.success === false) {
+          return { success: false, reason: 'user_cancelled', res };
+        }
+        const share = await this.shareLink(VK_APP_LINK);
+        if (share && share.success && !share.simulated) {
+          return { success: true, via: 'share', res: share.res };
+        }
+        return { success: false, reason: (share && share.reason) || 'empty', res };
       }
     } catch (e) {
       console.warn('⚠️ VKWebAppShowInviteBox error/cancelled:', e);
-      return { success: false, reason: 'user_cancelled', error: e };
+      if (isVkUserCancel(e)) {
+        return { success: false, reason: 'user_cancelled', error: e };
+      }
+      if (isVkEnvironment()) {
+        const share = await this.shareLink(VK_APP_LINK);
+        if (share && share.success && !share.simulated) {
+          return { success: true, via: 'share', res: share.res };
+        }
+        return { success: false, reason: (share && share.reason) || 'vk_error', error: e };
+      }
     }
     return { success: false, reason: 'not_vk', simulated: true };
   }
