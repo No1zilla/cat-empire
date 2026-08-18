@@ -14,6 +14,7 @@ import { runMonetizationTests } from './unit/monetization.test.js';
 import { runVkPaymentHttpTests } from './unit/vkPaymentHttp.test.js';
 import { runFirstSessionTests } from './unit/firstSession.test.js';
 import { runPublicAssetTests } from './unit/publicAsset.test.js';
+import { runPagesProxyTests } from './unit/pagesProxy.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -36,6 +37,7 @@ async function main() {
     await runVkPaymentHttpTests();
     runFirstSessionTests();
     runPublicAssetTests();
+    runPagesProxyTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {

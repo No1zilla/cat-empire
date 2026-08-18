@@ -13,6 +13,7 @@ import paymentsRouter, {
   isVkPaymentPayload,
   coerceVkPaymentContentType
 } from './routes/payments.js';
+import { fetchGithubPages, shouldProxyToPages } from './pagesProxy.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -46,13 +47,28 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', serverTime: new Date().toISOString() });
 });
 
+async function proxyGithubPages(req, res) {
+  try {
+    const q = req.url && req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const { status, contentType, body } = await fetchGithubPages(req.path, q);
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=60');
+    return res.status(status).end(body);
+  } catch (error) {
+    console.warn('GitHub Pages proxy failed:', error && error.message);
+    res.status(502);
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.end(
+      '<!DOCTYPE html><html><body style="margin:0;background:#0d0a1c;color:#FFD15C;font-family:sans-serif;padding:48px">Игра не загрузилась. Обнови страницу.</body></html>'
+    );
+  }
+}
+
 // VK Payments: кабинет часто вставляет домен без /api/payments/vk — HTML 404 ломает get_item.
 app.post('/', replyVkPayment);
 app.get('/', (req, res) => {
   if (isVkPaymentPayload(req)) return replyVkPayment(req, res);
-  const qs = new URLSearchParams(req.query || {}).toString();
-  const dest = `https://no1zilla.github.io/cat-empire/index.html${qs ? `?${qs}` : ''}`;
-  res.redirect(302, dest);
+  return proxyGithubPages(req, res);
 });
 
 // Подключение основных маршрутов API
@@ -62,6 +78,11 @@ app.use('/api/events', eventsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/payments', paymentsRouter);
+
+app.use((req, res, next) => {
+  if (!shouldProxyToPages(req)) return next();
+  return proxyGithubPages(req, res);
+});
 
 app.use((req, res) => {
   res.status(404).json({
