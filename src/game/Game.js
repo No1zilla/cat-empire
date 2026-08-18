@@ -710,14 +710,10 @@ export class Game {
   }
 
   _applyFirstSessionChrome() {
-    const show = shouldRevealMidgameChrome({
-      maxCatLevel: this.maxCatLevel,
-      totalMerges: this.economy ? this.economy.totalMerges : 0
-    });
     [this.fillAllButton, this.autoMergeButton].forEach((btn) => {
       if (!btn) return;
-      btn.visible = show;
-      btn.eventMode = show ? 'static' : 'none';
+      btn.visible = true;
+      btn.eventMode = 'static';
     });
     this._layoutChrome();
   }

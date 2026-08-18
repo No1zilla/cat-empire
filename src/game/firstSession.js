@@ -1,8 +1,8 @@
 import { CONFIG } from '../config.js';
 
 /**
- * Первая сессия: человек должен понять котов, а не кассу.
- * Меню, календарь, заполнить/соединить — после первого слияния.
+ * Первая сессия: сразу поле и три кнопки. Календарь — после первого слияния.
+ * «Заполнить» и «Соединить» не прячем: заполнение всегда за монеты.
  */
 
 export function shouldRevealMidgameChrome({ maxCatLevel = 1, totalMerges = 0 } = {}) {
@@ -18,6 +18,10 @@ export function shouldOfferDailyNow({
 }
 
 export function shouldSkipBootMenu() {
+  return true;
+}
+
+export function fillRowAlwaysVisible() {
   return true;
 }
 
@@ -41,5 +45,6 @@ export default {
   shouldRevealMidgameChrome,
   shouldOfferDailyNow,
   shouldSkipBootMenu,
+  fillRowAlwaysVisible,
   getTutorialTargets
 };
