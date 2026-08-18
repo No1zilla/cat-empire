@@ -32,7 +32,7 @@ jobs:
         run: npm install
 
       - name: Build frontend
-        run: VK_PAGES_BASE=https://no1zilla.github.io/cat-empire/ PLATFORM=vk npm run build
+        run: PLATFORM=vk npm run build
 
       - name: Mirror build to /dev/ for the VK iframe URL
         run: |
