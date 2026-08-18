@@ -97,7 +97,7 @@
     <div class="metric-card">
       <div class="metric-title">DAU сегодня</div>
       <div class="metric-value" id="dau-val">--</div>
-      <div class="metric-sub">Активных игроков</div>
+      <div class="metric-sub" id="dau-sub">уникальные игроки (гость+VK одной сессии = 1)</div>
     </div>
     <div class="metric-card">
       <div class="metric-title">Покупки сегодня</div>
@@ -260,6 +260,10 @@
         document.getElementById('live-status').innerText = '● Live' + sim;
 
         document.getElementById('dau-val').innerText = data.activity ? data.activity.dau_today : 0;
+        const act = data.activity || {};
+        document.getElementById('dau-sub').innerText =
+          'VK ' + (act.dau_vk || 0) + ', гости без id ' + (act.dau_guest || 0)
+          + ', сессий ' + (act.total_sessions_today || 0);
         document.getElementById('d1-val').innerText = data.retention ? Math.round((data.retention.d1_retention || 0) * 100) + '%' : '0%';
         document.getElementById('d7-val').innerText = data.retention ? Math.round((data.retention.d7_retention || 0) * 100) + '%' : '0%';
         document.getElementById('fillrate-val').innerText = data.monetization ? data.monetization.fill_rate_pct + '%' : '0%';

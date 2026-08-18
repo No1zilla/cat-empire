@@ -86,6 +86,8 @@ function simulatedDashboard() {
   return {
     activity: {
       dau_today: 142,
+      dau_vk: 120,
+      dau_guest: 22,
       total_sessions_today: 385,
       avg_session_sec: 287,
       new_users_today: 34
@@ -280,11 +282,36 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         adTodayRows
       ] = await Promise.all([
         pool.query(`
+          WITH today AS (
+            SELECT user_id, session_id
+            FROM analytics_events
+            WHERE created_at >= CURRENT_DATE
+          ),
+          owners AS (
+            SELECT
+              session_id,
+              COALESCE(
+                MAX(user_id) FILTER (
+                  WHERE user_id IS NOT NULL
+                    AND user_id NOT LIKE 'guest_%'
+                    AND user_id NOT IN ('guest', '0', '')
+                ),
+                MIN(user_id)
+              ) AS person_id
+            FROM today
+            GROUP BY session_id
+          )
           SELECT
-            COUNT(DISTINCT user_id)::int AS dau_today,
-            COUNT(*)::int AS total_sessions_today
-          FROM analytics_events
-          WHERE created_at >= CURRENT_DATE
+            COUNT(DISTINCT person_id)::int AS dau_today,
+            COUNT(DISTINCT person_id) FILTER (
+              WHERE person_id NOT LIKE 'guest_%' AND person_id NOT IN ('guest', '0', '')
+            )::int AS dau_vk,
+            COUNT(DISTINCT person_id) FILTER (
+              WHERE person_id LIKE 'guest_%' OR person_id IN ('guest', '0', '')
+            )::int AS dau_guest,
+            COUNT(*)::int AS total_sessions_today,
+            (SELECT COUNT(*)::int FROM user_sessions WHERE first_seen_at >= CURRENT_DATE) AS new_users_today
+          FROM owners
         `),
         pool.query(`
           SELECT
@@ -506,9 +533,11 @@ router.get('/dashboard', adminAuth, async (req, res) => {
       resultPayload = {
         activity: {
           dau_today: actRows.rows[0]?.dau_today || 0,
+          dau_vk: actRows.rows[0]?.dau_vk || 0,
+          dau_guest: actRows.rows[0]?.dau_guest || 0,
           total_sessions_today: actRows.rows[0]?.total_sessions_today || 0,
           avg_session_sec: 280,
-          new_users_today: retRows.rows[0]?.total_users || 0
+          new_users_today: actRows.rows[0]?.new_users_today || 0
         },
         retention: retRows.rows[0] || { d1_retention: 0, d7_retention: 0, d30_retention: 0, avg_sessions_per_dau: 1 },
         monetization: {

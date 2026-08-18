@@ -48,12 +48,26 @@ export class EventTracker {
     this.trackSessionStart();
   }
 
+  _vkUserIdFromLaunch() {
+    if (typeof window === 'undefined') return '';
+    try {
+      const saved = localStorage.getItem('cat_empire_vk_user_id');
+      if (saved && saved !== '0') return String(saved);
+    } catch { /* ignore */ }
+    try {
+      const search = new URLSearchParams(window.location.search || '');
+      const hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+      const id = search.get('vk_user_id') || hash.get('vk_user_id') || '';
+      if (id && id !== '0') return String(id);
+    } catch { /* ignore */ }
+    return '';
+  }
+
   _resolveUserId(providedId) {
     if (providedId && providedId !== 'guest' && providedId !== '0') return String(providedId);
+    const fromLaunch = this._vkUserIdFromLaunch();
+    if (fromLaunch) return fromLaunch;
     if (typeof localStorage !== 'undefined') {
-      const savedVk = localStorage.getItem('cat_empire_vk_user_id');
-      if (savedVk && savedVk !== '0') return String(savedVk);
-
       let savedGuest = localStorage.getItem('cat_empire_analytics_uid');
       if (!savedGuest) {
         savedGuest = 'guest_' + Math.random().toString(36).substring(2, 10);
@@ -72,8 +86,18 @@ export class EventTracker {
   }
 
   setUserId(userId) {
-    if (userId && String(userId) !== '0') {
-      this.userId = String(userId);
+    if (!userId || String(userId) === '0') return;
+    const next = String(userId);
+    const prev = this.userId;
+    this.userId = next;
+    if (typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('cat_empire_vk_user_id', next); } catch { /* ignore */ }
+    }
+    if (prev && prev !== next) {
+      this.queue.forEach((ev) => {
+        if (ev && ev.user_id === prev) ev.user_id = next;
+      });
+      this._saveOfflineEvents();
     }
   }
 

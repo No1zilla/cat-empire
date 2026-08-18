@@ -94,6 +94,7 @@ await authHandler(mockReqAuth, res4, async () => {
 
 assert.strictEqual(res4.code, 200);
 assert.ok(res4.data.activity);
+assert.ok(typeof res4.data.activity.dau_today === 'number');
 assert.ok(res4.data.retention);
 assert.ok(res4.data.monetization);
 assert.ok(res4.data.gameplay);

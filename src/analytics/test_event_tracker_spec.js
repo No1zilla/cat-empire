@@ -66,6 +66,15 @@ assert.strictEqual(tracker.queue.length, 0);
 tracker.destroy();
 console.log('✅ ТЕСТ 3 УСПЕШНО ПРОЙДЕН!\n');
 
+console.log('📌 ТЕСТ 4: setUserId склеивает гостя с VK id в очереди');
+const guestTracker = new EventTracker('guest_abc', 'vk');
+assert.strictEqual(guestTracker.queue[0].user_id, 'guest_abc');
+guestTracker.setUserId('816275327');
+assert.strictEqual(guestTracker.userId, '816275327');
+assert.ok(guestTracker.queue.every((ev) => ev.user_id === '816275327'));
+guestTracker.destroy();
+console.log('✅ ТЕСТ 4 УСПЕШНО ПРОЙДЕН!\n');
+
 console.log('🎉 =========================================================');
 console.log('🎉 ВСЕ ТЕСТЫ TASK-066 (EventTracker) УСПЕШНО ПРОЙДЕНЫ!');
 console.log('🎉 =========================================================');
