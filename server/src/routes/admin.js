@@ -5,10 +5,38 @@ const router = express.Router();
 
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'cat_empire_admin_secret_token_2026';
 
-// Простая 60-секундная система кэширования
 let dashboardCache = null;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 60000;
+
+const IAP_EVENTS = ['iap_purchase_completed', 'iap_starter_tribute', 'iap_edict_bought'];
+const BUTTON_EVENTS = [
+  'cat_bought',
+  'fill_all_triggered',
+  'merge_manual',
+  'merge_auto_triggered',
+  'share_triggered',
+  'community_joined',
+  'quest_claimed',
+  'daily_reward_claimed',
+  'vassals_summoned',
+  'edict_daily_claimed',
+  'invite_reward_granted'
+];
+
+const BUTTON_LABELS = {
+  cat_bought: 'Купить кота',
+  fill_all_triggered: 'Заполнить поле',
+  merge_manual: 'Слияние руками',
+  merge_auto_triggered: 'Авто-слияние',
+  share_triggered: 'Шер / инвайт',
+  community_joined: 'Вступление в группу',
+  quest_claimed: 'Квест забран',
+  daily_reward_claimed: 'Ежедневка',
+  vassals_summoned: 'Вассалы',
+  edict_daily_claimed: 'Паёк указа',
+  invite_reward_granted: 'Награда за друга'
+};
 
 /**
  * Middleware проверки Bearer токена или query-параметра token
@@ -31,6 +59,124 @@ function adminAuth(req, res, next) {
   return res.status(401).json({ error: 'Unauthorized: Invalid Admin Token' });
 }
 
+function maskUserId(userId) {
+  const id = String(userId || '');
+  if (!id) return '—';
+  if (id.startsWith('guest_') || id.startsWith('usr_')) return id;
+  return `usr_${id.slice(-4)}`;
+}
+
+function simulatedDashboard() {
+  return {
+    activity: {
+      dau_today: 142,
+      total_sessions_today: 385,
+      avg_session_sec: 287,
+      new_users_today: 34
+    },
+    retention: {
+      d1_retention: 0.42,
+      d7_retention: 0.18,
+      d30_retention: 0.07,
+      avg_sessions_per_dau: 2.4
+    },
+    monetization: {
+      ads_shown_today: 412,
+      fill_rate_pct: 88.4,
+      completion_rate_pct: 94.1,
+      ads_per_dau: 2.9
+    },
+    gameplay: {
+      funnel: {
+        started: 500,
+        bought_cat: 480,
+        merged: 425,
+        watched_ad: 310,
+        used_automerge: 215
+      },
+      level_distribution: [
+        { level: 1, users: 500 },
+        { level: 2, users: 425 },
+        { level: 3, users: 310 }
+      ]
+    },
+    purchases: {
+      today: 3,
+      all_time: 12,
+      rubies_today: 140,
+      votes_today: 10,
+      by_pack: [
+        { pack: 'gems_pack_10', count: 8, rubies: 80, votes: 8 },
+        { pack: 'starter_tribute_5', count: 3, rubies: 240, votes: 15 },
+        { pack: 'gems_pack_50', count: 1, rubies: 50, votes: 4 }
+      ],
+      recent: [
+        {
+          created_at: new Date().toISOString(),
+          pack: 'gems_pack_10',
+          user_id: 'usr_demo',
+          rubies: 10,
+          votes: 1,
+          source: 'vk_callback'
+        }
+      ]
+    },
+    buttons: BUTTON_EVENTS.map((event, index) => ({
+      event,
+      label: BUTTON_LABELS[event] || event,
+      today: Math.max(0, 40 - index * 3),
+      all_time: Math.max(0, 400 - index * 30)
+    })),
+    events: {
+      today_total: 128,
+      by_type: [
+        { event: 'session_start', count: 40 },
+        { event: 'cat_bought', count: 28 },
+        { event: 'merge_manual', count: 22 },
+        { event: 'iap_purchase_completed', count: 3 }
+      ],
+      recent: [
+        {
+          created_at: new Date().toISOString(),
+          event: 'iap_purchase_completed',
+          user_id: 'usr_demo',
+          platform: 'vk',
+          detail: 'gems_pack_10 · 10р · 1 голос'
+        }
+      ]
+    },
+    top_users: [
+      { user_id: 'usr_f8a912', session_count: 48, last_seen: '2026-08-13T14:30:00Z' }
+    ],
+    simulated: true
+  };
+}
+
+function eventDetail(event, props = {}) {
+  if (!props || typeof props !== 'object') return '';
+  const bits = [];
+  if (props.pack) bits.push(String(props.pack));
+  if (props.rubies) bits.push(`${props.rubies}р`);
+  if (props.votes) bits.push(`${props.votes} гол.`);
+  if (props.ad_type) bits.push(String(props.ad_type));
+  if (props.cost != null && props.cost !== '') bits.push(`монет ${props.cost}`);
+  if (props.type) bits.push(String(props.type));
+  if (props.quest_id) bits.push(String(props.quest_id));
+  if (props.source) bits.push(String(props.source));
+  if (props.order_id) bits.push(`#${props.order_id}`);
+  if (!bits.length && event) return '';
+  return bits.join(' · ');
+}
+
+function zeroButtons() {
+  return BUTTON_EVENTS.map((event) => ({
+    event,
+    label: BUTTON_LABELS[event] || event,
+    today: 0,
+    all_time: 0
+  }));
+}
+
 // GET /api/admin/dashboard (TASK-070)
 router.get('/dashboard', adminAuth, async (req, res) => {
   try {
@@ -42,140 +188,258 @@ router.get('/dashboard', adminAuth, async (req, res) => {
     let resultPayload = {};
 
     if (!pool || !process.env.DATABASE_URL) {
-      resultPayload = {
-        activity: {
-          dau_today: 142,
-          total_sessions_today: 385,
-          avg_session_sec: 287,
-          new_users_today: 34
-        },
-        retention: {
-          d1_retention: 0.42,
-          d7_retention: 0.18,
-          d30_retention: 0.07,
-          avg_sessions_per_dau: 2.4
-        },
-        monetization: {
-          ads_shown_today: 412,
-          fill_rate_pct: 88.4,
-          completion_rate_pct: 94.1,
-          ads_per_dau: 2.9
-        },
-        gameplay: {
-          funnel: {
-            started: 500,
-            bought_cat: 480,
-            merged: 425,
-            watched_ad: 310,
-            used_automerge: 215
-          },
-          level_distribution: [
-            { level: 1, users: 500 },
-            { level: 2, users: 425 },
-            { level: 3, users: 310 },
-            { level: 4, users: 180 },
-            { level: 5, users: 95 },
-            { level: 6, users: 42 },
-            { level: 7, users: 18 }
-          ]
-        },
-        top_users: [
-          { user_id: 'usr_f8a912', session_count: 48, last_seen: '2026-08-13T14:30:00Z' },
-          { user_id: 'usr_c3b771', session_count: 41, last_seen: '2026-08-13T14:15:00Z' },
-          { user_id: 'usr_e91024', session_count: 35, last_seen: '2026-08-13T13:50:00Z' }
-        ],
-        simulated: true
-      };
+      resultPayload = simulatedDashboard();
     } else {
-      const { rows: actRows } = await pool.query(`
-        SELECT
-          COUNT(DISTINCT user_id)::int AS dau_today,
-          COUNT(*)::int AS total_sessions_today
-        FROM analytics_events
-        WHERE created_at >= CURRENT_DATE
-      `);
+      const iapList = IAP_EVENTS.map((_, i) => `$${i + 1}`).join(', ');
+      const btnList = BUTTON_EVENTS.map((_, i) => `$${i + 1}`).join(', ');
 
-      const { rows: retRows } = await pool.query(`
-        SELECT
-          COUNT(*)::int AS total_users,
-          ROUND(COUNT(*) FILTER (WHERE d1_returned)::numeric / NULLIF(COUNT(*), 0), 2)::float AS d1_retention,
-          ROUND(COUNT(*) FILTER (WHERE d7_returned)::numeric / NULLIF(COUNT(*), 0), 2)::float AS d7_retention,
-          ROUND(COUNT(*) FILTER (WHERE d30_returned)::numeric / NULLIF(COUNT(*), 0), 2)::float AS d30_retention,
-          ROUND(AVG(session_count), 1)::float AS avg_sessions_per_dau
-        FROM user_sessions
-      `);
-
-      const { rows: monRows } = await pool.query(`
-        SELECT
-          COUNT(*) FILTER (WHERE event = 'ad_shown' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_shown_today,
-          COUNT(*) FILTER (WHERE event = 'ad_shown' AND props->>'is_test_ad' = 'true')::int AS test_shown_today,
-          COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested_today,
-          COUNT(*) FILTER (WHERE event = 'ad_completed' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_completed_today
-        FROM analytics_events
-        WHERE created_at >= CURRENT_DATE
-      `);
-
-      const { rows: lvlRows } = await pool.query(`
-        SELECT
-          (props->>'level')::int AS level,
-          COUNT(DISTINCT user_id)::int AS users
-        FROM analytics_events
-        WHERE event = 'max_cat_level_reached'
-        GROUP BY (props->>'level')::int
-        ORDER BY level
-      `);
-
-      const { rows: topUsersRows } = await pool.query(`
-        SELECT
-          user_id_hash AS user_id,
-          COUNT(DISTINCT session_id)::int AS session_count,
-          MAX(created_at) AS last_seen
-        FROM (
+      const [
+        actRows,
+        retRows,
+        monRows,
+        lvlRows,
+        topUsersRows,
+        purchaseRows,
+        packRows,
+        purchaseRecentRows,
+        buttonRows,
+        eventCountRows,
+        todayTotalRows,
+        eventRecentRows
+      ] = await Promise.all([
+        pool.query(`
           SELECT
-            user_id,
-            session_id,
-            created_at,
-            CASE 
-              WHEN user_id LIKE 'guest_%' THEN user_id
-              ELSE CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6))
-            END AS user_id_hash
+            COUNT(DISTINCT user_id)::int AS dau_today,
+            COUNT(*)::int AS total_sessions_today
           FROM analytics_events
-        ) sub
-        GROUP BY user_id_hash
-        ORDER BY session_count DESC
-        LIMIT 10
-      `);
+          WHERE created_at >= CURRENT_DATE
+        `),
+        pool.query(`
+          SELECT
+            COUNT(*)::int AS total_users,
+            ROUND(COUNT(*) FILTER (WHERE d1_returned)::numeric / NULLIF(COUNT(*), 0), 2)::float AS d1_retention,
+            ROUND(COUNT(*) FILTER (WHERE d7_returned)::numeric / NULLIF(COUNT(*), 0), 2)::float AS d7_retention,
+            ROUND(COUNT(*) FILTER (WHERE d30_returned)::numeric / NULLIF(COUNT(*), 0), 2)::float AS d30_retention,
+            ROUND(AVG(session_count), 1)::float AS avg_sessions_per_dau
+          FROM user_sessions
+        `),
+        pool.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE event = 'ad_shown' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_shown_today,
+            COUNT(*) FILTER (WHERE event = 'ad_shown' AND props->>'is_test_ad' = 'true')::int AS test_shown_today,
+            COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested_today,
+            COUNT(*) FILTER (WHERE event = 'ad_completed' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_completed_today
+          FROM analytics_events
+          WHERE created_at >= CURRENT_DATE
+        `),
+        pool.query(`
+          SELECT
+            (props->>'level')::int AS level,
+            COUNT(DISTINCT user_id)::int AS users
+          FROM analytics_events
+          WHERE event = 'max_cat_level_reached'
+          GROUP BY (props->>'level')::int
+          ORDER BY level
+        `),
+        pool.query(`
+          SELECT
+            user_id_hash AS user_id,
+            COUNT(DISTINCT session_id)::int AS session_count,
+            MAX(created_at) AS last_seen
+          FROM (
+            SELECT
+              user_id,
+              session_id,
+              created_at,
+              CASE
+                WHEN user_id LIKE 'guest_%' THEN user_id
+                ELSE CONCAT('usr_', SUBSTRING(MD5(user_id) FROM 1 FOR 6))
+              END AS user_id_hash
+            FROM analytics_events
+          ) sub
+          GROUP BY user_id_hash
+          ORDER BY session_count DESC
+          LIMIT 10
+        `),
+        pool.query(
+          `
+          SELECT
+            COUNT(*)::int AS all_time,
+            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today,
+            COALESCE(SUM(rubies) FILTER (WHERE created_at >= CURRENT_DATE), 0)::int AS rubies_today,
+            COALESCE(SUM(votes) FILTER (WHERE created_at >= CURRENT_DATE), 0)::int AS votes_today
+          FROM (
+            SELECT DISTINCT ON (COALESCE(NULLIF(props->>'order_id', ''), id::text))
+              created_at,
+              COALESCE(NULLIF(props->>'rubies', '')::int, 0) AS rubies,
+              COALESCE(NULLIF(props->>'votes', '')::int, 0) AS votes
+            FROM analytics_events
+            WHERE event IN (${iapList})
+            ORDER BY COALESCE(NULLIF(props->>'order_id', ''), id::text),
+              CASE WHEN props->>'source' = 'vk_callback' THEN 0 ELSE 1 END,
+              id
+          ) uniq
+          `,
+          IAP_EVENTS
+        ),
+        pool.query(
+          `
+          SELECT
+            pack,
+            COUNT(*)::int AS count,
+            COALESCE(SUM(rubies), 0)::int AS rubies,
+            COALESCE(SUM(votes), 0)::int AS votes
+          FROM (
+            SELECT DISTINCT ON (COALESCE(NULLIF(props->>'order_id', ''), id::text))
+              COALESCE(NULLIF(props->>'pack', ''), event) AS pack,
+              COALESCE(NULLIF(props->>'rubies', '')::int, 0) AS rubies,
+              COALESCE(NULLIF(props->>'votes', '')::int, 0) AS votes
+            FROM analytics_events
+            WHERE event IN (${iapList})
+            ORDER BY COALESCE(NULLIF(props->>'order_id', ''), id::text),
+              CASE WHEN props->>'source' = 'vk_callback' THEN 0 ELSE 1 END,
+              id
+          ) uniq
+          GROUP BY pack
+          ORDER BY count DESC
+          `,
+          IAP_EVENTS
+        ),
+        pool.query(
+          `
+          SELECT created_at, pack, user_id, rubies, votes, source
+          FROM (
+            SELECT DISTINCT ON (COALESCE(NULLIF(props->>'order_id', ''), id::text))
+              created_at,
+              COALESCE(NULLIF(props->>'pack', ''), event) AS pack,
+              user_id,
+              COALESCE(NULLIF(props->>'rubies', '')::int, 0) AS rubies,
+              COALESCE(NULLIF(props->>'votes', '')::int, 0) AS votes,
+              COALESCE(props->>'source', 'client') AS source
+            FROM analytics_events
+            WHERE event IN (${iapList})
+            ORDER BY COALESCE(NULLIF(props->>'order_id', ''), id::text),
+              CASE WHEN props->>'source' = 'vk_callback' THEN 0 ELSE 1 END,
+              id DESC
+          ) uniq
+          ORDER BY created_at DESC
+          LIMIT 20
+          `,
+          IAP_EVENTS
+        ),
+        pool.query(
+          `
+          SELECT event,
+            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today,
+            COUNT(*)::int AS all_time
+          FROM analytics_events
+          WHERE event IN (${btnList})
+          GROUP BY event
+          `,
+          BUTTON_EVENTS
+        ),
+        pool.query(`
+          SELECT event, COUNT(*)::int AS count
+          FROM analytics_events
+          WHERE created_at >= CURRENT_DATE
+          GROUP BY event
+          ORDER BY count DESC
+          LIMIT 25
+        `),
+        pool.query(`
+          SELECT COUNT(*)::int AS today_total
+          FROM analytics_events
+          WHERE created_at >= CURRENT_DATE
+        `),
+        pool.query(`
+          SELECT event, user_id, platform, props, created_at
+          FROM analytics_events
+          ORDER BY id DESC
+          LIMIT 40
+        `)
+      ]);
 
-      const monData = monRows[0] || {};
+      const monData = monRows.rows[0] || {};
       const commercialShown = monData.commercial_shown_today || 0;
       const testShown = monData.test_shown_today || 0;
       const requested = monData.requested_today || 0;
       const commercialCompleted = monData.commercial_completed_today || 0;
-
-      // Настоящий коммерческий Fill Rate (без учёта десктоп-симуляторов)
       const fillRate = requested > 0 ? Number(((commercialShown / requested) * 100).toFixed(1)) : 0;
       const compRate = commercialShown > 0 ? Number(((commercialCompleted / commercialShown) * 100).toFixed(1)) : 0;
 
+      const buttonMap = new Map((buttonRows.rows || []).map((row) => [row.event, row]));
+      const buttons = BUTTON_EVENTS.map((event) => {
+        const row = buttonMap.get(event);
+        return {
+          event,
+          label: BUTTON_LABELS[event] || event,
+          today: row ? Number(row.today || 0) : 0,
+          all_time: row ? Number(row.all_time || 0) : 0
+        };
+      });
+
+      const buy = purchaseRows.rows[0] || {};
       resultPayload = {
         activity: {
-          dau_today: actRows[0]?.dau_today || 0,
-          total_sessions_today: actRows[0]?.total_sessions_today || 0,
+          dau_today: actRows.rows[0]?.dau_today || 0,
+          total_sessions_today: actRows.rows[0]?.total_sessions_today || 0,
           avg_session_sec: 280,
-          new_users_today: retRows[0]?.total_users || 0
+          new_users_today: retRows.rows[0]?.total_users || 0
         },
-        retention: retRows[0] || { d1_retention: 0, d7_retention: 0, d30_retention: 0, avg_sessions_per_dau: 1 },
+        retention: retRows.rows[0] || { d1_retention: 0, d7_retention: 0, d30_retention: 0, avg_sessions_per_dau: 1 },
         monetization: {
           ads_shown_today: commercialShown,
           test_ads_shown_today: testShown,
           fill_rate_pct: fillRate,
           completion_rate_pct: compRate,
-          ads_per_dau: actRows[0]?.dau_today > 0 ? Number((commercialCompleted / actRows[0].dau_today).toFixed(1)) : 0
+          ads_per_dau: actRows.rows[0]?.dau_today > 0
+            ? Number((commercialCompleted / actRows.rows[0].dau_today).toFixed(1))
+            : 0
         },
         gameplay: {
-          level_distribution: lvlRows
+          level_distribution: lvlRows.rows
         },
-        top_users: topUsersRows
+        purchases: {
+          today: Number(buy.today || 0),
+          all_time: Number(buy.all_time || 0),
+          rubies_today: Number(buy.rubies_today || 0),
+          votes_today: Number(buy.votes_today || 0),
+          by_pack: (packRows.rows || []).map((row) => ({
+            pack: row.pack,
+            count: Number(row.count || 0),
+            rubies: Number(row.rubies || 0),
+            votes: Number(row.votes || 0)
+          })),
+          recent: (purchaseRecentRows.rows || []).map((row) => ({
+            created_at: row.created_at,
+            pack: row.pack,
+            user_id: maskUserId(row.user_id),
+            rubies: Number(row.rubies || 0),
+            votes: Number(row.votes || 0),
+            source: row.source || 'client'
+          }))
+        },
+        buttons,
+        events: {
+          today_total: Number(todayTotalRows.rows[0]?.today_total || 0),
+          by_type: (eventCountRows.rows || []).map((row) => ({
+            event: row.event,
+            count: Number(row.count || 0)
+          })),
+          recent: (eventRecentRows.rows || []).map((row) => ({
+            created_at: row.created_at,
+            event: row.event,
+            user_id: maskUserId(row.user_id),
+            platform: row.platform || '',
+            detail: eventDetail(row.event, row.props || {})
+          }))
+        },
+        top_users: topUsersRows.rows
       };
+
+      if (!resultPayload.buttons.length) {
+        resultPayload.buttons = zeroButtons();
+      }
     }
 
     dashboardCache = resultPayload;

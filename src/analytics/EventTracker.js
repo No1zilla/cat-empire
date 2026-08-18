@@ -1,9 +1,21 @@
 // src/analytics/EventTracker.js
 // TASK-066: Модуль трекинга аналитических событий с батчингом и офлайн-буферизацией
 
-const API_BASE = (typeof window !== 'undefined' && window.location.origin.includes('vercel.app'))
-  ? '/api'
-  : 'https://cat-empire-production.up.railway.app/api';
+function resolveAnalyticsApiBase() {
+  if (typeof window === 'undefined') return 'https://cat-empire-production.up.railway.app/api';
+  const origin = String(window.location.origin || '');
+  if (
+    origin.includes('railway.app') ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    origin.includes('vercel.app')
+  ) {
+    return '/api';
+  }
+  return 'https://cat-empire-production.up.railway.app/api';
+}
+
+const API_BASE = resolveAnalyticsApiBase();
 
 const OFFLINE_CACHE_KEY = 'cat_empire_offline_events_v1';
 

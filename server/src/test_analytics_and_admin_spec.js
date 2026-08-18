@@ -98,6 +98,16 @@ assert.ok(res4.data.retention);
 assert.ok(res4.data.monetization);
 assert.ok(res4.data.gameplay);
 assert.ok(Array.isArray(res4.data.top_users));
+assert.ok(res4.data.purchases, 'Дашборд должен отдавать кассу');
+assert.ok(typeof res4.data.purchases.today === 'number');
+assert.ok(Array.isArray(res4.data.purchases.by_pack));
+assert.ok(Array.isArray(res4.data.purchases.recent));
+assert.ok(Array.isArray(res4.data.buttons), 'Дашборд должен отдавать клики кнопок');
+assert.ok(res4.data.buttons.length >= 5);
+assert.ok(res4.data.events, 'Дашборд должен отдавать ленту событий');
+assert.ok(typeof res4.data.events.today_total === 'number');
+assert.ok(Array.isArray(res4.data.events.by_type));
+assert.ok(Array.isArray(res4.data.events.recent));
 console.log('  [Pass] Авторизация администратора прошла успешно, возвращены данные дашборда');
 console.log('✅ ТЕСТ 4 УСПЕШНО ПРОЙДЕН!\n');
 

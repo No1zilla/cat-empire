@@ -65,6 +65,38 @@ function asVkInt(value) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+export function isVkChargeNotification(params = {}) {
+  const normalized = normalizeVkPaymentParams(params);
+  const type = String(normalized.notification_type || '');
+  if (type !== 'order_status_change' && type !== 'order_status_change_test') return false;
+  const status = String(normalized.status || '');
+  return status === 'chargeable' || status === '';
+}
+
+/** Событие кассы для дашборда: пишется с callback VK, даже если клиент не достучался до Railway. */
+export function buildChargeAnalyticsEvent(params = {}) {
+  const normalized = normalizeVkPaymentParams(params);
+  if (!isVkChargeNotification(normalized)) return null;
+  const orderId = asVkInt(normalized.order_id);
+  if (!orderId) return null;
+  const item = String(normalized.item || normalized.item_id || '');
+  const pack = getPaymentRubyPack(item);
+  return {
+    event: 'iap_purchase_completed',
+    user_id: String(normalized.user_id || normalized.receiver_id || 'vk'),
+    session_id: `vk-order-${orderId}`,
+    platform: 'vk',
+    props: {
+      pack: item || 'unknown',
+      order_id: String(orderId),
+      status: String(normalized.status || 'chargeable'),
+      rubies: pack ? pack.rubies : 0,
+      votes: pack ? pack.votes : 0,
+      source: 'vk_callback'
+    }
+  };
+}
+
 export function handleVkPaymentNotification(params = {}, secret = '') {
   const normalized = normalizeVkPaymentParams(params);
   const type = String(normalized.notification_type || '');

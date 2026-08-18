@@ -1,6 +1,9 @@
 import { Router } from 'express';
+import pool from '../db.js';
 import {
+  buildChargeAnalyticsEvent,
   handleVkPaymentNotification,
+  isVkChargeNotification,
   normalizeVkPaymentParams
 } from '../utils/vkPayments.js';
 
@@ -42,7 +45,33 @@ export function replyVkPayment(req, res) {
     kind
   );
   res.set('Content-Type', 'application/json; charset=utf-8');
-  return res.status(200).send(JSON.stringify(payload));
+  res.status(200).send(JSON.stringify(payload));
+  if (payload.response && isVkChargeNotification(params)) {
+    recordVkCharge(params).catch((err) => {
+      console.warn('[vk-pay] analytics insert failed:', err && err.message);
+    });
+  }
+  return res;
+}
+
+async function recordVkCharge(params) {
+  const event = buildChargeAnalyticsEvent(params);
+  if (!event || !pool || !process.env.DATABASE_URL) return;
+  const orderId = String(event.props.order_id || '');
+  const exists = await pool.query(
+    `SELECT 1 FROM analytics_events
+     WHERE event = 'iap_purchase_completed'
+       AND props->>'order_id' = $1
+       AND props->>'source' = 'vk_callback'
+     LIMIT 1`,
+    [orderId]
+  );
+  if (exists.rowCount) return;
+  await pool.query(
+    `INSERT INTO analytics_events (event, user_id, session_id, platform, props)
+     VALUES ($1, $2, $3, $4, $5::jsonb)`,
+    [event.event, event.user_id, event.session_id, event.platform, JSON.stringify(event.props)]
+  );
 }
 
 router.post('/vk', replyVkPayment);

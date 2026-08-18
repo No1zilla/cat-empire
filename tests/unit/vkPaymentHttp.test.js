@@ -1,7 +1,9 @@
 import assert from 'node:assert';
 import crypto from 'node:crypto';
 import {
+  buildChargeAnalyticsEvent,
   handleVkPaymentNotification,
+  isVkChargeNotification,
   normalizeVkPaymentParams
 } from '../../server/src/utils/vkPayments.js';
 
@@ -52,6 +54,15 @@ export async function runVkPaymentHttpTests() {
   assert.strictEqual(charged.response.order_id, 2044861);
   assert.strictEqual(typeof charged.response.order_id, 'number');
   assert.strictEqual(charged.response.app_order_id, 2044861);
+  assert.strictEqual(isVkChargeNotification(order), true);
+  const analytics = buildChargeAnalyticsEvent(order);
+  assert.strictEqual(analytics.event, 'iap_purchase_completed');
+  assert.strictEqual(analytics.props.pack, 'gems_pack_10');
+  assert.strictEqual(analytics.props.rubies, 10);
+  assert.strictEqual(analytics.props.votes, 1);
+  assert.strictEqual(analytics.props.source, 'vk_callback');
+  assert.strictEqual(analytics.props.order_id, '2044861');
+  assert.strictEqual(buildChargeAnalyticsEvent(getItem), null);
 
   const unsigned = handleVkPaymentNotification(
     normalizeVkPaymentParams('notification_type=get_item_test&item=gems_pack_10'),
