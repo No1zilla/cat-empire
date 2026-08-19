@@ -1,7 +1,7 @@
 // Константы и конфигурация игры «Империя Котиков» (TASK-015 Visual Glow-Up)
 export const CONFIG = {
   GAME_WIDTH: 410,         // ширина игрового поля в пикселях
-  GAME_HEIGHT: 700,        // высота (мобильные пропорции)
+  GAME_HEIGHT: 700,        // минимум; на высоком iframe подгоняется под окно
   GRID_SIZE: 5,            // сетка 5x5
   CELL_SIZE: 77,           // Крупный сочный размер ячейки (77px)
   GRID_PADDING: 4,         // плотные аккуратные отступы (4px)
@@ -20,5 +20,20 @@ export const CONFIG = {
   },
   MAX_CAT_LEVEL: 15,
 };
+
+export const GAME_HEIGHT_MIN = 700;
+export const GAME_HEIGHT_MAX = 1100;
+
+/** Высота холста под iframe: ширина 410, сетка 77px. Не ниже 700. */
+export function fitGameHeight(viewW, viewH) {
+  const w = CONFIG.GAME_WIDTH || 410;
+  const vw = Math.max(1, Number(viewW) || w);
+  const vh = Math.max(1, Number(viewH) || GAME_HEIGHT_MIN);
+  CONFIG.GAME_HEIGHT = Math.max(
+    GAME_HEIGHT_MIN,
+    Math.min(GAME_HEIGHT_MAX, Math.round(w * (vh / vw)))
+  );
+  return CONFIG.GAME_HEIGHT;
+}
 
 export default CONFIG;

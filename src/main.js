@@ -1,5 +1,5 @@
 import { Application, Container, Graphics } from 'pixi.js';
-import { CONFIG } from './config.js';
+import { CONFIG, fitGameHeight } from './config.js';
 import { VKService } from './vk/VKBridge.js';
 import { PlatformService } from './services/PlatformService.js';
 import { Game } from './game/Game.js';
@@ -18,6 +18,13 @@ if (typeof document !== 'undefined') {
     document.removeEventListener('pointerdown', unlockAudio);
   };
   document.addEventListener('pointerdown', unlockAudio, { passive: true });
+}
+
+function viewSize() {
+  const el = typeof document !== 'undefined' ? document.getElementById('game-container') : null;
+  const w = (el && el.clientWidth) || (typeof window !== 'undefined' ? window.innerWidth : CONFIG.GAME_WIDTH);
+  const h = (el && el.clientHeight) || (typeof window !== 'undefined' ? window.innerHeight : CONFIG.GAME_HEIGHT);
+  return { w: Math.max(1, w), h: Math.max(1, h) };
 }
 
 // Глобальный метод для отладки и сброса туториала
@@ -82,6 +89,8 @@ async function initApp() {
 
   // 3. Создать PIXI.Application для PixiJS v8
   updateSplashProgress(55, 'Инициализируем графику PixiJS...');
+  const view = viewSize();
+  fitGameHeight(view.w, view.h);
   const app = new Application();
   const options = {
     width: CONFIG.GAME_WIDTH,
@@ -95,9 +104,11 @@ async function initApp() {
   await app.init(options);
   const container = document.getElementById('game-container');
   if (container) {
-    app.canvas.style.maxWidth = '100%';
-    app.canvas.style.maxHeight = '100%';
+    app.canvas.style.width = '100%';
+    app.canvas.style.height = '100%';
     app.canvas.style.objectFit = 'contain';
+    app.canvas.style.objectPosition = 'top center';
+    app.canvas.style.display = 'block';
     container.appendChild(app.canvas);
   }
 
@@ -123,6 +134,15 @@ async function initApp() {
     window.game = game;
   }
   await game.init(userName, userInfo);
+
+  const syncCanvasSize = () => {
+    const next = fitGameHeight(viewSize().w, viewSize().h);
+    if (app.renderer && app.renderer.height !== next) {
+      app.renderer.resize(CONFIG.GAME_WIDTH, next);
+      if (game && typeof game._layoutChrome === 'function') game._layoutChrome();
+    }
+  };
+  window.addEventListener('resize', syncCanvasSize);
 
   if (userInfo && (userInfo.firstName || userInfo.lastName || userInfo.photo)) {
     saveProgress({
