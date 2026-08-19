@@ -13,17 +13,18 @@ export function runSoundTests() {
   eventBus.emit('CATS_MERGED', { level: 2 });
   assert.strictEqual(played, true, 'Реакция на реактивное событие CATS_MERGED должна запускать синтезатор звука');
 
-  assert.ok(BGM_LOOP.bpm >= 96 && BGM_LOOP.bpm <= 108, 'Живая, но не дёрганая петля');
-  assert.ok(getBgmStepSeconds() < 0.35, 'Восьмые не тянутся как похоронная синусоида');
+  assert.ok(BGM_LOOP.bpm >= 72 && BGM_LOOP.bpm <= 84, 'Спокойный двор, не марш');
+  assert.ok(getBgmStepSeconds() > 0.35 && getBgmStepSeconds() < 0.45, 'Шаг не дёрганый');
   assert.strictEqual(BGM_LOOP.melody.length, 32);
   assert.strictEqual(BGM_LOOP.bass.length, 32);
   assert.strictEqual(BGM_LOOP.hats, false, 'Без резких хэтов');
-  assert.ok(BGM_LOOP.melodyGain <= 0.025, 'Мелодия тише, чем щипок 0.04');
-  assert.ok(BGM_LOOP.cutoffHz <= 1100, 'Верх срезан, без писка');
+  assert.ok(BGM_LOOP.melodyGain <= 0.014, 'Мелодия тихая');
+  assert.ok(BGM_LOOP.cutoffHz <= 650, 'Верх срезан, без писка');
+  assert.ok((BGM_LOOP.melody.filter((hz) => hz === 0).length) >= 12, 'Между нотами есть воздух');
 
   const melodyNotes = BGM_LOOP.melody.filter((hz) => hz > 0);
   assert.ok(melodyNotes.every((hz) => hz >= 392), 'Мелодия не гудит в G3');
-  assert.ok(Math.max(...melodyNotes) <= 880, 'Без визжащего C6');
+  assert.ok(Math.max(...melodyNotes) <= 659.25, 'Без визжащего G5/A5');
   assert.ok(BGM_LOOP.bass.some((hz) => hz > 0), 'Нужен бас');
   assert.ok(BGM_LOOP.melody[BGM_LOOP.melody.length - 1] >= 523, 'Фраза садится в до');
 

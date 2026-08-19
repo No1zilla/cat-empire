@@ -18,26 +18,28 @@ const G5 = 783.99;
 const A5 = 880.00;
 
 /**
- * Тёплый двор: мажор, без писка C6 и без хэтов.
- * Тише и мягче, но не похоронная синусоида.
+ * Спокойный двор: колыбельный мажор, воздух между нотами, без A5.
  */
 export const BGM_LOOP = {
-  bpm: 100,
-  melodyGain: 0.02,
-  bassGain: 0.024,
-  cutoffHz: 980,
+  bpm: 76,
+  melodyGain: 0.011,
+  bassGain: 0.014,
+  cutoffHz: 580,
   hats: false,
+  melodyDur: 0.9,
+  bassDur: 1.2,
+  attack: 0.14,
   melody: [
-    C5, E5, G5, E5, A5, G5, E5, G5,
-    C5, D5, E5, G5, A5, G5, E5, D5,
-    F5, A5, G5, E5, D5, E5, G5, A5,
-    G5, E5, C5, E5, D5, C5, G4, C5
+    C5, 0, E5, 0, G4, 0, C5, 0,
+    E5, 0, D5, 0, C5, 0, G4, 0,
+    C5, 0, E5, 0, G4, 0, E5, 0,
+    D5, 0, C5, 0, G4, 0, 0, C5
   ],
   bass: [
-    C3, 0, G3, 0, C3, 0, E3, 0,
-    G3, 0, D4, 0, G3, 0, B3, 0,
-    F3, 0, C4, 0, F3, 0, A3, 0,
-    C3, 0, G3, 0, C4, 0, C3, 0
+    C3, 0, 0, 0, G3, 0, 0, 0,
+    E3, 0, 0, 0, C3, 0, 0, 0,
+    F3, 0, 0, 0, C4, 0, 0, 0,
+    G3, 0, 0, 0, C3, 0, 0, 0
   ]
 };
 
@@ -244,12 +246,11 @@ export class SoundManager {
     const i = ((step % BGM_LOOP.melody.length) + BGM_LOOP.melody.length) % BGM_LOOP.melody.length;
     const melody = BGM_LOOP.melody[i];
     const bass = BGM_LOOP.bass[i];
-    const swing = i % 2 === 1 ? 0.012 : 0;
-    const t = when + swing;
-    const mix = { cutoff: BGM_LOOP.cutoffHz, attack: 0.05 };
+    const t = when;
+    const mix = { cutoff: BGM_LOOP.cutoffHz, attack: BGM_LOOP.attack || 0.12 };
 
-    if (melody) this._scheduleTone(melody, 'sine', 0.28, BGM_LOOP.melodyGain, t, mix);
-    if (bass) this._scheduleTone(bass, 'sine', 0.42, BGM_LOOP.bassGain, t, { cutoff: 520, attack: 0.06 });
+    if (melody) this._scheduleTone(melody, 'sine', BGM_LOOP.melodyDur || 0.9, BGM_LOOP.melodyGain, t, mix);
+    if (bass) this._scheduleTone(bass, 'sine', BGM_LOOP.bassDur || 1.2, BGM_LOOP.bassGain, t, { cutoff: 420, attack: 0.16 });
   }
 
   stopBgm() {
