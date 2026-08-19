@@ -1,12 +1,23 @@
 import assert from 'node:assert';
-import { soundManager, BGM_LOOP, MERGE_SFX, FILL_SFX, getBgmStepSeconds } from '../../src/audio/SoundManager.js';
+import {
+  soundManager,
+  BGM_LOOP,
+  MERGE_SFX,
+  FILL_SFX,
+  MUSIC_AVAILABLE,
+  getBgmStepSeconds
+} from '../../src/audio/SoundManager.js';
 import { eventBus } from '../../src/utils/EventBus.js';
 
 export function runSoundTests() {
   console.log('🧪 Тестирование Звукового Менеджера (src/audio/SoundManager.js)...');
 
   assert.strictEqual(soundManager.enabled, true, 'Звуковой менеджер должен быть включен по умолчанию');
-  assert.strictEqual(soundManager.musicEnabled, false, 'Однобитовая петля по умолчанию выключена');
+  assert.strictEqual(MUSIC_AVAILABLE, false, 'Фоновая музыка отключена в продукте');
+  soundManager.setMusicEnabled(true);
+  assert.strictEqual(soundManager.musicEnabled, false, 'Музыку нельзя случайно включить обратно');
+  soundManager.startBgm();
+  assert.strictEqual(soundManager._bgmTimer, null, 'BGM не создаёт таймер');
 
   let played = false;
   soundManager.playTone = () => { played = true; };

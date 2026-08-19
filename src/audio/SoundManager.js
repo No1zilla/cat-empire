@@ -47,14 +47,11 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
   return 60 / bpm / 2;
 }
 
-/** Однобитка выключена, пока игрок сам не включит в настройках. */
+/** Фоновая музыка отключена в продукте. Звуковые эффекты работают отдельно. */
+export const MUSIC_AVAILABLE = false;
+
 export function readMusicEnabledPref() {
-  if (typeof localStorage === 'undefined') return false;
-  try {
-    return localStorage.getItem('cat_empire_music_muted') === '0';
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 /** Тихий воздух на «Заполнить»: без треугольника и без C6. */
@@ -134,15 +131,14 @@ export class SoundManager {
     else this.startBgm();
   }
 
-  setMusicEnabled(enabled) {
-    this.musicEnabled = Boolean(enabled);
+  setMusicEnabled(_enabled) {
+    this.musicEnabled = false;
     if (typeof localStorage !== 'undefined') {
       try {
-        localStorage.setItem('cat_empire_music_muted', this.musicEnabled ? '0' : '1');
+        localStorage.setItem('cat_empire_music_muted', '1');
       } catch { /* ignore */ }
     }
-    if (this.musicEnabled) this.startBgm();
-    else this.stopBgm();
+    this.stopBgm();
   }
 
   unlock() {
@@ -251,6 +247,7 @@ export class SoundManager {
 
   startBgm() {
     this.stopBgm();
+    if (!MUSIC_AVAILABLE) return;
     if (!this.enabled || !this.musicEnabled) return;
     if (typeof window === 'undefined') return;
     this._ensureContext();

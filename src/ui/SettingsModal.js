@@ -65,7 +65,6 @@ export class SettingsModal extends Container {
 
     // 4. Переключатель Звука
     let soundEnabled = localStorage.getItem('cat_empire_sound_muted') !== '1';
-    let musicEnabled = soundManager.musicEnabled;
 
     const soundContainer = new Container();
     soundContainer.position.set(modalX + 25, modalY + 78);
@@ -98,14 +97,12 @@ export class SettingsModal extends Container {
     musicContainer.addChild(musicLabel);
     const musicBtn = UIUtils.createButton(
       170, -6, 90, 36,
-      musicEnabled ? '🎵 ВКЛ' : '🎵 ВЫКЛ',
-      musicEnabled ? 0x2ecc71 : 0xe74c3c,
-      () => {
-        musicEnabled = !musicEnabled;
-        soundManager.setMusicEnabled(musicEnabled);
-        this._draw();
-      }
+      '🎵 ВЫКЛ',
+      0xe74c3c,
+      () => soundManager.setMusicEnabled(false)
     );
+    musicBtn.eventMode = 'none';
+    musicBtn.cursor = 'default';
     musicContainer.addChild(musicBtn);
     this.addChild(musicContainer);
 
