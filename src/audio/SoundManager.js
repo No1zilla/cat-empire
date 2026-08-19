@@ -8,6 +8,7 @@ const A3 = 220.00;
 const B3 = 246.94;
 const C4 = 261.63;
 const D4 = 293.66;
+const E4 = 329.63;
 const G4 = 392.00;
 const C5 = 523.25;
 const D5 = 587.33;
@@ -44,14 +45,14 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
   return 60 / bpm / 2;
 }
 
-/** Мягкий мажорный перезвон слияния: без щелчка и без писка. */
+/** Ещё тише и ниже: C4–E4–G4, все синусы, длинная атака. */
 export const MERGE_SFX = {
-  notes: [329.63, 392.0, 523.25],
-  delays: [0, 0.07, 0.14],
-  durations: [0.32, 0.36, 0.42],
-  gains: [0.028, 0.024, 0.02],
-  cutoff: 760,
-  attack: 0.06
+  notes: [C4, E4, G4],
+  delays: [0, 0.12, 0.24],
+  durations: [0.5, 0.56, 0.68],
+  gains: [0.014, 0.012, 0.01],
+  cutoff: 460,
+  attack: 0.11
 };
 
 /**
@@ -177,8 +178,7 @@ export class SoundManager {
   playMerge(_combo = 1) {
     const mix = { cutoff: MERGE_SFX.cutoff, attack: MERGE_SFX.attack };
     MERGE_SFX.notes.forEach((freq, i) => {
-      const type = i === MERGE_SFX.notes.length - 1 ? 'triangle' : 'sine';
-      this.playTone(freq, type, MERGE_SFX.durations[i], MERGE_SFX.gains[i], MERGE_SFX.delays[i], mix);
+      this.playTone(freq, 'sine', MERGE_SFX.durations[i], MERGE_SFX.gains[i], MERGE_SFX.delays[i], mix);
     });
   }
 

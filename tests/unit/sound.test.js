@@ -28,10 +28,11 @@ export function runSoundTests() {
   assert.ok(BGM_LOOP.melody[BGM_LOOP.melody.length - 1] >= 523, 'Фраза садится в до');
 
   assert.strictEqual(MERGE_SFX.notes.length, 3);
-  assert.ok(Math.max(...MERGE_SFX.gains) <= 0.035, 'Слияние тише щелчка');
-  assert.ok(MERGE_SFX.cutoff <= 900, 'Слияние без писка сверху');
-  assert.ok(MERGE_SFX.attack >= 0.05, 'Атака мягкая, без щелчка');
-  assert.ok(Math.max(...MERGE_SFX.notes) <= 523.25, 'Слияние не визжит выше C5');
+  assert.ok(Math.max(...MERGE_SFX.gains) <= 0.016, 'Слияние ещё тише');
+  assert.ok(MERGE_SFX.cutoff <= 500, 'Слияние без писка сверху');
+  assert.ok(MERGE_SFX.attack >= 0.1, 'Атака мягкая, без щелчка');
+  assert.ok(Math.max(...MERGE_SFX.notes) <= 392, 'Слияние не выше G4');
+  assert.ok(Math.min(...MERGE_SFX.notes) >= 261, 'Слияние не гудит ниже C4');
 
   console.log('  ✅ Звуковой менеджер SoundManager успешно прошел все авто-тесты!');
 }
