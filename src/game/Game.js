@@ -75,7 +75,10 @@ export class Game {
     this.userName = userName;
     this.vkProfile = profile && typeof profile === 'object' ? profile : {};
     // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
-    const progress = await storageService.loadProgress().catch(() => null) || {
+    const progress = await Promise.race([
+      storageService.loadProgress().catch(() => null),
+      new Promise((resolve) => setTimeout(() => resolve(null), 7000))
+    ]) || {
       coins: 100,
       gems: 10,
       maxCatLevel: 1,
@@ -112,8 +115,12 @@ export class Game {
       this.gameContainer.x = Math.max(0, Math.floor((screenW - gameW) / 2));
     };
     updateCentering();
-    if (this.app.renderer) {
-      this.app.renderer.on('resize', updateCentering);
+    try {
+      if (this.app.renderer && typeof this.app.renderer.on === 'function') {
+        this.app.renderer.on('resize', updateCentering);
+      }
+    } catch (e) {
+      console.warn('Pixi resize hook skipped:', e);
     }
 
     // 2. Создание HUD интерфейса с кнопкой 📖 Котопедии
@@ -389,9 +396,12 @@ export class Game {
     this._bindLifecycleFlushes();
 
     const showTutorialIfNeeded = (force = false) => {
-      const tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
+      let tutorialDone = null;
+      try {
+        tutorialDone = localStorage.getItem('cat_empire_tutorial_done');
+      } catch (e) {}
       if (!force && (tutorialDone || this.maxCatLevel > 1 || (this.economy && this.economy.totalCatsBought > 0))) {
-        localStorage.setItem('cat_empire_tutorial_done', '1');
+        try { localStorage.setItem('cat_empire_tutorial_done', '1'); } catch (e) {}
         return;
       }
       const tutorial = new Tutorial(this.app, () => {
@@ -402,18 +412,21 @@ export class Game {
     };
 
     window.resetTutorial = () => {
-      localStorage.removeItem('cat_empire_tutorial_done');
+      try { localStorage.removeItem('cat_empire_tutorial_done'); } catch (e) {}
       showTutorialIfNeeded(true);
       console.log('🔄 Туториал перезапущен!');
     };
 
-    const lastTimestamp = parseInt(localStorage.getItem('cat_empire_last_timestamp') || '0', 10);
+    let lastTimestamp = 0;
+    try {
+      lastTimestamp = parseInt(localStorage.getItem('cat_empire_last_timestamp') || '0', 10);
+    } catch (e) {}
     const now = Date.now();
     let offlineSeconds = 0;
     if (lastTimestamp > 0 && now > lastTimestamp) {
       offlineSeconds = Math.min(28800, Math.floor((now - lastTimestamp) / 1000));
     }
-    localStorage.setItem('cat_empire_last_timestamp', String(now));
+    try { localStorage.setItem('cat_empire_last_timestamp', String(now)); } catch (e) {}
 
     const ips = this.economy ? this.economy.incomePerSecond : 0;
     const baseOfflineCoins = Math.round(offlineSeconds * ips * 0.5);
@@ -462,8 +475,12 @@ export class Game {
     };
 
     this._onMenuPlayCallback = () => this._runBootHooks();
-    if (shouldSkipBootMenu()) this._runBootHooks();
-    else this.showMainMenu();
+    try {
+      if (shouldSkipBootMenu()) this._runBootHooks();
+      else this.showMainMenu();
+    } catch (e) {
+      console.warn('Boot menu/tutorial skipped:', e);
+    }
 
     this._saveToLocalStorage();
 

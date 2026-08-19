@@ -29,10 +29,39 @@ function viewSize() {
 
 // Глобальный метод для отладки и сброса туториала
 window.resetTutorial = () => {
-  localStorage.removeItem('cat_empire_tutorial_done');
+  try { localStorage.removeItem('cat_empire_tutorial_done'); } catch (e) {}
   console.log('🔄 Флаг туториала сброшен! Перезагрузка...');
   location.reload();
 };
+
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(label || 'timeout')), ms);
+    })
+  ]);
+}
+
+function showSplashRetry(error) {
+  console.error('Ошибка при инициализации приложения:', error);
+  if (error && error.message) {
+    console.error('boot error:', error.message);
+  }
+  const txt = document.getElementById('splash-status-text');
+  const splash = document.getElementById('splash-screen');
+  if (txt) {
+    txt.innerText = 'Не вышло загрузить. Нажми, чтобы попробовать снова.';
+    txt.style.animation = 'none';
+    txt.style.opacity = '1';
+    txt.style.cursor = 'pointer';
+  }
+  if (splash) {
+    splash.style.pointerEvents = 'auto';
+    splash.style.cursor = 'pointer';
+    splash.onclick = () => location.reload();
+  }
+}
 
 // Обновление прогресс-бара на экране загрузки (Splash Screen)
 function updateSplashProgress(percent, statusText) {
@@ -75,13 +104,19 @@ async function initApp() {
       userInfo = await vkService.getUserInfo();
       if (userInfo && userInfo.id) {
         vkIdentity.persistProfile(userInfo);
-        if (!localStorage.getItem('cat_empire_vk_launch_params')) {
-          localStorage.setItem('cat_empire_vk_launch_params', `vk_user_id=${userInfo.id}`);
-        }
+        try {
+          if (!localStorage.getItem('cat_empire_vk_launch_params')) {
+            localStorage.setItem('cat_empire_vk_launch_params', `vk_user_id=${userInfo.id}`);
+          }
+        } catch (e) {}
       }
     } catch (e) {
       console.warn('VK UserInfo warning:', e);
     }
+
+    showDesktopBannerAd().catch((e) => {
+      console.warn('VK banner during splash skipped:', e);
+    });
   } else {
     updateSplashProgress(35, 'Инициализация Android...');
     userInfo = { firstName: 'Котовед', lastName: 'Игрок' };
@@ -98,10 +133,25 @@ async function initApp() {
     backgroundColor: 0x100b20,
     resolution: window.devicePixelRatio || 1,
     autoDensity: true,
-    antialias: true
+    antialias: true,
+    preference: 'webgl'
   };
 
-  await app.init(options);
+  try {
+    await withTimeout(app.init(options), 8000, 'Pixi init timeout');
+  } catch (e) {
+    console.warn('Pixi init failed:', e);
+    if (!app.renderer) {
+      await withTimeout(app.init({
+        ...options,
+        antialias: false,
+        resolution: 1
+      }), 8000, 'Pixi init retry timeout');
+    }
+  }
+  if (!app.canvas) {
+    throw new Error('Pixi canvas missing');
+  }
   const container = document.getElementById('game-container');
   if (container) {
     app.canvas.style.width = '100%';
@@ -112,7 +162,11 @@ async function initApp() {
     container.appendChild(app.canvas);
   }
 
-  _createBackgroundAndParticles(app);
+  try {
+    _createBackgroundAndParticles(app);
+  } catch (e) {
+    console.warn('Background particles skipped:', e);
+  }
 
   const userName = userInfo
     ? `${userInfo.firstName} ${userInfo.lastName}`.trim()
@@ -133,7 +187,7 @@ async function initApp() {
   if (typeof window !== 'undefined') {
     window.game = game;
   }
-  await game.init(userName, userInfo);
+  await withTimeout(game.init(userName, userInfo), 15000, 'game.init timeout');
 
   const syncCanvasSize = () => {
     const next = fitGameHeight(viewSize().w, viewSize().h);
@@ -242,7 +296,5 @@ function _createBackgroundAndParticles(app) {
 }
 
 initApp().catch((error) => {
-  console.error('Ошибка при инициализации приложения:', error);
-  const txt = document.getElementById('splash-status-text');
-  if (txt) txt.innerText = 'Не вышло загрузить. Закрой мини-приложение и зайди снова.';
+  showSplashRetry(error);
 });

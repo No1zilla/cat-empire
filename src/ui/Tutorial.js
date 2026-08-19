@@ -16,7 +16,11 @@ export class Tutorial extends Container {
     this._done = false;
     this._onMerge = () => this._complete();
     this.eventMode = 'passive';
-    this._draw();
+    try {
+      this._draw();
+    } catch (e) {
+      console.warn('Tutorial draw skipped:', e);
+    }
     eventBus.on('CATS_MERGED', this._onMerge);
   }
 

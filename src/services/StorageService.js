@@ -98,7 +98,11 @@ export class StorageService {
 
   async loadProgress() {
     // Сброс из настроек: не подмешиваем старую империю из VK/БД, пока флаг жив.
-    if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
+    let resetting = false;
+    try {
+      resetting = typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1';
+    } catch (e) {}
+    if (resetting) {
       console.log('🧹 Загрузка после сброса прогресса: чистый баланс...');
       const cleanResetState = {
         coins: 100,
@@ -111,7 +115,10 @@ export class StorageService {
         isReset: true
       };
       this._writeLocalCache(cleanResetState, cleanResetState.updatedAt);
-      await this.saveProgress(cleanResetState);
+      // Не ждём VK Storage / API на сплэше — облако пишем в фоне.
+      this.saveProgress(cleanResetState).catch((e) => {
+        console.warn('Сброс: облако не записалось на загрузке', e);
+      });
       return cleanResetState;
     }
 
@@ -138,15 +145,18 @@ export class StorageService {
     }
 
     let resultState = localData;
-    const [vkStorage, serverProfile] = await Promise.all([
-      vkService.storageGet([STORAGE_KEY]).catch((e) => {
-        console.warn('Ошибка загрузки из VK Storage:', e);
-        return null;
-      }),
-      fetchProfile().catch((e) => {
-        console.warn('Ошибка загрузки с бэкенда:', e);
-        return null;
-      })
+    const [vkStorage, serverProfile] = await Promise.race([
+      Promise.all([
+        vkService.storageGet([STORAGE_KEY]).catch((e) => {
+          console.warn('Ошибка загрузки из VK Storage:', e);
+          return null;
+        }),
+        fetchProfile().catch((e) => {
+          console.warn('Ошибка загрузки с бэкенда:', e);
+          return null;
+        })
+      ]),
+      new Promise((resolve) => setTimeout(() => resolve([null, null]), 6000))
     ]);
 
     if (vkStorage && vkStorage[STORAGE_KEY]) {

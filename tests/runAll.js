@@ -45,7 +45,7 @@ async function main() {
     await runSocialTests();
     runFillAllTests();
     runActionRowTests();
-    runProgressResetTests();
+    await runProgressResetTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {
