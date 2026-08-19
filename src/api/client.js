@@ -2,28 +2,57 @@
 import { showRewardedAd, showDesktopBannerAd } from './vkAds.js';
 export { showRewardedAd, showDesktopBannerAd };
 
-function resolveApiBase() {
-  if (typeof window === 'undefined') return 'https://cat-empire-production.up.railway.app/api';
-  const origin = String(window.location.origin || '');
+export const RAILWAY_API = 'https://cat-empire-production.up.railway.app/api';
+
+export function resolveApiBase(origin = typeof window !== 'undefined' ? window.location.origin : '') {
+  const o = String(origin || '');
   if (
-    origin.includes('railway.app') ||
-    origin.includes('localhost') ||
-    origin.includes('127.0.0.1') ||
-    origin.includes('vercel.app')
+    o.includes('railway.app') ||
+    o.includes('localhost') ||
+    o.includes('127.0.0.1') ||
+    o.includes('vercel.app')
   ) {
     return '/api';
   }
-  return 'https://cat-empire-production.up.railway.app/api';
+  return RAILWAY_API;
 }
 
-const BASE_URL = resolveApiBase();
+export function sanitizeVkSignHeader(raw) {
+  let s = String(raw || '');
+  s = s.replace(/^[?#/]+/, '');
+  s = s.replace(/#/g, '&');
+  s = s.replace(/[^\x20-\x7E]/g, '');
+  if (s.length > 3500) s = s.slice(0, 3500);
+  return s.trim();
+}
+
+export function vkUserIdFromLaunch(raw) {
+  const match = String(raw || '').match(/vk_user_id=([0-9]+)/);
+  return match ? match[1] : '';
+}
+
+export function isLeaderboardPayload(data) {
+  return !!(data && Array.isArray(data.leaderboard));
+}
+
+export function leaderboardRequestUrls(base = resolveApiBase(), vkId = '') {
+  const qs = vkId ? `?vk_user_id=${encodeURIComponent(vkId)}` : '';
+  const prefix = String(base || RAILWAY_API).replace(/\/$/, '');
+  const urls = [`${prefix}/leaderboard${qs}`];
+  const abs = `${RAILWAY_API}/leaderboard${qs}`;
+  if (!urls.includes(abs)) urls.push(abs);
+  return urls;
+}
 
 /**
  * Извлечение параметров запуска VK для заголовка x-vk-sign (с закэшированным сохранениям)
  */
-function getVkSignHeader() {
+export function getVkSignHeader() {
   if (typeof window === 'undefined') return '';
-  let str = window.location.search || window.location.hash || '';
+  let str = '';
+  if (window.location) {
+    str = `${window.location.search || ''}&${window.location.hash || ''}`;
+  }
 
   if (str && str.includes('vk_user_id')) {
     try {
@@ -31,26 +60,32 @@ function getVkSignHeader() {
     } catch (e) {}
   } else {
     try {
-      str = localStorage.getItem('cat_empire_vk_launch_params') || str;
+      str = `${str}&${localStorage.getItem('cat_empire_vk_launch_params') || ''}`;
     } catch (e) {}
   }
 
-  // Если параметров запуска нет, используем сохранённый vk_user_id
-  if (!str || !str.includes('vk_user_id')) {
+  if (!str.includes('vk_user_id')) {
     try {
       const savedUserId = localStorage.getItem('cat_empire_vk_user_id');
       if (savedUserId) {
-        str = `vk_user_id=${savedUserId}`;
+        str = `${str}&vk_user_id=${savedUserId}`;
       }
     } catch (e) {}
   }
 
-  // Вычищаем '#' и '?' для 100% гарантированной совместимости с HTTP-заголовками Nginx/Railway
-  while (str.startsWith('?') || str.startsWith('#')) {
-    str = str.slice(1);
-  }
+  return sanitizeVkSignHeader(str);
+}
 
-  return str;
+function requestHeaders(options = {}, withSign = true) {
+  const headers = { ...(options.headers || {}) };
+  if (options.body && !headers['Content-Type'] && !headers['content-type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (withSign) {
+    const sign = getVkSignHeader();
+    if (sign) headers['x-vk-sign'] = sign;
+  }
+  return headers;
 }
 
 /**
@@ -61,30 +96,55 @@ async function apiRequest(endpoint, options = {}) {
   const timeoutMs = Number(options.timeoutMs) || 8000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const { timeoutMs: _ignored, ...fetchOptions } = options;
+  const url = `${resolveApiBase()}${endpoint}`;
 
-  try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'x-vk-sign': getVkSignHeader(),
-      ...(options.headers || {})
-    };
-
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const attempt = async (withSign) => {
+    const response = await fetch(url, {
       ...fetchOptions,
-      headers,
+      headers: requestHeaders(options, withSign),
+      credentials: 'omit',
       signal: controller.signal
     });
+    if (!response.ok) return null;
+    return await response.json();
+  };
 
+  try {
+    const data = await attempt(true);
+    if (data) {
+      clearTimeout(timeoutId);
+      return data;
+    }
+    const retry = await attempt(false);
     clearTimeout(timeoutId);
-
-    if (!response.ok) {
+    return retry;
+  } catch (err) {
+    try {
+      const retry = await attempt(false);
+      clearTimeout(timeoutId);
+      return retry;
+    } catch {
+      clearTimeout(timeoutId);
       return null;
     }
+  }
+}
 
-    return await response.json();
-  } catch (err) {
+async function getJsonSimple(url, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'omit',
+      signal: controller.signal
+    });
     clearTimeout(timeoutId);
-    return null; // При любых сетевых проблемах оффлайн режим
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    clearTimeout(timeoutId);
+    return null;
   }
 }
 
@@ -140,11 +200,13 @@ export async function saveProgress(data) {
  * Получение таблицы лидеров
  */
 export async function fetchLeaderboard() {
-  try {
-    return await apiRequest('/leaderboard', { method: 'GET', timeoutMs: 10000 });
-  } catch (e) {
-    return null;
+  const vkId = vkUserIdFromLaunch(getVkSignHeader());
+  const urls = leaderboardRequestUrls(resolveApiBase(), vkId);
+  for (const url of urls) {
+    const data = await getJsonSimple(url, 10000);
+    if (isLeaderboardPayload(data)) return data;
   }
+  return null;
 }
 
 export default {

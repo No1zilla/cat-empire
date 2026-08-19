@@ -18,8 +18,8 @@ export function buildLeaderboardRows(data, playerStats = {}, youVk = '') {
     isYou: true
   };
 
-  if (!data) {
-    return { status: 'error', rows: [selfRow] };
+  if (!data || !Array.isArray(data.leaderboard)) {
+    return { status: 'error', rows: [] };
   }
 
   const remote = Array.isArray(data.leaderboard) ? data.leaderboard : [];

@@ -30,7 +30,11 @@ export async function runSocialTests() {
 
   const failed = buildLeaderboardRows(null, { maxCatLevel: 2 });
   assert.strictEqual(failed.status, 'error');
-  assert.strictEqual(failed.rows[0].name, 'Ты');
+  assert.strictEqual(failed.rows.length, 0, 'Ошибка топа без фейкового «ты №1»');
+
+  const broken = buildLeaderboardRows({ error: 'fail' }, { firstName: 'Я' });
+  assert.strictEqual(broken.status, 'error');
+  assert.strictEqual(broken.rows.length, 0);
 
   const top = buildLeaderboardRows({
     leaderboard: [

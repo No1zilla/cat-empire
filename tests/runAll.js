@@ -20,6 +20,7 @@ import { runFillAllTests } from './unit/fillAll.test.js';
 import { runActionRowTests } from './unit/actionRow.test.js';
 import { runProgressResetTests } from './unit/progressReset.test.js';
 import { runOfflineClaimTests } from './unit/offlineClaim.test.js';
+import { runApiClientTests } from './unit/apiClient.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -48,6 +49,7 @@ async function main() {
     runActionRowTests();
     await runProgressResetTests();
     await runOfflineClaimTests();
+    await runApiClientTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {

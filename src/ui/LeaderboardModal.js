@@ -27,7 +27,9 @@ export class LeaderboardModal extends Container {
     this.eventMode = 'static';
     this.zIndex = 999999;
     this._drawLoading();
-    this._load();
+    this._load().catch(() => {
+      this._drawFrame('Топ не загрузился. Открой ещё раз.', []);
+    });
   }
 
   _drawLoading() {
@@ -142,7 +144,11 @@ export class LeaderboardModal extends Container {
   }
 
   async _load() {
-    const data = await fetchLeaderboard();
+    let data = await fetchLeaderboard();
+    if (!data || !Array.isArray(data.leaderboard)) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      data = await fetchLeaderboard();
+    }
     const youVk = String(this.playerStats.vkId || currentVkId() || '');
     const built = buildLeaderboardRows(data, this.playerStats, youVk);
     const status = built.status === 'error'
