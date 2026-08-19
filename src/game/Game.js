@@ -1,5 +1,5 @@
 import { Container, Text, TextStyle } from 'pixi.js';
-import { CONFIG } from '../config.js';
+import { CONFIG, gameContainerOffsetX } from '../config.js';
 import { BALANCE } from '../config/balance.js';
 import { Grid } from './Grid.js';
 import { Cat } from './Cat.js';
@@ -111,9 +111,10 @@ export class Game {
     this.app.stage.addChild(this.gameContainer);
 
     const updateCentering = () => {
-      const screenW = this.app.renderer ? this.app.renderer.width : (this.app.screen ? this.app.screen.width : CONFIG.GAME_WIDTH);
-      const gameW = CONFIG.GAME_WIDTH;
-      this.gameContainer.x = Math.max(0, Math.floor((screenW - gameW) / 2));
+      const screenW = this.app.screen && Number.isFinite(this.app.screen.width)
+        ? this.app.screen.width
+        : CONFIG.GAME_WIDTH;
+      this.gameContainer.x = gameContainerOffsetX(screenW, CONFIG.GAME_WIDTH);
     };
     updateCentering();
     try {
@@ -750,9 +751,10 @@ export class Game {
     [this.fillAllButton, this.autoMergeButton].forEach((btn) => {
       if (!btn) return;
       btn.visible = true;
-      btn.eventMode = 'none';
     });
-    if (this.actionRow) this.actionRow.eventMode = 'static';
+    if (this.actionRow && typeof this.actionRow.armButtons === 'function') {
+      this.actionRow.armButtons();
+    }
     this._layoutChrome();
   }
 

@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js';
+import { CONFIG, pointerToGameX } from '../config.js';
 
 /** Три одинаковые кнопки ровно на 410: поля 10, кнопка 126, щель 6. */
 export const ACTION_BTN_W = 126;
@@ -49,6 +49,13 @@ export function runActionPress(index, handlers = {}) {
   else if (index === 2 && typeof handlers.merge === 'function') handlers.merge();
 }
 
+/** Тап по CSS-канвасу → индекс кнопки. rowWorldX = 0, если ряд не сдвинут. */
+export function clientXToActionIndex(clientX, canvasRect, rowWorldX = 0, gameWidth = CONFIG.GAME_WIDTH) {
+  const gameX = pointerToGameX(clientX, canvasRect, gameWidth);
+  if (!Number.isFinite(gameX)) return -1;
+  return actionButtonIndexAt(gameX - (Number(rowWorldX) || 0));
+}
+
 export default {
   ACTION_BTN_W,
   ACTION_BTN_H,
@@ -59,5 +66,6 @@ export default {
   actionRowFitsGame,
   actionButtonHit,
   actionHitsOverlap,
-  actionButtonIndexAt
+  actionButtonIndexAt,
+  clientXToActionIndex
 };

@@ -30,13 +30,19 @@ function viewSize() {
 function applyCanvasFit(app) {
   if (!app || !app.canvas) return;
   const view = viewSize();
-  const css = canvasCssSize(view.w, view.h, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT);
-  app.canvas.style.width = `${css.width}px`;
-  app.canvas.style.height = `${css.height}px`;
-  app.canvas.style.objectFit = 'fill';
-  app.canvas.style.objectPosition = 'top center';
-  app.canvas.style.display = 'block';
-  app.canvas.style.margin = '0 auto';
+  const gameW = (app.screen && app.screen.width) || CONFIG.GAME_WIDTH;
+  const gameH = (app.screen && app.screen.height) || CONFIG.GAME_HEIGHT;
+  const css = canvasCssSize(view.w, view.h, gameW, gameH);
+  const style = app.canvas.style;
+  style.setProperty('width', `${css.width}px`, 'important');
+  style.setProperty('height', `${css.height}px`, 'important');
+  style.setProperty('max-width', 'none', 'important');
+  style.setProperty('max-height', 'none', 'important');
+  style.setProperty('object-fit', 'fill', 'important');
+  style.setProperty('object-position', 'top center', 'important');
+  style.display = 'block';
+  style.margin = '0 auto';
+  style.flex = '0 0 auto';
 }
 
 // Глобальный метод для отладки и сброса туториала

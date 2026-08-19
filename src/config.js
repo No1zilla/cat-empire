@@ -37,20 +37,43 @@ export function fitGameHeight(viewW, viewH) {
 }
 
 /**
- * CSS-размер канваса 1-в-1 с логическим полем.
- * 100% + object-fit:contain сдвигает тапы: «Соединить» попадает в «Заполнить».
+ * CSS-размер канваса = логическое поле.
+ * Не растягиваем вверх: лишнее место iframe остаётся вокруг холста (flex).
+ * object-fit:contain + width/height 100% сдвигает тапы: центр «Соединить» бьёт в «Заполнить».
+ * Ужимаем только если iframe уже поля — иначе на узком телефоне холст вылезает за край.
  */
 export function canvasCssSize(viewW, viewH, gameW = CONFIG.GAME_WIDTH, gameH = CONFIG.GAME_HEIGHT) {
   const gw = Math.max(1, Number(gameW) || 410);
   const gh = Math.max(1, Number(gameH) || GAME_HEIGHT_MIN);
   const vw = Math.max(1, Number(viewW) || gw);
   const vh = Math.max(1, Number(viewH) || gh);
-  const scale = Math.min(vw / gw, vh / gh);
+  const scale = Math.min(1, vw / gw, vh / gh);
   return {
     width: Math.max(1, Math.round(gw * scale)),
     height: Math.max(1, Math.round(gh * scale)),
     scale
   };
+}
+
+/**
+ * Сцена не сдвигается внутри канваса. Поле уже 410 = ширина холста.
+ * renderer.width в backing-пикселях (410 * dpr) давал x≈205 и разъезд кнопок vs тапов.
+ */
+export function gameContainerOffsetX(screenW, gameW = CONFIG.GAME_WIDTH) {
+  void screenW;
+  void gameW;
+  return 0;
+}
+
+/** clientX по боксу канваса → логический X поля 410. */
+export function pointerToGameX(clientX, canvasRect, gameWidth = CONFIG.GAME_WIDTH) {
+  const gw = Math.max(1, Number(gameWidth) || 410);
+  const left = canvasRect && Number(canvasRect.left);
+  const width = canvasRect && Number(canvasRect.width);
+  if (!Number.isFinite(left) || !Number.isFinite(width) || width <= 0) return NaN;
+  const x = Number(clientX);
+  if (!Number.isFinite(x)) return NaN;
+  return (x - left) * (gw / width);
 }
 
 export default CONFIG;
