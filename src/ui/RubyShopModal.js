@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
@@ -11,6 +11,54 @@ import { purchaseVkItem } from '../game/iapBuy.js';
 import { StarterTributeModal } from './StarterTributeModal.js';
 
 const PROCESSED_ORDERS_KEY = 'cat_empire_iap_orders';
+
+export const RUBY_PACK_BTN_H = 70;
+export const RUBY_PACK_BTN_GAP = 14;
+
+/** Подписи пака — дети кнопки. Иначе текст сверху съедает тап и жмётся только кайма. */
+export function mountPackCaption(btn, width, titleText, priceText, font) {
+  if (!btn) return btn;
+  (btn.children || []).forEach((child) => {
+    if (child instanceof Text) child.visible = false;
+  });
+  const packTitle = new Text({
+    text: titleText,
+    style: new TextStyle({
+      fontFamily: font,
+      fontSize: 16,
+      fontWeight: 'bold',
+      fill: '#ffffff',
+      dropShadow: { color: '#000000', alpha: 0.45, blur: 2, distance: 1 }
+    })
+  });
+  packTitle.eventMode = 'none';
+  packTitle.anchor.set(0.5, 0);
+  packTitle.position.set(width / 2, 12);
+  btn.addChild(packTitle);
+
+  const packPrice = new Text({
+    text: priceText,
+    style: new TextStyle({
+      fontFamily: font,
+      fontSize: 12,
+      fill: TOKENS.colors.gold
+    })
+  });
+  packPrice.eventMode = 'none';
+  packPrice.anchor.set(0.5, 0);
+  packPrice.position.set(width / 2, 38);
+  btn.addChild(packPrice);
+  return btn;
+}
+
+function reinforceShopTap(btn) {
+  if (!btn || typeof btn.on !== 'function') return btn;
+  btn.on('pointerup', (e) => {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    btn.emit('pointertap', e);
+  });
+  return btn;
+}
 
 function votesWord(n) {
   const abs = Math.abs(Number(n) || 0);
@@ -76,6 +124,7 @@ export class RubyShopModal extends Container {
     bg.roundRect(modalX, modalY, modalW, modalH, 20);
     bg.fill(0x15102A);
     bg.stroke({ color: 0xFF4757, width: 2.5 });
+    bg.eventMode = 'none';
     this.addChild(bg);
 
     const title = new Text({
@@ -89,6 +138,7 @@ export class RubyShopModal extends Container {
       })
     });
     title.anchor.set(0.5);
+    title.eventMode = 'none';
     title.position.set(W / 2, modalY + 28);
     this.addChild(title);
 
@@ -104,6 +154,7 @@ export class RubyShopModal extends Container {
       })
     });
     sub.anchor.set(0.5, 0);
+    sub.eventMode = 'none';
     sub.position.set(W / 2, modalY + 50);
     this.addChild(sub);
 
@@ -123,52 +174,37 @@ export class RubyShopModal extends Container {
           this.app.stage.addChild(modal);
         }
       );
+      reinforceShopTap(tributeBtn);
       this.addChild(tributeBtn);
       packsTop = modalY + 140;
     }
 
+    const btnW = modalW - 44;
     RUBY_PACKS.forEach((pack, index) => {
-      const y = packsTop + index * 84;
+      const y = packsTop + index * (RUBY_PACK_BTN_H + RUBY_PACK_BTN_GAP);
       const btn = UIUtils.createButton(
         modalX + 22,
         y,
-        modalW - 44,
-        70,
+        btnW,
+        RUBY_PACK_BTN_H,
         '',
         index === 1 ? parseInt(TOKENS.colors.gems.replace('#', '0x')) : 0x3d356c,
         () => this._buy(pack)
       );
+      btn.hitArea = new Rectangle(-10, -8, btnW + 20, RUBY_PACK_BTN_H + 16);
+      mountPackCaption(
+        btn,
+        btnW,
+        `${pack.title}  ·  ${UIUtils.formatRubies(pack.rubies)}`,
+        `${pack.votes} ${votesWord(pack.votes)} VK  ·  ${pack.hint}`,
+        font
+      );
+      reinforceShopTap(btn);
       this.addChild(btn);
-
-      const packTitle = new Text({
-        text: `${pack.title}  ·  ${UIUtils.formatRubies(pack.rubies)}`,
-        style: new TextStyle({
-          fontFamily: font,
-          fontSize: 16,
-          fontWeight: 'bold',
-          fill: '#ffffff',
-          dropShadow: { color: '#000000', alpha: 0.45, blur: 2, distance: 1 }
-        })
-      });
-      packTitle.anchor.set(0.5, 0);
-      packTitle.position.set(W / 2, y + 12);
-      this.addChild(packTitle);
-
-      const packPrice = new Text({
-        text: `${pack.votes} ${votesWord(pack.votes)} VK  ·  ${pack.hint}`,
-        style: new TextStyle({
-          fontFamily: font,
-          fontSize: 12,
-          fill: TOKENS.colors.gold
-        })
-      });
-      packPrice.anchor.set(0.5, 0);
-      packPrice.position.set(W / 2, y + 38);
-      this.addChild(packPrice);
     });
 
     if (showEdict) {
-      const edictY = packsTop + RUBY_PACKS.length * 84;
+      const edictY = packsTop + RUBY_PACKS.length * (RUBY_PACK_BTN_H + RUBY_PACK_BTN_GAP);
       const edictBtn = UIUtils.createButton(
         modalX + 22,
         edictY,
@@ -178,6 +214,7 @@ export class RubyShopModal extends Container {
         parseInt(TOKENS.colors.gems.replace('#', '0x')),
         () => this._buyEdict()
       );
+      reinforceShopTap(edictBtn);
       this.addChild(edictBtn);
     }
 
@@ -190,6 +227,7 @@ export class RubyShopModal extends Container {
       0x3d356c,
       () => this._close()
     );
+    reinforceShopTap(closeBtn);
     this.addChild(closeBtn);
   }
 
