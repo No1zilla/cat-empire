@@ -28,10 +28,17 @@ export function runSoundTests() {
   assert.ok(BGM_LOOP.melody[BGM_LOOP.melody.length - 1] >= 523, 'Фраза садится в до');
 
   assert.strictEqual(MERGE_SFX.notes.length, 3);
-  assert.ok(Math.max(...MERGE_SFX.gains) <= 0.035, 'Слияние тише щелчка');
-  assert.ok(MERGE_SFX.cutoff <= 900, 'Слияние без писка сверху');
-  assert.ok(MERGE_SFX.attack >= 0.05, 'Атака мягкая, без щелчка');
-  assert.ok(Math.max(...MERGE_SFX.notes) <= 523.25, 'Слияние не визжит выше C5');
+  assert.ok(Math.max(...MERGE_SFX.gains) <= 0.012, 'Слияние тихое, не орёт на каждое заполнение');
+  assert.ok(MERGE_SFX.cutoff <= 500, 'Слияние без писка сверху');
+  assert.ok(MERGE_SFX.attack >= 0.08, 'Атака мягкая, без щелчка');
+  assert.ok(Math.max(...MERGE_SFX.notes) <= 392, 'Слияние не выше G4');
+  assert.ok(MERGE_SFX.cooldownMs >= 600, 'Каскад слияний не наслаивает перезвон');
+
+  soundManager._lastMergeAt = Date.now();
+  let spam = false;
+  soundManager.playTone = () => { spam = true; };
+  eventBus.emit('CATS_MERGED', { level: 3 });
+  assert.strictEqual(spam, false, 'Повтор слияния в cooldown молчит');
 
   console.log('  ✅ Звуковой менеджер SoundManager успешно прошел все авто-тесты!');
 }

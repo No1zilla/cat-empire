@@ -8,6 +8,7 @@ const A3 = 220.00;
 const B3 = 246.94;
 const C4 = 261.63;
 const D4 = 293.66;
+const E4 = 329.63;
 const G4 = 392.00;
 const C5 = 523.25;
 const D5 = 587.33;
@@ -44,14 +45,15 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
   return 60 / bpm / 2;
 }
 
-/** Мягкий мажорный перезвон слияния: без щелчка и без писка. */
+/** Тихий C4–E4–G4. Не чаще cooldown — иначе «Заполнить» каждую секунду тошнит. */
 export const MERGE_SFX = {
-  notes: [329.63, 392.0, 523.25],
-  delays: [0, 0.07, 0.14],
-  durations: [0.32, 0.36, 0.42],
-  gains: [0.028, 0.024, 0.02],
-  cutoff: 760,
-  attack: 0.06
+  notes: [C4, E4, G4],
+  delays: [0, 0.09, 0.18],
+  durations: [0.28, 0.32, 0.38],
+  gains: [0.009, 0.007, 0.006],
+  cutoff: 430,
+  attack: 0.1,
+  cooldownMs: 700
 };
 
 /**
@@ -68,6 +70,7 @@ export class SoundManager {
     this._bgmNextTime = 0;
     this._bgmGen = 0;
     this._unlocked = false;
+    this._lastMergeAt = 0;
     this._loadPrefs();
     this._initListeners();
   }
@@ -175,10 +178,12 @@ export class SoundManager {
   }
 
   playMerge(_combo = 1) {
+    const now = Date.now();
+    if (this._lastMergeAt && now - this._lastMergeAt < MERGE_SFX.cooldownMs) return;
+    this._lastMergeAt = now;
     const mix = { cutoff: MERGE_SFX.cutoff, attack: MERGE_SFX.attack };
     MERGE_SFX.notes.forEach((freq, i) => {
-      const type = i === MERGE_SFX.notes.length - 1 ? 'triangle' : 'sine';
-      this.playTone(freq, type, MERGE_SFX.durations[i], MERGE_SFX.gains[i], MERGE_SFX.delays[i], mix);
+      this.playTone(freq, 'sine', MERGE_SFX.durations[i], MERGE_SFX.gains[i], MERGE_SFX.delays[i], mix);
     });
   }
 
