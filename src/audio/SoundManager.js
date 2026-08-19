@@ -47,6 +47,16 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
   return 60 / bpm / 2;
 }
 
+/** Тихий воздух на «Заполнить»: без треугольника и без C6. */
+export const FILL_SFX = {
+  notes: [E4, G4],
+  delays: [0, 0.07],
+  durations: [0.24, 0.3],
+  gains: [0.008, 0.006],
+  cutoff: 460,
+  attack: 0.09
+};
+
 /** Тихий C4–E4–G4. Не чаще cooldown — иначе «Заполнить» каждую секунду тошнит. */
 export const MERGE_SFX = {
   notes: [C4, E4, G4],
@@ -90,8 +100,14 @@ export class SoundManager {
 
   _initListeners() {
     eventBus.on('CATS_MERGED', (data) => this.playMerge(data && data.combo));
-    eventBus.on('COINS_SPENT', () => this.playBuy());
-    eventBus.on('CAT_SPAWNED', () => this.playMeow());
+    eventBus.on('COINS_SPENT', (data) => {
+      if (data && data.fill) this.playFill();
+      else this.playBuy();
+    });
+    eventBus.on('CAT_SPAWNED', (data) => {
+      if (data && data.fill) return;
+      this.playMeow();
+    });
     eventBus.on('NEW_CAT_UNLOCKED', () => this.playLevelUp());
     eventBus.on('UI_CLICK', () => this.playClick());
     eventBus.on('REWARD_CLAIMED', () => this.playReward());
@@ -186,6 +202,13 @@ export class SoundManager {
     const mix = { cutoff: MERGE_SFX.cutoff, attack: MERGE_SFX.attack };
     MERGE_SFX.notes.forEach((freq, i) => {
       this.playTone(freq, 'sine', MERGE_SFX.durations[i], MERGE_SFX.gains[i], MERGE_SFX.delays[i], mix);
+    });
+  }
+
+  playFill() {
+    const mix = { cutoff: FILL_SFX.cutoff, attack: FILL_SFX.attack };
+    FILL_SFX.notes.forEach((freq, i) => {
+      this.playTone(freq, 'sine', FILL_SFX.durations[i], FILL_SFX.gains[i], FILL_SFX.delays[i], mix);
     });
   }
 

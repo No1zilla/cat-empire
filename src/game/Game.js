@@ -225,7 +225,7 @@ export class Game {
       }
 
       if (this.economy) {
-        this.economy.spend(actualTotalCost);
+        this.economy.spend(actualTotalCost, 0, { fill: true });
         this.economy.totalCatsBought += spawnCount;
         this.economy.totalCatsCreated += spawnCount;
       }
@@ -245,7 +245,7 @@ export class Game {
       }
 
       eventTracker.trackFillAllTriggered(spawnCount, actualTotalCost, freeSlots.length);
-      eventBus.emit('CAT_SPAWNED', { count: spawnCount });
+      eventBus.emit('CAT_SPAWNED', { count: spawnCount, fill: true });
       dailyQuestsService.progress('buy', spawnCount);
 
       if (this.economy) {

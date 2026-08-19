@@ -93,13 +93,13 @@ export class Economy {
   }
 
   // Списать средства
-  spend(coins = 0, gems = 0) {
+  spend(coins = 0, gems = 0, meta = {}) {
     if (!this.canAfford(coins)) {
       throw new Error('Недостаточно монет');
     }
     this.coins -= coins;
     this.gems -= gems;
-    if (coins > 0) eventBus.emit('COINS_SPENT', { coins });
+    if (coins > 0) eventBus.emit('COINS_SPENT', { coins, ...(meta || {}) });
     this._notify();
   }
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { soundManager, BGM_LOOP, MERGE_SFX, getBgmStepSeconds } from '../../src/audio/SoundManager.js';
+import { soundManager, BGM_LOOP, MERGE_SFX, FILL_SFX, getBgmStepSeconds } from '../../src/audio/SoundManager.js';
 import { eventBus } from '../../src/utils/EventBus.js';
 
 export function runSoundTests() {
@@ -40,6 +40,23 @@ export function runSoundTests() {
   soundManager.playTone = () => { spam = true; };
   eventBus.emit('CATS_MERGED', { level: 3 });
   assert.strictEqual(spam, false, 'Повтор слияния в cooldown молчит');
+
+  assert.strictEqual(FILL_SFX.notes.length, 2);
+  assert.ok(Math.max(...FILL_SFX.gains) <= 0.01, 'Заполнить тише покупки');
+  assert.ok(Math.max(...FILL_SFX.notes) <= 392, 'Заполнить без тяжёлого верха');
+  assert.ok(FILL_SFX.attack >= 0.07, 'Заполнить без щелчка');
+
+  let fillPlayed = 0;
+  let buyPlayed = 0;
+  soundManager.playFill = () => { fillPlayed += 1; };
+  soundManager.playBuy = () => { buyPlayed += 1; };
+  soundManager.playMeow = () => { buyPlayed += 10; };
+  eventBus.emit('COINS_SPENT', { coins: 40, fill: true });
+  eventBus.emit('CAT_SPAWNED', { count: 8, fill: true });
+  assert.strictEqual(fillPlayed, 1, 'Заполнить играет свой звук');
+  assert.strictEqual(buyPlayed, 0, 'Заполнить не бьёт buy/meow');
+  eventBus.emit('COINS_SPENT', { coins: 10 });
+  assert.strictEqual(buyPlayed, 1, 'Обычная покупка по-прежнему buy');
 
   console.log('  ✅ Звуковой менеджер SoundManager успешно прошел все авто-тесты!');
 }
