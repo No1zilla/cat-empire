@@ -11,6 +11,9 @@ import {
   CAT_INCOME_Y,
   CAT_LOCK_LVL_Y,
   CAT_LABEL_FONT,
+  CAT_DECK_MASK_X,
+  CAT_DECK_CARD_PAD,
+  CAT_DECK_CARD_START_X,
   catDeckCardY
 } from './catDeckLayout.js';
 
@@ -89,7 +92,12 @@ export class CatDeck extends Container {
     tutorialBtn.position.set(W - 30, 8);
     tutorialBtn.eventMode = 'static';
     tutorialBtn.cursor = 'pointer';
-    tutorialBtn.hitArea = new Rectangle(-20, -10, 110, 36);
+    tutorialBtn.hitArea = new Rectangle(
+      -Math.ceil(tutorialBtn.width) - 8,
+      -8,
+      Math.ceil(tutorialBtn.width) + 16,
+      28
+    );
 
     let lastTutTapTime = 0;
     const handleTutorialClick = (e) => {
@@ -112,16 +120,12 @@ export class CatDeck extends Container {
       }
     };
     tutorialBtn.on('pointertap', handleTutorialClick);
-    tutorialBtn.on('pointerdown', handleTutorialClick);
-    tutorialBtn.on('tap', handleTutorialClick);
-    tutorialBtn.on('click', handleTutorialClick);
-    tutorialBtn.on('touchstart', handleTutorialClick);
     tutorialBtn.on('pointerover', () => { tutorialBtn.style.fill = '#ffd700'; });
     tutorialBtn.on('pointerout', () => { tutorialBtn.style.fill = '#a8d8ff'; });
     this.addChild(tutorialBtn);
 
     // 3. Зона маскирования (ширина между стрелками без наслоения)
-    const maskX = 48;
+    const maskX = CAT_DECK_MASK_X;
     const maskW = W - 96;
     const mask = new Graphics();
     mask.rect(maskX, cardY - 2, maskW, CAT_CARD_H + 6);
@@ -134,8 +138,9 @@ export class CatDeck extends Container {
 
     const cardW = CAT_CARD_W;
     const cardH = CAT_CARD_H;
-    const padX = 8;
-    const startX = maskX + 4;
+    const padX = CAT_DECK_CARD_PAD;
+    const startX = CAT_DECK_CARD_START_X;
+    this._cardHit = { startX, cardW, cardH, padX, cardY };
 
     for (let level = 1; level <= 15; level++) {
       const isUnlocked = level <= this.maxUnlockedLevel;
@@ -145,6 +150,17 @@ export class CatDeck extends Container {
 
       const cardGroup = new Container();
       cardGroup.position.set(x, y);
+      cardGroup.eventMode = 'static';
+      cardGroup.cursor = isUnlocked ? 'pointer' : 'default';
+      cardGroup.interactiveChildren = false;
+      cardGroup.hitArea = new Rectangle(0, 0, cardW, cardH);
+      const tapLevel = level;
+      const tapUnlocked = isUnlocked;
+      cardGroup.on('pointertap', (e) => {
+        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (this._isMoved) return;
+        this.onCardClick(tapLevel, tapUnlocked);
+      });
 
       const cardBg = new Graphics();
       cardBg.roundRect(0, 0, cardW, cardH, 10);
@@ -260,6 +276,7 @@ export class CatDeck extends Container {
     leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     leftBtn.eventMode = 'static';
     leftBtn.cursor = 'pointer';
+    leftBtn.hitArea = new Rectangle(12, arrowY, btnSize, btnSize);
     leftBtn.on('pointerdown', (e) => {
       e.stopPropagation();
       this.scrollBy(180);
@@ -284,6 +301,7 @@ export class CatDeck extends Container {
     rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     rightBtn.eventMode = 'static';
     rightBtn.cursor = 'pointer';
+    rightBtn.hitArea = new Rectangle(W - 40, arrowY, btnSize, btnSize);
     rightBtn.on('pointerdown', (e) => {
       e.stopPropagation();
       this.scrollBy(-180);
@@ -308,9 +326,9 @@ export class CatDeck extends Container {
     this.cursor = 'grab';
     this.hitArea = new Rectangle(0, 0, CONFIG.GAME_WIDTH, this._deckH || CAT_DECK_H);
 
-    const cardW = 54;
-    const padX = 8;
-    const startX = 44;
+    const cardW = CAT_CARD_W;
+    const padX = CAT_DECK_CARD_PAD;
+    const startX = CAT_DECK_CARD_START_X;
     const totalW = startX + 15 * (cardW + padX);
     const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
 
@@ -357,20 +375,6 @@ export class CatDeck extends Container {
       }
 
       this._targetX = Math.max(minX, Math.min(0, this._targetX));
-
-      if (!this._isMoved && e) {
-        const local = this._cardsContainer.toLocal(e.global);
-        const cardTop = this._cardY || 30;
-        for (let i = 0; i < 15; i++) {
-          const level = i + 1;
-          const cx = startX + i * (cardW + padX);
-          if (local.x >= cx && local.x <= cx + cardW && local.y >= cardTop && local.y <= cardTop + cardH) {
-            const isUnlocked = level <= this.maxUnlockedLevel;
-            this.onCardClick(level, isUnlocked);
-            break;
-          }
-        }
-      }
     };
 
     this.on('pointerup', onUp);
@@ -389,9 +393,9 @@ export class CatDeck extends Container {
   }
 
   _startSmoothLoop() {
-    const cardW = 54;
-    const padX = 8;
-    const startX = 44;
+    const cardW = CAT_CARD_W;
+    const padX = CAT_DECK_CARD_PAD;
+    const startX = CAT_DECK_CARD_START_X;
     const totalW = startX + 15 * (cardW + padX);
     const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
 
@@ -416,9 +420,9 @@ export class CatDeck extends Container {
   }
 
   scrollBy(deltaX) {
-    const cardW = 54;
-    const padX = 8;
-    const startX = 44;
+    const cardW = CAT_CARD_W;
+    const padX = CAT_DECK_CARD_PAD;
+    const startX = CAT_DECK_CARD_START_X;
     const totalW = startX + 15 * (cardW + padX);
     const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
 
@@ -426,9 +430,9 @@ export class CatDeck extends Container {
   }
 
   scrollToLevel(level) {
-    const cardW = 54;
-    const padX = 8;
-    const startX = 44;
+    const cardW = CAT_CARD_W;
+    const padX = CAT_DECK_CARD_PAD;
+    const startX = CAT_DECK_CARD_START_X;
     const totalW = startX + 15 * (cardW + padX);
     const minX = Math.min(0, (CONFIG.GAME_WIDTH - 80) - totalW);
 

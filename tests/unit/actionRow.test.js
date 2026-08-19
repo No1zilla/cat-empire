@@ -26,9 +26,13 @@ import {
   CAT_CARD_Y,
   CAT_DECK_BOTTOM_PAD,
   CAT_DECK_GAP,
+  CAT_DECK_CARD_START_X,
+  CAT_CARD_W,
   catDeckLabelsFit,
   catDeckY,
-  catDeckFrame
+  catDeckFrame,
+  catDeckCardHit,
+  catDeckCardIndexAt
 } from '../../src/ui/catDeckLayout.js';
 
 export function runActionRowTests() {
@@ -164,6 +168,18 @@ export function runActionRowTests() {
 
     assert.strictEqual(catDeckLabelsFit(), true);
     assert.ok(CAT_CARD_Y + CAT_CARD_H < CAT_DECK_H, 'карточки целиком внутри панели');
+
+    const card0 = catDeckCardHit(0);
+    assert.strictEqual(card0.x, CAT_DECK_CARD_START_X);
+    assert.strictEqual(card0.w, CAT_CARD_W);
+    assert.strictEqual(catDeckCardIndexAt(card0.x + card0.w / 2, card0.y + 10), 0, 'центр 1-й карточки');
+    assert.strictEqual(catDeckCardIndexAt(catDeckCardHit(1).x + 8, CAT_CARD_Y + 10), 1);
+    assert.notStrictEqual(
+      catDeckCardIndexAt(card0.x + card0.w / 2, card0.y + 10),
+      1,
+      'центр Lvl1 не открывает Lvl2'
+    );
+    assert.strictEqual(catDeckCardIndexAt(40, CAT_CARD_Y + 10), -1, 'слева от карт пусто');
   } finally {
     CONFIG.GAME_HEIGHT = prevH;
   }

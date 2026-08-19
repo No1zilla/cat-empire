@@ -179,7 +179,7 @@ export class HUD extends Container {
 
     menuBtnContainer.eventMode = 'static';
     menuBtnContainer.cursor = 'pointer';
-    menuBtnContainer.hitArea = new Rectangle(-5, -5, menuBtnW + 10, capH + 10);
+    menuBtnContainer.hitArea = new Rectangle(0, 0, menuBtnW, capH);
 
     let lastMenuTapTime = 0;
     const handleMenuTrigger = (e) => {

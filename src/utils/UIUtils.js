@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 
 export const UIUtils = {
@@ -290,6 +290,8 @@ export const UIUtils = {
 
     container.eventMode = 'static';
     container.cursor = 'pointer';
+    container.hitArea = new Rectangle(0, 0, width, height);
+    container.interactiveChildren = false;
 
     let lastClickTime = 0;
     let isProcessing = false;
