@@ -50,25 +50,28 @@ async function main() {
     });
     return {
       packs: packs.length,
+      warmup: css(205, 40),
       targets: packs.map((btn) => {
         const tl = btn.toGlobal({ x: 0, y: 0 });
-        const w = btn.hitArea.width || 296;
-        const h = btn.hitArea.height || 70;
-        const ox = btn.hitArea.x || 0;
-        const oy = btn.hitArea.y || 0;
-        const center = css(tl.x + ox + w / 2, tl.y + oy + h / 2);
+        const w = 296;
+        const h = 70;
+        const center = css(tl.x + w / 2, tl.y + h / 2);
         return { x: center.x, y: center.y, w, h };
       })
     };
   });
 
+  if (primed.warmup) {
+    await page.mouse.click(primed.warmup.x, primed.warmup.y);
+    await page.waitForTimeout(200);
+  }
+
   const clicks = [];
   for (const t of primed.targets || []) {
     await page.mouse.click(t.x, t.y);
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(650);
     const ids = await page.evaluate(() => window.__rubyClicks.slice());
     clicks.push({ x: t.x, y: t.y, ids: ids.slice() });
-    await page.waitForTimeout(550);
   }
 
   await page.screenshot({ path: path.join(OUT, 'ruby-shop-hits.png'), fullPage: true });
