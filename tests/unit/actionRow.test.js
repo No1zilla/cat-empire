@@ -14,8 +14,10 @@ import {
   CAT_CARD_H,
   CAT_CARD_Y,
   CAT_DECK_BOTTOM_PAD,
+  CAT_DECK_GAP,
   catDeckLabelsFit,
-  catDeckY
+  catDeckY,
+  catDeckFrame
 } from '../../src/ui/catDeckLayout.js';
 
 export function runActionRowTests() {
@@ -42,27 +44,43 @@ export function runActionRowTests() {
     assert.strictEqual(fitGameHeight(500, 700), 700, 'широкое окно не сжимает поле ниже 700');
     fitGameHeight(410, 700);
 
-    const y700 = catDeckY({
+    const packed = catDeckFrame({
       buttonRowY,
       actionBtnH: ACTION_BTN_H,
       liveOpsH: 0,
       gameHeight: 700,
-      deckH: CAT_DECK_H
+      minDeckH: CAT_DECK_H
     });
-    assert.strictEqual(y700 + CAT_DECK_H + CAT_DECK_BOTTOM_PAD, 700, 'на 700 Котопедия у нижнего края');
+    assert.strictEqual(packed.y - (buttonRowY + ACTION_BTN_H), CAT_DECK_GAP, 'между кнопками и Котопедией только 8px');
+    assert.strictEqual(packed.y + packed.h + CAT_DECK_BOTTOM_PAD, 700, 'панель доходит до низа 700');
+    assert.ok(packed.h >= CAT_DECK_H);
 
-    const yTall = catDeckY({
+    const tall = catDeckFrame({
       buttonRowY,
       actionBtnH: ACTION_BTN_H,
       liveOpsH: 0,
       gameHeight: 840,
-      deckH: CAT_DECK_H
+      minDeckH: CAT_DECK_H
     });
-    assert.ok(yTall > y700, 'на высоком iframe Котопедия опускается вместе с низом');
-    assert.strictEqual(yTall + CAT_DECK_H + CAT_DECK_BOTTOM_PAD, 840);
+    assert.strictEqual(tall.y, packed.y, 'на высоком iframe Котопедия не уезжает вниз');
+    assert.ok(tall.h > packed.h, 'лишняя высота уходит в панель, а не в дыру');
+    assert.strictEqual(tall.y + tall.h + CAT_DECK_BOTTOM_PAD, 840);
 
-    const minY = buttonRowY + ACTION_BTN_H + 8;
-    assert.ok(y700 >= minY, 'Котопедия не наезжает на кнопки');
+    assert.strictEqual(catDeckY({
+      buttonRowY,
+      actionBtnH: ACTION_BTN_H,
+      liveOpsH: 0,
+      gameHeight: 700
+    }), packed.y);
+
+    const withOps = catDeckFrame({
+      buttonRowY,
+      actionBtnH: ACTION_BTN_H,
+      liveOpsH: 32,
+      gameHeight: 700,
+      minDeckH: CAT_DECK_H
+    });
+    assert.strictEqual(withOps.y, buttonRowY + ACTION_BTN_H + CAT_DECK_GAP + 32 + CAT_DECK_GAP);
 
     assert.strictEqual(catDeckLabelsFit(), true);
     assert.ok(CAT_CARD_Y + CAT_CARD_H < CAT_DECK_H, 'карточки целиком внутри панели');
@@ -70,5 +88,5 @@ export function runActionRowTests() {
     CONFIG.GAME_HEIGHT = prevH;
   }
 
-  console.log('  ✅ Три кнопки одной ширины, Котопедия прижата к низу');
+  console.log('  ✅ Три кнопки одной ширины, Котопедия сразу под ними');
 }

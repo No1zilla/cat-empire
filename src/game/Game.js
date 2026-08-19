@@ -20,7 +20,7 @@ import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { quoteFillAll } from './fillAllPurchase.js';
 import { ACTION_BTN_H, ACTION_ROW_MARGIN, actionButtonX } from '../ui/actionRow.js';
-import { CAT_DECK_H, catDeckY } from '../ui/catDeckLayout.js';
+import { CAT_DECK_H, catDeckFrame } from '../ui/catDeckLayout.js';
 import { isStarterSnapshot } from '../services/StorageService.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
@@ -734,13 +734,17 @@ export class Game {
     }
     const opsH = this.liveOpsRow && this.liveOpsRow.visibleHeight ? this.liveOpsRow.visibleHeight : 0;
     if (this.catDeck) {
-      this.catDeck.y = catDeckY({
+      const frame = catDeckFrame({
         buttonRowY: y,
         actionBtnH: ACTION_BTN_H,
         liveOpsH: opsH,
         gameHeight: CONFIG.GAME_HEIGHT,
-        deckH: CAT_DECK_H
+        minDeckH: CAT_DECK_H
       });
+      this.catDeck.y = frame.y;
+      if (typeof this.catDeck.setDeckHeight === 'function') {
+        this.catDeck.setDeckHeight(frame.h);
+      }
     }
   }
 

@@ -7,11 +7,11 @@ import {
   CAT_DECK_H,
   CAT_CARD_W,
   CAT_CARD_H,
-  CAT_CARD_Y,
   CAT_LVL_Y,
   CAT_INCOME_Y,
   CAT_LOCK_LVL_Y,
-  CAT_LABEL_FONT
+  CAT_LABEL_FONT,
+  catDeckCardY
 } from './catDeckLayout.js';
 
 /**
@@ -36,6 +36,8 @@ export class CatDeck extends Container {
     this._lastMoveTime = 0;
     this._lastMoveX = 0;
     this._animRaf = null;
+    this._deckH = CAT_DECK_H;
+    this._cardY = catDeckCardY(this._deckH);
 
     this._draw();
     this._setupEvents();
@@ -48,7 +50,11 @@ export class CatDeck extends Container {
     this.removeChildren();
 
     const W = CONFIG.GAME_WIDTH;
-    const deckH = CAT_DECK_H;
+    const deckH = this._deckH || CAT_DECK_H;
+    const cardY = catDeckCardY(deckH);
+    this._cardY = cardY;
+    this.eventMode = 'static';
+    this.hitArea = new Rectangle(0, 0, W, deckH);
 
     // 1. Панель матового стекла (Glassmorphism): использование токенов panelBg & panelBorder
     const bg = new Graphics();
@@ -118,7 +124,7 @@ export class CatDeck extends Container {
     const maskX = 48;
     const maskW = W - 96;
     const mask = new Graphics();
-    mask.rect(maskX, CAT_CARD_Y - 2, maskW, CAT_CARD_H + 6);
+    mask.rect(maskX, cardY - 2, maskW, CAT_CARD_H + 6);
     mask.fill(0xffffff);
     this.addChild(mask);
 
@@ -135,7 +141,7 @@ export class CatDeck extends Container {
       const isUnlocked = level <= this.maxUnlockedLevel;
       const catData = getCatData(level);
       const x = startX + (level - 1) * (cardW + padX);
-      const y = CAT_CARD_Y;
+      const y = cardY;
 
       const cardGroup = new Container();
       cardGroup.position.set(x, y);
@@ -246,7 +252,7 @@ export class CatDeck extends Container {
 
     // 4. Интерактивные стрелки ◀ ▶
     const btnSize = 28;
-    const arrowY = CAT_CARD_Y + Math.floor((CAT_CARD_H - btnSize) / 2);
+    const arrowY = cardY + Math.floor((CAT_CARD_H - btnSize) / 2);
 
     const leftBtn = new Graphics();
     leftBtn.roundRect(12, arrowY, btnSize, btnSize, 8);
@@ -300,6 +306,7 @@ export class CatDeck extends Container {
   _setupEvents() {
     this.eventMode = 'static';
     this.cursor = 'grab';
+    this.hitArea = new Rectangle(0, 0, CONFIG.GAME_WIDTH, this._deckH || CAT_DECK_H);
 
     const cardW = 54;
     const padX = 8;
@@ -353,10 +360,11 @@ export class CatDeck extends Container {
 
       if (!this._isMoved && e) {
         const local = this._cardsContainer.toLocal(e.global);
+        const cardTop = this._cardY || 30;
         for (let i = 0; i < 15; i++) {
           const level = i + 1;
           const cx = startX + i * (cardW + padX);
-          if (local.x >= cx && local.x <= cx + cardW && local.y >= 32 && local.y <= 110) {
+          if (local.x >= cx && local.x <= cx + cardW && local.y >= cardTop && local.y <= cardTop + cardH) {
             const isUnlocked = level <= this.maxUnlockedLevel;
             this.onCardClick(level, isUnlocked);
             break;
@@ -427,6 +435,17 @@ export class CatDeck extends Container {
     const targetCardX = startX + (level - 1) * (cardW + padX);
     let desiredX = -(targetCardX - 100);
     this._targetX = Math.max(minX, Math.min(0, desiredX));
+  }
+
+  setDeckHeight(h) {
+    const next = Math.max(CAT_DECK_H, Math.round(Number(h) || CAT_DECK_H));
+    if (next === this._deckH) return;
+    const keepX = this._targetX;
+    this._deckH = next;
+    this._draw();
+    this._targetX = keepX;
+    this._currentX = keepX;
+    if (this._cardsContainer) this._cardsContainer.x = keepX;
   }
 
   updateMaxLevel(newMaxLevel) {
