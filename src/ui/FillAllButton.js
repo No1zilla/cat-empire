@@ -186,6 +186,10 @@ export class FillAllButton extends Container {
     this.updateLabel();
   }
 
+  press() {
+    this._handleClick();
+  }
+
   _playClickAnim() {
     if (this._innerContainer) this._innerContainer.scale.set(0.90);
     if (this._clickAnimTimeout) clearTimeout(this._clickAnimTimeout);

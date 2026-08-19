@@ -9,7 +9,9 @@ import {
   actionRowWidth,
   actionRowFitsGame,
   actionButtonHit,
-  actionHitsOverlap
+  actionHitsOverlap,
+  actionButtonIndexAt,
+  runActionPress
 } from '../../src/ui/actionRow.js';
 import {
   CAT_DECK_H,
@@ -42,6 +44,22 @@ export function runActionRowTests() {
     const mergeHit = actionButtonHit(2);
     assert.strictEqual(actionHitsOverlap(fillHit, mergeHit), false, 'Заполнить не перекрывает Соединить');
     assert.strictEqual(fillHit.x + fillHit.w + ACTION_BTN_GAP, mergeHit.x);
+
+    assert.strictEqual(actionButtonIndexAt(actionButtonX(0) + 10), 0);
+    assert.strictEqual(actionButtonIndexAt(actionButtonX(1) + 10), 1);
+    assert.strictEqual(actionButtonIndexAt(actionButtonX(2) + 10), 2, 'тап по Соединить — индекс 2');
+    assert.strictEqual(actionButtonIndexAt(actionButtonX(2)), 2);
+    assert.notStrictEqual(actionButtonIndexAt(actionButtonX(2) + ACTION_BTN_W / 2), 1, 'центр Соединить не Заполнить');
+    assert.strictEqual(actionButtonIndexAt(fillHit.x + fillHit.w + 1), -1, 'щель между кнопками пустая');
+
+    let fillCalls = 0;
+    let mergeCalls = 0;
+    runActionPress(actionButtonIndexAt(actionButtonX(2) + 20), {
+      fill: () => { fillCalls += 1; },
+      merge: () => { mergeCalls += 1; }
+    });
+    assert.strictEqual(fillCalls, 0, 'Соединить не запускает Заполнить');
+    assert.strictEqual(mergeCalls, 1, 'Соединить запускает только слияние');
 
     const wide = canvasCssSize(500, 700, 410, 700);
     assert.strictEqual(wide.width, 410, 'широкий iframe не растягивает канвас по ширине');

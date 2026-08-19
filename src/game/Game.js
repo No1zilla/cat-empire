@@ -19,7 +19,8 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { quoteFillAll } from './fillAllPurchase.js';
-import { ACTION_BTN_H, ACTION_ROW_MARGIN, actionButtonX } from '../ui/actionRow.js';
+import { ACTION_BTN_H, ACTION_ROW_MARGIN } from '../ui/actionRow.js';
+import { ActionRow } from '../ui/ActionRow.js';
 import { CAT_DECK_H, catDeckFrame } from '../ui/catDeckLayout.js';
 import { isStarterSnapshot } from '../services/StorageService.js';
 import { AdModal } from '../ui/AdModal.js';
@@ -196,12 +197,7 @@ export class Game {
       dailyQuestsService.progress('buy', 1);
       this._saveToLocalStorage();
     });
-
-    this.spawnSystem.x = actionButtonX(0);
-    this.spawnSystem.y = buttonRowY;
-    this.spawnSystem.zIndex = 80;
     this.spawnSystem.updateButtonLabel();
-    this.gameContainer.addChild(this.spawnSystem);
 
     // B) 📦 Заполнить — выкуп свободных слотов за монеты
     this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
@@ -263,10 +259,6 @@ export class Game {
         console.error('Ошибка фонового сохранения после массовой покупки:', e);
       });
     });
-    this.fillAllButton.x = actionButtonX(1);
-    this.fillAllButton.y = buttonRowY;
-    this.fillAllButton.zIndex = 81;
-    this.gameContainer.addChild(this.fillAllButton);
 
     // C) ⚡ Соединить все
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
@@ -282,10 +274,15 @@ export class Game {
     }, () => {
       this.showRubyShop();
     });
-    this.autoMergeButton.x = actionButtonX(2);
-    this.autoMergeButton.y = buttonRowY;
-    this.autoMergeButton.zIndex = 82;
-    this.gameContainer.addChild(this.autoMergeButton);
+
+    this.actionRow = new ActionRow({
+      buy: this.spawnSystem,
+      fill: this.fillAllButton,
+      merge: this.autoMergeButton
+    });
+    this.actionRow.y = buttonRowY;
+    this.actionRow.zIndex = 90;
+    this.gameContainer.addChild(this.actionRow);
 
     this.liveOpsRow = new LiveOpsRow(this.app, this.economy, {
       onBuffs: () => this._applyIncomeBuffs(),
@@ -727,6 +724,7 @@ export class Game {
   _layoutChrome() {
     const y = this._buttonRowY;
     if (y == null) return;
+    if (this.actionRow) this.actionRow.y = y;
     const opsY = y + ACTION_BTN_H + 8;
     if (this.liveOpsRow) {
       this.liveOpsRow.x = ACTION_ROW_MARGIN;
@@ -752,8 +750,9 @@ export class Game {
     [this.fillAllButton, this.autoMergeButton].forEach((btn) => {
       if (!btn) return;
       btn.visible = true;
-      btn.eventMode = 'static';
+      btn.eventMode = 'none';
     });
+    if (this.actionRow) this.actionRow.eventMode = 'static';
     this._layoutChrome();
   }
 

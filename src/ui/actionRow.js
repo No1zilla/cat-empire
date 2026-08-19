@@ -32,6 +32,23 @@ export function actionHitsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+/** Какая кнопка под пальцем: 0 Купить, 1 Заполнить, 2 Соединить, иначе -1. */
+export function actionButtonIndexAt(localX) {
+  const x = Number(localX);
+  if (!Number.isFinite(x)) return -1;
+  for (let i = 0; i < 3; i++) {
+    const left = actionButtonX(i);
+    if (x >= left && x < left + ACTION_BTN_W) return i;
+  }
+  return -1;
+}
+
+export function runActionPress(index, handlers = {}) {
+  if (index === 0 && typeof handlers.buy === 'function') handlers.buy();
+  else if (index === 1 && typeof handlers.fill === 'function') handlers.fill();
+  else if (index === 2 && typeof handlers.merge === 'function') handlers.merge();
+}
+
 export default {
   ACTION_BTN_W,
   ACTION_BTN_H,
@@ -41,5 +58,6 @@ export default {
   actionRowWidth,
   actionRowFitsGame,
   actionButtonHit,
-  actionHitsOverlap
+  actionHitsOverlap,
+  actionButtonIndexAt
 };

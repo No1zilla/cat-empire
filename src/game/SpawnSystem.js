@@ -156,6 +156,16 @@ export class SpawnSystem extends Container {
     });
   }
 
+  pressDown() {
+    this._playClickAnim();
+    this._spawnCat();
+    this._startHold();
+  }
+
+  pressUp() {
+    this._stopHold();
+  }
+
   _startHold() {
     this._stopHold();
     this._holdTimeout = setTimeout(() => {

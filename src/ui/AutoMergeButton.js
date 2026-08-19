@@ -150,6 +150,10 @@ export class AutoMergeButton extends Container {
     this.on('pointerover', () => { this.alpha = 0.92; });
   }
 
+  press() {
+    this._handleClick();
+  }
+
   _playClickAnim() {
     if (this._innerContainer) this._innerContainer.scale.set(0.90);
     if (this._clickAnimTimeout) clearTimeout(this._clickAnimTimeout);
