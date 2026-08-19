@@ -7,6 +7,8 @@ import { purchaseVkItem } from '../game/iapBuy.js';
 import { incomeBoosterService } from '../game/IncomeBooster.js';
 import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { AdModal } from './AdModal.js';
+import { RUBY_AD_REWARD } from '../config/rubyShop.js';
 
 export class StarterTributeModal extends Container {
   constructor(app, economy, onGranted, onClose) {
@@ -34,7 +36,7 @@ export class StarterTributeModal extends Container {
     this.addChild(overlay);
 
     const modalW = 330;
-    const modalH = 320;
+    const modalH = 340;
     const modalX = (W - modalW) / 2;
     const modalY = (H - modalH) / 2;
 
@@ -72,18 +74,29 @@ export class StarterTributeModal extends Container {
 
     const buyBtn = UIUtils.createButton(
       modalX + 24,
-      modalY + 140,
+      modalY + 128,
       modalW - 48,
-      52,
+      50,
       `Открыть ларец · ${STARTER_TRIBUTE.votes} голосов`,
       parseInt(TOKENS.colors.gems.replace('#', '0x')),
       () => this._buy()
     );
     this.addChild(buyBtn);
 
+    const adBtn = UIUtils.createButton(
+      modalX + 24,
+      modalY + 186,
+      modalW - 48,
+      46,
+      `Смотреть рекламу (+${RUBY_AD_REWARD})`,
+      0x2ecc71,
+      () => this._watchAd()
+    );
+    this.addChild(adBtn);
+
     const later = UIUtils.createButton(
       modalX + 24,
-      modalY + 204,
+      modalY + 242,
       modalW - 48,
       40,
       'Потом',
@@ -94,6 +107,18 @@ export class StarterTributeModal extends Container {
       }
     );
     this.addChild(later);
+  }
+
+  _watchAd() {
+    const stage = this.app && this.app.stage ? this.app.stage : this.parent;
+    if (!stage) return;
+    stage.sortableChildren = true;
+    const modal = new AdModal(this.app, this.economy, () => {
+      this.onGranted();
+      this._close();
+    }, RUBY_AD_REWARD, 'Получение рубинов через:');
+    modal.zIndex = 9999999;
+    stage.addChild(modal);
   }
 
   async _buy() {

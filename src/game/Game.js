@@ -273,8 +273,7 @@ export class Game {
       this._saveToLocalStorage();
       return count;
     }, () => {
-      if (empireMeta.starterOpen) this.showStarterTribute();
-      else this.showRubyShop();
+      this.showRubyShop();
     });
     this.autoMergeButton.x = actionButtonX(2);
     this.autoMergeButton.y = buttonRowY;

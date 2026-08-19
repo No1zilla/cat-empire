@@ -53,7 +53,7 @@ export class OutOfRubiesModal extends Container {
     this.addChild(title);
 
     const sub = new Text({
-      text: 'Купи пак за голоса VK или посмотри ролик.',
+      text: 'Сначала ролик +5 рубинов. Казна — если хочешь пак.',
       style: new TextStyle({
         fontFamily: font,
         fontSize: 13,
@@ -67,25 +67,11 @@ export class OutOfRubiesModal extends Container {
     sub.position.set(W / 2, modalY + 64);
     this.addChild(sub);
 
-    const buyBtn = UIUtils.createButton(
-      modalX + 24,
-      modalY + 120,
-      modalW - 48,
-      48,
-      'Купить рубины',
-      0xE53935,
-      () => {
-        this._close();
-        this.onBuy();
-      }
-    );
-    this.addChild(buyBtn);
-
     const adBtn = UIUtils.createButton(
       modalX + 24,
-      modalY + 176,
+      modalY + 118,
       modalW - 48,
-      44,
+      48,
       `Смотреть рекламу (+${RUBY_AD_REWARD})`,
       0x2ecc71,
       () => {
@@ -94,6 +80,20 @@ export class OutOfRubiesModal extends Container {
       }
     );
     this.addChild(adBtn);
+
+    const buyBtn = UIUtils.createButton(
+      modalX + 24,
+      modalY + 174,
+      modalW - 48,
+      44,
+      'Казна: паки за голоса',
+      0xE53935,
+      () => {
+        this._close();
+        this.onBuy();
+      }
+    );
+    this.addChild(buyBtn);
 
     const close = UIUtils.createButton(
       modalX + (modalW - 120) / 2,

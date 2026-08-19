@@ -30,6 +30,12 @@ export const INCOME_BOOSTER_MS = 30 * 60 * 1000;
 export const INCOME_BOOSTER_MULTIPLIER = 2;
 export const RUBY_AD_REWARD = 5;
 
+/** Ларец — разовый IAP. Ролик рядом, не вместо кассы и не вместо +5. */
+export const STARTER_TRIBUTE_ACTIONS = ['votes', 'ad', 'later'];
+
+/** Нет рубинов на «Соединить»: сначала ролик, потом казна. */
+export const OUT_OF_RUBIES_ACTIONS = ['ad', 'shop', 'close'];
+
 export default {
   RUBY_PACKS,
   getRubyPack,

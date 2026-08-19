@@ -5,7 +5,9 @@ import {
   getRubyPack,
   INCOME_BOOSTER_MS,
   INCOME_BOOSTER_MULTIPLIER,
-  RUBY_AD_REWARD
+  RUBY_AD_REWARD,
+  STARTER_TRIBUTE_ACTIONS,
+  OUT_OF_RUBIES_ACTIONS
 } from '../../src/config/rubyShop.js';
 import { IncomeBoosterService } from '../../src/game/IncomeBooster.js';
 import { Economy } from '../../src/game/Economy.js';
@@ -51,6 +53,11 @@ export function runMonetizationTests() {
   assert.strictEqual(getRubyPack('gems_pack_150').votes, 10);
   assert.strictEqual(getRubyPack('unknown'), null);
   assert.strictEqual(RUBY_AD_REWARD, 5);
+  assert.deepStrictEqual(OUT_OF_RUBIES_ACTIONS, ['ad', 'shop', 'close']);
+  assert.ok(STARTER_TRIBUTE_ACTIONS.includes('ad'), 'У ларца есть ролик, не только голоса');
+  assert.ok(STARTER_TRIBUTE_ACTIONS.includes('votes'));
+  assert.strictEqual(STARTER_TRIBUTE_ACTIONS[0], 'votes');
+  assert.strictEqual(OUT_OF_RUBIES_ACTIONS[0], 'ad', 'На Соединить без рубинов первой идёт реклама');
   assert.strictEqual(INCOME_BOOSTER_MS, 30 * 60 * 1000);
   assert.strictEqual(INCOME_BOOSTER_MULTIPLIER, 2);
 
