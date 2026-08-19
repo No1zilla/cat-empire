@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { CONFIG, fitGameHeight } from '../../src/config.js';
+import { CONFIG, fitGameHeight, canvasCssSize } from '../../src/config.js';
 import {
   ACTION_BTN_W,
   ACTION_BTN_H,
@@ -7,7 +7,9 @@ import {
   ACTION_ROW_MARGIN,
   actionButtonX,
   actionRowWidth,
-  actionRowFitsGame
+  actionRowFitsGame,
+  actionButtonHit,
+  actionHitsOverlap
 } from '../../src/ui/actionRow.js';
 import {
   CAT_DECK_H,
@@ -35,6 +37,16 @@ export function runActionRowTests() {
     );
     assert.strictEqual(actionRowWidth(), CONFIG.GAME_WIDTH);
     assert.strictEqual(actionRowFitsGame(), true);
+
+    const fillHit = actionButtonHit(1);
+    const mergeHit = actionButtonHit(2);
+    assert.strictEqual(actionHitsOverlap(fillHit, mergeHit), false, 'Заполнить не перекрывает Соединить');
+    assert.strictEqual(fillHit.x + fillHit.w + ACTION_BTN_GAP, mergeHit.x);
+
+    const wide = canvasCssSize(500, 700, 410, 700);
+    assert.strictEqual(wide.width, 410, 'широкий iframe не растягивает канвас по ширине');
+    assert.strictEqual(wide.height, 700);
+    assert.ok(wide.width / wide.height === 410 / 700 || Math.abs(wide.width / 410 - wide.height / 700) < 0.001);
 
     const gridW = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     const buttonRowY = 58 + gridW + 12;

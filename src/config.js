@@ -36,4 +36,21 @@ export function fitGameHeight(viewW, viewH) {
   return CONFIG.GAME_HEIGHT;
 }
 
+/**
+ * CSS-размер канваса 1-в-1 с логическим полем.
+ * 100% + object-fit:contain сдвигает тапы: «Соединить» попадает в «Заполнить».
+ */
+export function canvasCssSize(viewW, viewH, gameW = CONFIG.GAME_WIDTH, gameH = CONFIG.GAME_HEIGHT) {
+  const gw = Math.max(1, Number(gameW) || 410);
+  const gh = Math.max(1, Number(gameH) || GAME_HEIGHT_MIN);
+  const vw = Math.max(1, Number(viewW) || gw);
+  const vh = Math.max(1, Number(viewH) || gh);
+  const scale = Math.min(vw / gw, vh / gh);
+  return {
+    width: Math.max(1, Math.round(gw * scale)),
+    height: Math.max(1, Math.round(gh * scale)),
+    scale
+  };
+}
+
 export default CONFIG;

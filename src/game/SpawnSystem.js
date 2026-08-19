@@ -111,6 +111,7 @@ export class SpawnSystem extends Container {
     // 5. Настройка интерактивности и Hold-to-Buy
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    this.interactiveChildren = false;
     this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
     let lastSpawnTapTime = 0;

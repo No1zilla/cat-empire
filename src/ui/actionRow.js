@@ -19,6 +19,19 @@ export function actionRowFitsGame() {
   return actionRowWidth() === (CONFIG.GAME_WIDTH || 410);
 }
 
+export function actionButtonHit(index = 0, y = 0) {
+  return {
+    x: actionButtonX(index),
+    y: Number(y) || 0,
+    w: ACTION_BTN_W,
+    h: ACTION_BTN_H
+  };
+}
+
+export function actionHitsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
 export default {
   ACTION_BTN_W,
   ACTION_BTN_H,
@@ -26,5 +39,7 @@ export default {
   ACTION_ROW_MARGIN,
   actionButtonX,
   actionRowWidth,
-  actionRowFitsGame
+  actionRowFitsGame,
+  actionButtonHit,
+  actionHitsOverlap
 };

@@ -1,5 +1,5 @@
 import { Application, Container, Graphics } from 'pixi.js';
-import { CONFIG, fitGameHeight } from './config.js';
+import { CONFIG, fitGameHeight, canvasCssSize } from './config.js';
 import { VKService } from './vk/VKBridge.js';
 import { PlatformService } from './services/PlatformService.js';
 import { Game } from './game/Game.js';
@@ -25,6 +25,18 @@ function viewSize() {
   const w = (el && el.clientWidth) || (typeof window !== 'undefined' ? window.innerWidth : CONFIG.GAME_WIDTH);
   const h = (el && el.clientHeight) || (typeof window !== 'undefined' ? window.innerHeight : CONFIG.GAME_HEIGHT);
   return { w: Math.max(1, w), h: Math.max(1, h) };
+}
+
+function applyCanvasFit(app) {
+  if (!app || !app.canvas) return;
+  const view = viewSize();
+  const css = canvasCssSize(view.w, view.h, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT);
+  app.canvas.style.width = `${css.width}px`;
+  app.canvas.style.height = `${css.height}px`;
+  app.canvas.style.objectFit = 'fill';
+  app.canvas.style.objectPosition = 'top center';
+  app.canvas.style.display = 'block';
+  app.canvas.style.margin = '0 auto';
 }
 
 // Глобальный метод для отладки и сброса туториала
@@ -154,11 +166,7 @@ async function initApp() {
   }
   const container = document.getElementById('game-container');
   if (container) {
-    app.canvas.style.width = '100%';
-    app.canvas.style.height = '100%';
-    app.canvas.style.objectFit = 'contain';
-    app.canvas.style.objectPosition = 'top center';
-    app.canvas.style.display = 'block';
+    applyCanvasFit(app);
     container.appendChild(app.canvas);
   }
 
@@ -195,6 +203,7 @@ async function initApp() {
       app.renderer.resize(CONFIG.GAME_WIDTH, next);
       if (game && typeof game._layoutChrome === 'function') game._layoutChrome();
     }
+    applyCanvasFit(app);
   };
   window.addEventListener('resize', syncCanvasSize);
 

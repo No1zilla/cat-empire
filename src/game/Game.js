@@ -199,7 +199,7 @@ export class Game {
 
     this.spawnSystem.x = actionButtonX(0);
     this.spawnSystem.y = buttonRowY;
-    this.spawnSystem.zIndex = 10;
+    this.spawnSystem.zIndex = 80;
     this.spawnSystem.updateButtonLabel();
     this.gameContainer.addChild(this.spawnSystem);
 
@@ -265,7 +265,7 @@ export class Game {
     });
     this.fillAllButton.x = actionButtonX(1);
     this.fillAllButton.y = buttonRowY;
-    this.fillAllButton.zIndex = 10;
+    this.fillAllButton.zIndex = 81;
     this.gameContainer.addChild(this.fillAllButton);
 
     // C) ⚡ Соединить все
@@ -284,7 +284,7 @@ export class Game {
     });
     this.autoMergeButton.x = actionButtonX(2);
     this.autoMergeButton.y = buttonRowY;
-    this.autoMergeButton.zIndex = 10;
+    this.autoMergeButton.zIndex = 82;
     this.gameContainer.addChild(this.autoMergeButton);
 
     this.liveOpsRow = new LiveOpsRow(this.app, this.economy, {

@@ -27,6 +27,7 @@ export class FillAllButton extends Container {
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    this.interactiveChildren = false;
 
     this._draw();
   }
@@ -145,6 +146,7 @@ export class FillAllButton extends Container {
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    this.interactiveChildren = false;
     this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
     let lastFATapTime = 0;

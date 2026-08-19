@@ -30,6 +30,7 @@ export class AutoMergeButton extends Container {
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    this.interactiveChildren = false;
 
     this._draw();
     this.updateLabel();
@@ -112,6 +113,7 @@ export class AutoMergeButton extends Container {
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
+    this.interactiveChildren = false;
     this.hitArea = new Rectangle(0, 0, btnWidth, btnHeight);
 
     let lastAMTapTime = 0;
@@ -131,9 +133,7 @@ export class AutoMergeButton extends Container {
     };
 
     this.on('pointertap', triggerAutoMergeClick);
-    this.on('pointerdown', (e) => {
-      if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-    });
+    this.on('pointerdown', triggerAutoMergeClick);
 
     const onPointerRelease = () => {
       this.alpha = 1.0;
