@@ -7,6 +7,7 @@ import {
 import {
   getNativeAdFormatOrder,
   isAdUserClosed,
+  shouldSkipNativeAd,
   showRewardedAd,
   showDesktopBannerAd
 } from '../../src/api/vkAds.js';
@@ -37,6 +38,9 @@ export async function runVkAdsTests() {
   assert.deepStrictEqual(getNativeAdFormatOrder(false), ['reward', 'interstitial']);
   assert.strictEqual(isAdUserClosed('AD_CLOSED_EARLY'), true);
   assert.strictEqual(isAdUserClosed('NO_ADS'), false);
+  assert.strictEqual(shouldSkipNativeAd({ result: false }), true);
+  assert.strictEqual(shouldSkipNativeAd({ result: true }), false);
+  assert.strictEqual(shouldSkipNativeAd(null), false);
 
   installWindow({ search: '?vk_platform=desktop_web&vk_user_id=7' });
   assert.strictEqual(PlatformService.isDesktopVK(), true);
@@ -113,6 +117,28 @@ export async function runVkAdsTests() {
   assert.strictEqual(closed.success, false);
   const closedShow = closedCalls.filter((c) => c.method === 'VKWebAppShowNativeAds');
   assert.strictEqual(closedShow.length, 1, 'Если игрок закрыл interstitial, reward не крутим следом');
+
+  const noAdsCalls = [];
+  installWindow({
+    search: '?vk_platform=desktop_web&vk_user_id=7',
+    bridge: {
+      send: async (method, params) => {
+        noAdsCalls.push({ method, params: params || {} });
+        if (method === 'VKWebAppCheckNativeAds') return { result: false };
+        throw new Error('show must not run when check says no ads');
+      },
+      subscribe: () => {},
+      unsubscribe: () => {}
+    }
+  });
+  const noAds = await showRewardedAd();
+  assert.strictEqual(noAds.success, false);
+  assert.strictEqual(noAds.reason, 'NO_ADS');
+  assert.strictEqual(
+    noAdsCalls.some((c) => c.method === 'VKWebAppShowNativeAds'),
+    false,
+    'Если VK сказал, что ролика нет, не висим 20 секунд на ShowNativeAds'
+  );
 
   const bannerCalls = [];
   installWindow({

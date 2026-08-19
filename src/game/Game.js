@@ -452,6 +452,7 @@ export class Game {
             offlineMinutes,
             () => {
               console.log(`⏰ Офлайн-доход за ${offlineMinutes} мин забран!`);
+              this._syncToCloud();
               showTutorialIfNeeded();
             }
           );

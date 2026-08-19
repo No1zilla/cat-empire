@@ -2,9 +2,9 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { showRewardedAd } from '../api/client.js';
-import { saveProgress } from '../api/client.js';
 import { isAdUserClosed } from '../api/vkAds.js';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { grantOfflineCoins, persistOfflineClaim, resolveOfflinePayout } from '../game/offlineClaim.js';
 
 /**
  * TASK-058: Модальное окно Офлайн-Дохода «⏰ С Возвращением!» с возможностью удваивания/утраивания за VK Ads
@@ -25,6 +25,7 @@ export class OfflineEarningsModal extends Container {
     this.tripleCoins = Math.round(this.baseCoins * 3);
     this.offlineMinutes = Math.max(1, Math.round(offlineMinutes || 1));
     this.onClaimed = onClaimed || (() => {});
+    this._statusText = null;
 
     this._draw();
   }
@@ -161,6 +162,25 @@ export class OfflineEarningsModal extends Container {
       }
     );
     this.addChild(claimNormalBtn);
+
+    this._statusText = new Text({
+      text: '',
+      style: new TextStyle({
+        fontFamily: font,
+        fontSize: 11,
+        fill: '#a0a7ba',
+        align: 'center'
+      })
+    });
+    this._statusText.anchor.set(0.5);
+    this._statusText.position.set(width / 2, modalY + 308);
+    this.addChild(this._statusText);
+  }
+
+  _setStatus(text) {
+    if (this._statusText && !this._statusText.destroyed) {
+      this._statusText.text = text || '';
+    }
   }
 
   _formatNum(n) {
@@ -171,17 +191,17 @@ export class OfflineEarningsModal extends Container {
     if (this._isClaiming) return;
     this._isClaiming = true;
 
-    let earned = this.baseCoins;
-
+    let adSuccess = true;
     if (isTriple) {
-      // Запускаем просмотр рекламы VK Ads для утраивания
-      if (typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
+      const hasBridge = typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function';
+      if (hasBridge) {
+        this._setStatus('Ищем рекламу…');
         eventTracker.trackAdRequested('offline_bonus');
         const adRes = await showRewardedAd();
         if (adRes && adRes.success) {
           eventTracker.trackAdShown('offline_bonus', false);
           eventTracker.trackAdCompleted('offline_bonus', 0);
-          earned = this.tripleCoins;
+          adSuccess = true;
         } else {
           const reason = adRes && adRes.reason ? adRes.reason : 'ads_unavailable';
           if (adRes && isAdUserClosed(adRes.reason)) {
@@ -190,33 +210,36 @@ export class OfflineEarningsModal extends Container {
             eventTracker.trackAdFailed('offline_bonus', reason, { format: adRes && adRes.format ? adRes.format : '' });
           }
           this._isClaiming = false;
+          this._setStatus('');
           const stage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
           if (stage) {
-            UIUtils.showToast(stage, adRes ? `⚠️ VK Ads: ${adRes.reason}` : '⚠️ Просмотр отменён');
+            UIUtils.showToast(stage, 'Реклама не открылась. Забери обычные монеты.');
           }
           return;
         }
-      } else {
-        // В автономной веб-версии выдаём 3x прямо за тест
-        earned = this.tripleCoins;
       }
     }
 
-    if (this.economy) {
-      this.economy.coins += earned;
-      if (typeof this.economy._notify === 'function') {
-        this.economy._notify();
-      }
+    const payout = resolveOfflinePayout({
+      isTriple,
+      adSuccess,
+      baseCoins: this.baseCoins,
+      tripleCoins: this.tripleCoins
+    });
+    if (!payout.ok) {
+      this._isClaiming = false;
+      return;
     }
 
-    eventTracker.trackOfflineBonusClaimed(earned, isTriple ? 3 : 1, this.offlineMinutes * 60);
+    const earned = grantOfflineCoins(this.economy, payout.earned);
+    eventTracker.trackOfflineBonusClaimed(earned, payout.multiplier, this.offlineMinutes * 60);
 
-    try {
-      await saveProgress({
-        coins: this.economy ? this.economy.coins : undefined,
-        gems: this.economy ? this.economy.gems : undefined
-      });
-    } catch (e) {}
+    persistOfflineClaim(() => {
+      if (typeof window !== 'undefined' && window.game && typeof window.game._syncToCloud === 'function') {
+        return window.game._syncToCloud();
+      }
+      return Promise.resolve();
+    });
 
     const stage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
     if (stage) {

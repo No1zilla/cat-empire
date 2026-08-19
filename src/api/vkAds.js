@@ -12,6 +12,10 @@ export function getNativeAdFormatOrder(isDesktop) {
   return isDesktop ? ['interstitial', 'reward'] : ['reward', 'interstitial'];
 }
 
+export function shouldSkipNativeAd(checkRes) {
+  return Boolean(checkRes && checkRes.result === false);
+}
+
 export function isAdUserClosed(reason) {
   const s = String(reason || '').toLowerCase();
   return (
@@ -93,6 +97,10 @@ function tryNativeAdFormat(bridge, format) {
           checkTimeout
         ]);
         console.log(`🔍 VKWebAppCheckNativeAds [${format}]:`, checkRes);
+        if (shouldSkipNativeAd(checkRes)) {
+          finish({ success: false, reason: 'NO_ADS' });
+          return;
+        }
       } catch (checkErr) {
         console.log(`ℹ️ VKWebAppCheckNativeAds [${format}] bypass:`, checkErr);
       } finally {
@@ -196,5 +204,6 @@ export default {
   showRewardedAd,
   showDesktopBannerAd,
   getNativeAdFormatOrder,
-  isAdUserClosed
+  isAdUserClosed,
+  shouldSkipNativeAd
 };
