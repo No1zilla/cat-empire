@@ -83,7 +83,7 @@ export class Game {
       totalMerges: 0,
       gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
     };
-    this._cloudSaveOk = !isStarterSnapshot(progress);
+    this._cloudSaveOk = Boolean(progress && progress.isReset) || !isStarterSnapshot(progress);
 
     if (progress && progress.vkId) {
       eventTracker.setUserId(progress.vkId);
@@ -481,13 +481,16 @@ export class Game {
 
   // TASK-042: Единая точка сохранения во все хранилища
   _getStateSnapshot() {
+    const resetting = typeof localStorage !== 'undefined'
+      && localStorage.getItem('cat_empire_is_reset') === '1';
     return {
       coins: this.economy.coins,
       gems: this.economy.gems,
       totalCatsBought: this.economy.totalCatsBought,
       totalMerges: this.economy.totalMerges,
       maxCatLevel: this.maxCatLevel,
-      gridState: this.grid ? this.grid.exportState() : []
+      gridState: this.grid ? this.grid.exportState() : [],
+      isReset: resetting
     };
   }
 
@@ -525,6 +528,10 @@ export class Game {
             const localMerges = this.economy.totalMerges || 0;
             const localBought = this.economy.totalCatsBought || 0;
             const localMaxLevel = this.maxCatLevel || 1;
+
+            const isResetting = typeof localStorage !== 'undefined'
+              && localStorage.getItem('cat_empire_is_reset') === '1';
+            if (isResetting) return;
 
             const isCloudFresher = cloudMerges > localMerges ||
               (cloudMerges === localMerges && cloudBought > localBought) ||

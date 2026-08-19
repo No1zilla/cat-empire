@@ -120,6 +120,7 @@ export async function saveProgress(data) {
       updatedAt: data.updatedAt || Date.now(),
       updated_at: new Date(data.updatedAt || Date.now()).toISOString(),
       isReset: data.isReset || false,
+      is_reset: data.isReset || false,
       firstName: data.firstName,
       lastName: data.lastName,
       avatar: data.avatar,

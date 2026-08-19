@@ -64,7 +64,7 @@ export class StorageService {
       totalMerges: Math.max(0, Number(totalMerges) || 0),
       gridState,
       updatedAt: Number(updatedAt) || 0,
-      isReset: Boolean(raw.isReset)
+      isReset: Boolean(raw.isReset || raw.is_reset || raw.x)
     };
   }
 
@@ -97,7 +97,7 @@ export class StorageService {
   }
 
   async loadProgress() {
-    // Если активирован флаг сброса — не восстанавливаем старые снимки из облака/БД!
+    // Сброс из настроек: не подмешиваем старую империю из VK/БД, пока флаг жив.
     if (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1') {
       console.log('🧹 Загрузка после сброса прогресса: чистый баланс...');
       const cleanResetState = {
@@ -110,9 +110,7 @@ export class StorageService {
         updatedAt: Date.now(),
         isReset: true
       };
-      try {
-        localStorage.removeItem('cat_empire_is_reset');
-      } catch (e) {}
+      this._writeLocalCache(cleanResetState, cleanResetState.updatedAt);
       await this.saveProgress(cleanResetState);
       return cleanResetState;
     }
@@ -213,9 +211,15 @@ export class StorageService {
     if (!data) return;
 
     const timestamp = Number(data.updatedAt) || Date.now();
-    const skipCloud = this._isDowngrade(data);
-    if (!skipCloud) this._rememberHighWater(data);
+    const resetSave = Boolean(data.isReset)
+      || (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1');
+    const skipCloud = this._isDowngrade(data) && !resetSave;
+    if (!skipCloud && !resetSave) this._rememberHighWater(data);
     this._writeLocalCache(data, timestamp);
+
+    if (!resetSave && !isStarterSnapshot(data) && typeof localStorage !== 'undefined') {
+      try { localStorage.removeItem('cat_empire_is_reset'); } catch (e) {}
+    }
 
     if (skipCloud) {
       console.warn('🛑 Отказ писать в облако более слабый сейв, чем уже был');
@@ -226,18 +230,21 @@ export class StorageService {
       ? data.gridState.map((c) => [c.slotIndex, c.catLevel])
       : [];
     const profile = vkIdentity.readProfile ? vkIdentity.readProfile() : {};
+    const compact = {
+      c: Math.round(Number(data.coins) || 0),
+      g: data.gems,
+      m: data.maxCatLevel,
+      b: data.totalCatsBought,
+      r: data.totalMerges,
+      s: compactGrid,
+      t: timestamp
+    };
+    if (resetSave) compact.x = 1;
     await Promise.allSettled([
-      vkService.storageSet(STORAGE_KEY, {
-        c: Math.round(Number(data.coins) || 0),
-        g: data.gems,
-        m: data.maxCatLevel,
-        b: data.totalCatsBought,
-        r: data.totalMerges,
-        s: compactGrid,
-        t: timestamp
-      }),
+      vkService.storageSet(STORAGE_KEY, compact),
       saveProgress({
         ...data,
+        isReset: resetSave,
         firstName: data.firstName || profile.firstName,
         lastName: data.lastName != null ? data.lastName : profile.lastName,
         avatar: data.avatar || profile.avatar,
@@ -267,6 +274,10 @@ export class StorageService {
         localStorage.removeItem('cat_empire_tutorial_done');
         localStorage.setItem(BEST_LEVEL_KEY, '1');
         localStorage.setItem(BEST_MERGES_KEY, '0');
+        localStorage.removeItem('cat_empire_meta_v1');
+        localStorage.removeItem('cat_empire_booster_expires_at');
+        localStorage.removeItem('cat_empire_daily_v1');
+        localStorage.removeItem('cat_empire_quests_v1');
       } catch (e) {}
     }
 
@@ -284,7 +295,7 @@ export class StorageService {
     // Гарантированно параллельно отправляем и дожидаемся перезаписи в VK Storage и серверную БД
     await Promise.allSettled([
       vkService.storageSet(STORAGE_KEY, {
-        c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: now
+        c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: now, x: 1
       }),
       saveProgress(resetPayload)
     ]);

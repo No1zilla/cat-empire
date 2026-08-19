@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import pool from '../db.js';
+import { shouldRestoreProgressFloor } from '../utils/progressFloor.js';
 
 function calculateIncomePerSecond(gridStateStr) {
   try {
@@ -40,7 +41,7 @@ function formatUser(row) {
 }
 
 export class UserService {
-  async getOrCreateUser(vkUserId) {
+  async getOrCreateUser(vkUserId, { skipFloor = false } = {}) {
     const vkId = String(vkUserId);
     const now  = Math.floor(Date.now() / 1000);
 
@@ -76,11 +77,12 @@ export class UserService {
       }
     }
 
-    return this._restoreProgressFloor(vkId, formatUser(rows[0]));
+    return this._restoreProgressFloor(vkId, formatUser(rows[0]), { skipFloor });
   }
 
-  async _restoreProgressFloor(vkId, user) {
-    if (!user || !pool) return user;
+  async _restoreProgressFloor(vkId, user, { skipFloor = false } = {}) {
+    if (!user || !pool || skipFloor) return user;
+    if (!shouldRestoreProgressFloor(user)) return user;
     const current = Number(user.maxCatLevel) || 1;
     try {
       const { rows } = await pool.query(
@@ -124,7 +126,7 @@ export class UserService {
   }) {
     const vkId = String(vkUserId);
     const now  = Math.floor(Date.now() / 1000);
-    const existing = await this.getOrCreateUser(vkId);
+    const existing = await this.getOrCreateUser(vkId, { skipFloor: Boolean(isReset) });
     const storedLvl = Number(existing && existing.maxCatLevel) || 1;
     if (!isReset && maxCatLevel !== undefined && (Number(maxCatLevel) || 1) < storedLvl) {
       if (firstName === undefined && lastName === undefined && avatar === undefined) {
