@@ -3,6 +3,16 @@ import { CONFIG } from '../config.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { getCatData } from '../utils/catVisuals.js';
 import { TOKENS } from '../styles/design-tokens.js';
+import {
+  CAT_DECK_H,
+  CAT_CARD_W,
+  CAT_CARD_H,
+  CAT_CARD_Y,
+  CAT_LVL_Y,
+  CAT_INCOME_Y,
+  CAT_LOCK_LVL_Y,
+  CAT_LABEL_FONT
+} from './catDeckLayout.js';
 
 /**
  * TASK-015: Переработанная панель «Колода карт» в стиле Glassmorphism со стильными замочками 🔒
@@ -38,7 +48,7 @@ export class CatDeck extends Container {
     this.removeChildren();
 
     const W = CONFIG.GAME_WIDTH;
-    const deckH = 100;
+    const deckH = CAT_DECK_H;
 
     // 1. Панель матового стекла (Glassmorphism): использование токенов panelBg & panelBorder
     const bg = new Graphics();
@@ -108,7 +118,7 @@ export class CatDeck extends Container {
     const maskX = 48;
     const maskW = W - 96;
     const mask = new Graphics();
-    mask.rect(maskX, 24, maskW, 72);
+    mask.rect(maskX, CAT_CARD_Y - 2, maskW, CAT_CARD_H + 6);
     mask.fill(0xffffff);
     this.addChild(mask);
 
@@ -116,8 +126,8 @@ export class CatDeck extends Container {
     this._cardsContainer.mask = mask;
     this.addChild(this._cardsContainer);
 
-    const cardW = 54;
-    const cardH = 64;
+    const cardW = CAT_CARD_W;
+    const cardH = CAT_CARD_H;
     const padX = 8;
     const startX = maskX + 4;
 
@@ -125,7 +135,7 @@ export class CatDeck extends Container {
       const isUnlocked = level <= this.maxUnlockedLevel;
       const catData = getCatData(level);
       const x = startX + (level - 1) * (cardW + padX);
-      const y = 32;
+      const y = CAT_CARD_Y;
 
       const cardGroup = new Container();
       cardGroup.position.set(x, y);
@@ -192,13 +202,13 @@ export class CatDeck extends Container {
 
         const lvlStyle = new TextStyle({
           fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-          fontSize: 9,
+          fontSize: CAT_LABEL_FONT,
           fontWeight: 'bold',
           fill: '#ffffff'
         });
         const lvlText = new Text({ text: `Lvl ${level}`, style: lvlStyle });
         lvlText.anchor.set(0.5, 0);
-        lvlText.position.set(cardW / 2, 52);
+        lvlText.position.set(cardW / 2, CAT_LVL_Y);
         cardGroup.addChild(lvlText);
 
         const incStyle = new TextStyle({
@@ -209,14 +219,14 @@ export class CatDeck extends Container {
         });
         const incText = new Text({ text: `+${catData.income}`, style: incStyle });
         incText.anchor.set(0.5, 0);
-        incText.position.set(cardW / 2, 64);
+        incText.position.set(cardW / 2, CAT_INCOME_Y);
         cardGroup.addChild(incText);
       } else {
         // TASK-015: Замена пугающих красных вопросов на стильную иконку замочка 🔒
         const lockStyle = new TextStyle({ fontSize: 20 });
         const lockText = new Text({ text: '🔒', style: lockStyle });
         lockText.anchor.set(0.5, 0.5);
-        lockText.position.set(cardW / 2, 32);
+        lockText.position.set(cardW / 2, 34);
         cardGroup.addChild(lockText);
 
         const secretStyle = new TextStyle({
@@ -227,7 +237,7 @@ export class CatDeck extends Container {
         });
         const secretText = new Text({ text: `Lvl ${level}`, style: secretStyle });
         secretText.anchor.set(0.5, 0);
-        secretText.position.set(cardW / 2, 58);
+        secretText.position.set(cardW / 2, CAT_LOCK_LVL_Y);
         cardGroup.addChild(secretText);
       }
 
@@ -236,9 +246,10 @@ export class CatDeck extends Container {
 
     // 4. Интерактивные стрелки ◀ ▶
     const btnSize = 28;
+    const arrowY = CAT_CARD_Y + Math.floor((CAT_CARD_H - btnSize) / 2);
 
     const leftBtn = new Graphics();
-    leftBtn.roundRect(12, 58, btnSize, btnSize, 8);
+    leftBtn.roundRect(12, arrowY, btnSize, btnSize, 8);
     leftBtn.fill({ color: 0x1a1638, alpha: 0.95 });
     leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     leftBtn.eventMode = 'static';
@@ -257,12 +268,12 @@ export class CatDeck extends Container {
     });
     const leftIcon = new Text({ text: '◀', style: leftTextStyle });
     leftIcon.anchor.set(0.5, 0.5);
-    leftIcon.position.set(12 + btnSize / 2, 58 + btnSize / 2);
+    leftIcon.position.set(12 + btnSize / 2, arrowY + btnSize / 2);
     leftIcon.eventMode = 'none';
     this.addChild(leftIcon);
 
     const rightBtn = new Graphics();
-    rightBtn.roundRect(W - 40, 58, btnSize, btnSize, 8);
+    rightBtn.roundRect(W - 40, arrowY, btnSize, btnSize, 8);
     rightBtn.fill({ color: 0x1a1638, alpha: 0.95 });
     rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
     rightBtn.eventMode = 'static';
@@ -281,7 +292,7 @@ export class CatDeck extends Container {
     });
     const rightIcon = new Text({ text: '▶', style: rightTextStyle });
     rightIcon.anchor.set(0.5, 0.5);
-    rightIcon.position.set(W - 40 + btnSize / 2, 58 + btnSize / 2);
+    rightIcon.position.set(W - 40 + btnSize / 2, arrowY + btnSize / 2);
     rightIcon.eventMode = 'none';
     this.addChild(rightIcon);
   }

@@ -1,5 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { ACTION_ROW_MARGIN } from './actionRow.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { empireMeta } from '../game/EmpireMeta.js';
 import { getLiveOpsLayout } from '../game/liveOpsLayout.js';
@@ -88,7 +89,7 @@ export class LiveOpsRow extends Container {
     this.visible = layout.visible;
     if (!layout.visible) return;
 
-    const fullW = CONFIG.GAME_WIDTH - 16;
+    const fullW = CONFIG.GAME_WIDTH - ACTION_ROW_MARGIN * 2;
     this._left = this._chip(0, 0, fullW, ROW_H, layout.left);
     this.addChild(this._left.wrap);
     this._left.wrap.on('pointertap', () => this._onLeft());

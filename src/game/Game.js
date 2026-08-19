@@ -19,6 +19,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { quoteFillAll } from './fillAllPurchase.js';
+import { ACTION_BTN_H, ACTION_ROW_MARGIN, actionButtonX } from '../ui/actionRow.js';
 import { isStarterSnapshot } from '../services/StorageService.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
@@ -177,7 +178,7 @@ export class Game {
     const buttonRowY = this.grid.y + gridWidth + 12;
     this._buttonRowY = buttonRowY;
 
-    // A) 🐱 Купить (128px) — клик + Hold-to-buy
+    // A) 🐱 Купить — клик + Hold-to-buy
     this.spawnSystem = new SpawnSystem(this.app, this.grid, this.economy, (cost) => {
       if (this.fillAllButton) this.fillAllButton.updateLabel();
       if (this.economy) {
@@ -188,13 +189,13 @@ export class Game {
       this._saveToLocalStorage();
     });
 
-    this.spawnSystem.x = 8;
+    this.spawnSystem.x = actionButtonX(0);
     this.spawnSystem.y = buttonRowY;
     this.spawnSystem.zIndex = 10;
     this.spawnSystem.updateButtonLabel();
     this.gameContainer.addChild(this.spawnSystem);
 
-    // B) 📦 Заполнить (122px) — выкуп всех свободных слотов за 1 клик
+    // B) 📦 Заполнить — выкуп свободных слотов за монеты
     this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
       const freeSlots = [];
       for (let i = 0; i < 25; i++) {
@@ -254,12 +255,12 @@ export class Game {
         console.error('Ошибка фонового сохранения после массовой покупки:', e);
       });
     });
-    this.fillAllButton.x = 144;
+    this.fillAllButton.x = actionButtonX(1);
     this.fillAllButton.y = buttonRowY;
     this.fillAllButton.zIndex = 10;
     this.gameContainer.addChild(this.fillAllButton);
 
-    // C) ⚡ Соединить все (128px)
+    // C) ⚡ Соединить все
     this.autoMergeButton = new AutoMergeButton(this.app, this.economy, async () => {
       let count = 0;
       if (this.autoMergeSystem) {
@@ -274,7 +275,7 @@ export class Game {
       if (empireMeta.starterOpen) this.showStarterTribute();
       else this.showRubyShop();
     });
-    this.autoMergeButton.x = 280;
+    this.autoMergeButton.x = actionButtonX(2);
     this.autoMergeButton.y = buttonRowY;
     this.autoMergeButton.zIndex = 10;
     this.gameContainer.addChild(this.autoMergeButton);
@@ -284,7 +285,7 @@ export class Game {
       onPortal: () => this.flyToNextWorld(),
       onLayout: () => this._layoutChrome()
     });
-    this.liveOpsRow.x = 8;
+    this.liveOpsRow.x = ACTION_ROW_MARGIN;
     this.liveOpsRow.zIndex = 10;
     this.gameContainer.addChild(this.liveOpsRow);
 
@@ -701,9 +702,9 @@ export class Game {
   _layoutChrome() {
     const y = this._buttonRowY;
     if (y == null) return;
-    const opsY = y + 52;
+    const opsY = y + ACTION_BTN_H + 8;
     if (this.liveOpsRow) {
-      this.liveOpsRow.x = 8;
+      this.liveOpsRow.x = ACTION_ROW_MARGIN;
       this.liveOpsRow.y = opsY;
     }
     const opsH = this.liveOpsRow && this.liveOpsRow.visibleHeight ? this.liveOpsRow.visibleHeight : 0;

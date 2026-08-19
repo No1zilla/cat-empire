@@ -4,6 +4,7 @@ import { BALANCE } from '../config/balance.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { ACTION_BTN_W, ACTION_BTN_H } from '../ui/actionRow.js';
 
 /**
  * Система спавна и покупки котиков (Чистая сочная 3D кнопка без наслоений текста)
@@ -42,15 +43,15 @@ export class SpawnSystem extends Container {
       const totalWidth = textWidth + coinWidth;
 
       this._subText.anchor.set(0, 0.5);
-      this._subText.position.set(Math.floor((122 - totalWidth) / 2), 33);
+      this._subText.position.set(Math.floor((ACTION_BTN_W - totalWidth) / 2), 33);
       coinIcon.position.set(textWidth + 6, 0);
     }
   }
 
-  // Создание кнопки покупки (фиксированная ширина 122px, без дублирующихся артов)
+  // Создание кнопки покупки (одна ширина с Заполнить / Соединить)
   _createButton() {
-    const btnWidth = 122;
-    const btnHeight = 50;
+    const btnWidth = ACTION_BTN_W;
+    const btnHeight = ACTION_BTN_H;
 
     this.removeChildren();
 
@@ -81,7 +82,7 @@ export class SpawnSystem extends Container {
     // 4. Единый чёткий текст на кнопке
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
@@ -209,7 +210,7 @@ export class SpawnSystem extends Container {
 
     this._warningText = new Text({ text, style });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(67, -15);
+    this._warningText.position.set(ACTION_BTN_W / 2, -15);
     this.addChild(this._warningText);
 
     setTimeout(() => {

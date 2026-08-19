@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { quoteFillAll } from '../game/fillAllPurchase.js';
+import { ACTION_BTN_W, ACTION_BTN_H } from './actionRow.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -42,11 +43,11 @@ export class FillAllButton extends Container {
     if (!this._subContainer) return;
     this._subContainer.removeChildren();
 
-    const btnWidth = 122;
+    const btnWidth = ACTION_BTN_W;
 
     if (this._btnText) {
       this._btnText.text = '📦 Заполнить';
-      this._btnText.style.fontSize = 12;
+      this._btnText.style.fontSize = 13;
       this._btnText.position.set(btnWidth / 2, 6);
     }
     if (this._btnBg) {
@@ -75,7 +76,7 @@ export class FillAllButton extends Container {
       const shownCount = count > 0 ? count : freeSlotsCount;
       const shownCost = count > 0 ? cost : fullCost;
       const formattedCost = UIUtils.formatNumber(shownCost);
-      const text1Obj = new Text({ text: `${shownCount} шт (${formattedCost} `, style: subStyle });
+      const text1Obj = new Text({ text: `${shownCount} · ${formattedCost} `, style: subStyle });
       text1Obj.anchor.set(0, 0.5);
       text1Obj.position.set(0, 0);
 
@@ -84,15 +85,10 @@ export class FillAllButton extends Container {
       const gap = 3;
       coinIcon.position.set(text1Obj.width + gap + coinRadius, 0);
 
-      const text2Obj = new Text({ text: ')', style: subStyle });
-      text2Obj.anchor.set(0, 0.5);
-      text2Obj.position.set(text1Obj.width + gap + (coinRadius * 2) + gap, 0);
-
       this._subContainer.addChild(text1Obj);
       this._subContainer.addChild(coinIcon);
-      this._subContainer.addChild(text2Obj);
 
-      const totalWidth = text1Obj.width + gap + (coinRadius * 2) + gap + text2Obj.width;
+      const totalWidth = text1Obj.width + gap + (coinRadius * 2);
       this._subContainer.pivot.set(totalWidth / 2, 0);
       this._subContainer.position.set(btnWidth / 2, 33);
     }
@@ -101,8 +97,8 @@ export class FillAllButton extends Container {
   _draw() {
     this.removeChildren();
 
-    const btnWidth = 122;
-    const btnHeight = 50;
+    const btnWidth = ACTION_BTN_W;
+    const btnHeight = ACTION_BTN_H;
 
     this._innerContainer = new Container();
     this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
@@ -131,7 +127,7 @@ export class FillAllButton extends Container {
     // 4. Текст кнопки "📦 Заполнить"
     const titleStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: 'bold',
       fill: '#ffffff',
       align: 'center',
@@ -226,12 +222,12 @@ export class FillAllButton extends Container {
       style: warnStyle
     });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(61, -18);
+    this._warningText.position.set(ACTION_BTN_W / 2, -18);
     this.addChild(this._warningText);
 
     if (showCoin) {
       this._warningCoin = UIUtils.createCoinIcon(7, true);
-      this._warningCoin.position.set(61 + this._warningText.width / 2 + 6, -18);
+      this._warningCoin.position.set(ACTION_BTN_W / 2 + this._warningText.width / 2 + 6, -18);
       this.addChild(this._warningCoin);
     }
 

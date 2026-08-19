@@ -4,6 +4,7 @@ import { saveProgress } from '../api/client.js';
 import { AdModal } from './AdModal.js';
 import { OutOfRubiesModal } from './OutOfRubiesModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
+import { ACTION_BTN_W, ACTION_BTN_H } from './actionRow.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -37,8 +38,8 @@ export class AutoMergeButton extends Container {
   _draw() {
     this.removeChildren();
 
-    const btnWidth = 122;
-    const btnHeight = 50;
+    const btnWidth = ACTION_BTN_W;
+    const btnHeight = ACTION_BTN_H;
 
     this._innerContainer = new Container();
     this._innerContainer.pivot.set(btnWidth / 2, btnHeight / 2);
@@ -79,7 +80,7 @@ export class AutoMergeButton extends Container {
     this._btnText.position.set(btnWidth / 2, 6);
     this._innerContainer.addChild(this._btnText);
 
-    // 5. Красивый сочный центрированный подтекст "5 💎" с 3D рубиновым гемом
+    // 5. Подтекст «5» + рубин, без голубого 💎
     this._subContainer = new Container();
 
     const subStyle = new TextStyle({
@@ -178,7 +179,7 @@ export class AutoMergeButton extends Container {
 
     this._warningText = new Text({ text, style: warnStyle });
     this._warningText.anchor.set(0.5, 0.5);
-    this._warningText.position.set(61, -18);
+    this._warningText.position.set(ACTION_BTN_W / 2, -18);
     this.addChild(this._warningText);
 
     this._warningTimeout = setTimeout(() => {
@@ -192,7 +193,7 @@ export class AutoMergeButton extends Container {
 
   updateLabel() {
     if (!this._subContainer) return;
-    const btnWidth = 122;
+    const btnWidth = ACTION_BTN_W;
     const hasEnoughGems = this.economy && this.economy.gems >= 5;
 
     this._subContainer.removeChildren();
