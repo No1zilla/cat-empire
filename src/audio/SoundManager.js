@@ -47,6 +47,16 @@ export function getBgmStepSeconds(bpm = BGM_LOOP.bpm) {
   return 60 / bpm / 2;
 }
 
+/** Однобитка выключена, пока игрок сам не включит в настройках. */
+export function readMusicEnabledPref() {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem('cat_empire_music_muted') === '0';
+  } catch {
+    return false;
+  }
+}
+
 /** Тихий воздух на «Заполнить»: без треугольника и без C6. */
 export const FILL_SFX = {
   notes: [E4, G4],
@@ -76,7 +86,7 @@ export class SoundManager {
   constructor() {
     this.audioCtx = null;
     this.enabled = true;
-    this.musicEnabled = true;
+    this.musicEnabled = false;
     this._bgmTimer = null;
     this._bgmStep = 0;
     this._bgmNextTime = 0;
@@ -91,10 +101,10 @@ export class SoundManager {
     if (typeof localStorage === 'undefined') return;
     try {
       this.enabled = localStorage.getItem('cat_empire_sound_muted') !== '1';
-      this.musicEnabled = localStorage.getItem('cat_empire_music_muted') !== '1';
+      this.musicEnabled = readMusicEnabledPref();
     } catch {
       this.enabled = true;
-      this.musicEnabled = true;
+      this.musicEnabled = false;
     }
   }
 

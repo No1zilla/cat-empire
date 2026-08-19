@@ -65,7 +65,7 @@ export class SettingsModal extends Container {
 
     // 4. Переключатель Звука
     let soundEnabled = localStorage.getItem('cat_empire_sound_muted') !== '1';
-    let musicEnabled = localStorage.getItem('cat_empire_music_muted') !== '1';
+    let musicEnabled = soundManager.musicEnabled;
 
     const soundContainer = new Container();
     soundContainer.position.set(modalX + 25, modalY + 78);

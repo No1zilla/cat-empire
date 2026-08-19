@@ -6,6 +6,7 @@ export function runSoundTests() {
   console.log('🧪 Тестирование Звукового Менеджера (src/audio/SoundManager.js)...');
 
   assert.strictEqual(soundManager.enabled, true, 'Звуковой менеджер должен быть включен по умолчанию');
+  assert.strictEqual(soundManager.musicEnabled, false, 'Однобитовая петля по умолчанию выключена');
 
   let played = false;
   soundManager.playTone = () => { played = true; };
