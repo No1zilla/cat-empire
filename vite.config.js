@@ -13,5 +13,21 @@ export default defineConfig({
   server: {
     port: 5173,
     allowedHosts: true
-  }
+  },
+  plugins: [
+    {
+      name: 'stub-api-on-vite',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url && req.url.startsWith('/api')) {
+            res.statusCode = 404;
+            res.setHeader('Content-Type', 'application/json');
+            res.end('{"ok":false}');
+            return;
+          }
+          next();
+        });
+      }
+    }
+  ]
 });
