@@ -37,17 +37,17 @@ export function fitGameHeight(viewW, viewH) {
 }
 
 /**
- * CSS-размер канваса = логическое поле.
- * Не растягиваем вверх: лишнее место iframe остаётся вокруг холста (flex).
- * object-fit:contain + width/height 100% сдвигает тапы: центр «Соединить» бьёт в «Заполнить».
- * Ужимаем только если iframe уже поля — иначе на узком телефоне холст вылезает за край.
+ * CSS-размер канваса: contain в iframe, масштаб и вверх, и вниз.
+ * Логическое поле остаётся 410×CELL_SIZE 77 — меняются только CSS-пиксели.
+ * Не ставить width/height 100% + object-fit:contain: тапы едут
+ * (центр «Соединить» бьёт в «Заполнить»). Явные px + getBoundingClientRect.
  */
 export function canvasCssSize(viewW, viewH, gameW = CONFIG.GAME_WIDTH, gameH = CONFIG.GAME_HEIGHT) {
   const gw = Math.max(1, Number(gameW) || 410);
   const gh = Math.max(1, Number(gameH) || GAME_HEIGHT_MIN);
   const vw = Math.max(1, Number(viewW) || gw);
   const vh = Math.max(1, Number(viewH) || gh);
-  const scale = Math.min(1, vw / gw, vh / gh);
+  const scale = Math.min(vw / gw, vh / gh);
   return {
     width: Math.max(1, Math.round(gw * scale)),
     height: Math.max(1, Math.round(gh * scale)),

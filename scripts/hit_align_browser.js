@@ -9,6 +9,7 @@ const CASES = [
   { name: 'field-410', viewport: { width: 410, height: 700 }, dpr: 1 },
   { name: 'retina-410', viewport: { width: 410, height: 700 }, dpr: 2 },
   { name: 'vk-desktop-wide', viewport: { width: 1000, height: 700 }, dpr: 1 },
+  { name: 'vk-desktop-tall', viewport: { width: 1000, height: 800 }, dpr: 1 },
   { name: 'phone-narrow', viewport: { width: 360, height: 800 }, dpr: 3 }
 ];
 

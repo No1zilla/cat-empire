@@ -22,15 +22,16 @@ if (typeof document !== 'undefined') {
 
 function viewSize() {
   const el = typeof document !== 'undefined' ? document.getElementById('game-container') : null;
-  const w = (el && el.clientWidth) || (typeof window !== 'undefined' ? window.innerWidth : CONFIG.GAME_WIDTH);
-  const h = (el && el.clientHeight) || (typeof window !== 'undefined' ? window.innerHeight : CONFIG.GAME_HEIGHT);
-  return { w: Math.max(1, w), h: Math.max(1, h) };
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+  const w = (el && el.clientWidth) || (vv && vv.width) || (typeof window !== 'undefined' ? window.innerWidth : CONFIG.GAME_WIDTH);
+  const h = (el && el.clientHeight) || (vv && vv.height) || (typeof window !== 'undefined' ? window.innerHeight : CONFIG.GAME_HEIGHT);
+  return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)) };
 }
 
 function applyCanvasFit(app) {
   if (!app || !app.canvas) return;
   const view = viewSize();
-  const gameW = (app.screen && app.screen.width) || CONFIG.GAME_WIDTH;
+  const gameW = CONFIG.GAME_WIDTH;
   const gameH = (app.screen && app.screen.height) || CONFIG.GAME_HEIGHT;
   const css = canvasCssSize(view.w, view.h, gameW, gameH);
   const style = app.canvas.style;
@@ -39,10 +40,15 @@ function applyCanvasFit(app) {
   style.setProperty('max-width', 'none', 'important');
   style.setProperty('max-height', 'none', 'important');
   style.setProperty('object-fit', 'fill', 'important');
-  style.setProperty('object-position', 'top center', 'important');
+  style.setProperty('object-position', 'center center', 'important');
   style.display = 'block';
   style.margin = '0 auto';
   style.flex = '0 0 auto';
+  const container = document.getElementById('game-container');
+  if (container) {
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+  }
 }
 
 // Глобальный метод для отладки и сброса туториала
@@ -212,6 +218,9 @@ async function initApp() {
     applyCanvasFit(app);
   };
   window.addEventListener('resize', syncCanvasSize);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncCanvasSize);
+  }
 
   if (userInfo && (userInfo.firstName || userInfo.lastName || userInfo.photo)) {
     saveProgress({

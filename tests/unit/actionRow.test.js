@@ -73,14 +73,22 @@ export function runActionRowTests() {
     assert.strictEqual(mergeCalls, 1, 'Соединить запускает только слияние');
 
     const wide = canvasCssSize(500, 700, 410, 700);
+    assert.strictEqual(wide.scale, 1, 'при высоте ровно 700 широкий iframe не раздувает поле');
     assert.strictEqual(wide.width, 410, 'широкий iframe не растягивает канвас по ширине');
     assert.strictEqual(wide.height, 700);
-    assert.ok(wide.width / wide.height === 410 / 700 || Math.abs(wide.width / 410 - wide.height / 700) < 0.001);
+    assert.ok(Math.abs(wide.width / 410 - wide.height / 700) < 0.001);
 
     const huge = canvasCssSize(1000, 900, 410, 700);
-    assert.strictEqual(huge.width, 410, 'большой iframe не масштабирует холст — тапы 1:1 с рисунком');
-    assert.strictEqual(huge.height, 700);
-    assert.strictEqual(huge.scale, 1);
+    assert.ok(huge.scale > 1, 'большой VK iframe масштабирует холст вверх, не марка 410×700');
+    assert.strictEqual(huge.height, 900, 'высокий iframe заполняется по высоте');
+    assert.strictEqual(huge.width, Math.round(410 * (900 / 700)));
+    assert.ok(huge.width > 410);
+    assert.ok(Math.abs(huge.width / 410 - huge.height / 700) < 0.002);
+
+    const vkDesk = canvasCssSize(1000, 800, 410, 700);
+    assert.ok(Math.abs(vkDesk.scale - 800 / 700) < 0.002);
+    assert.strictEqual(vkDesk.height, 800);
+    assert.ok(vkDesk.width > 410, 'VK desktop ~1000×800 не оставляет поле маркой');
 
     const narrow = canvasCssSize(360, 700, 410, 700);
     assert.strictEqual(narrow.width, 360, 'узкий экран ужимает холст целиком, без полос по бокам внутри canvas');
@@ -103,6 +111,24 @@ export function runActionRowTests() {
       clientXToActionIndex(actionButtonX(2) + ACTION_BTN_W / 2, box410),
       1,
       'центр Соединить не Заполнить'
+    );
+
+    const scaledBox = {
+      left: Math.round((1000 - vkDesk.width) / 2),
+      width: vkDesk.width
+    };
+    const toClient = (gameX) => scaledBox.left + gameX * (vkDesk.width / 410);
+    assert.strictEqual(
+      clientXToActionIndex(toClient(actionButtonX(2) + ACTION_BTN_W / 2), scaledBox),
+      2,
+      'на увеличенном VK-канвасе центр Соединить — Соединить'
+    );
+    assert.strictEqual(clientXToActionIndex(toClient(actionButtonX(1) + ACTION_BTN_W / 2), scaledBox), 1);
+    assert.strictEqual(clientXToActionIndex(toClient(actionButtonX(0) + ACTION_BTN_W / 2), scaledBox), 0);
+    assert.notStrictEqual(
+      clientXToActionIndex(toClient(actionButtonX(2) + ACTION_BTN_W / 2), scaledBox),
+      1,
+      'масштаб вверх не сдвигает Соединить в Заполнить'
     );
 
     const letterbox = { left: 0, width: 1000 };
