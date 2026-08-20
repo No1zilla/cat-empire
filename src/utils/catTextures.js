@@ -1,44 +1,67 @@
 import { Assets, Texture } from 'pixi.js';
-import { publicAsset } from './publicAsset.js';
+import { publicAsset, catSpriteUrls, PAGES_ORIGIN } from './publicAsset.js';
 
 let textures = null;
 let uiTextures = {};
+const textureListeners = [];
+let notifyTimer = 0;
 
 export const GREEN_EYES_REL = 'assets/cats/green_eyes_gift.jpg';
-export const GREEN_EYES_PAGES_URL = 'https://no1zilla.github.io/cat-empire/assets/cats/green_eyes_gift.jpg';
+export const GREEN_EYES_PAGES_URL = `${PAGES_ORIGIN}/assets/cats/green_eyes_gift.jpg`;
+
+export function whenCatTexturesChange(fn) {
+  if (typeof fn === 'function') textureListeners.push(fn);
+  return () => {
+    const i = textureListeners.indexOf(fn);
+    if (i >= 0) textureListeners.splice(i, 1);
+  };
+}
+
+function notifyCatTextures() {
+  if (notifyTimer) clearTimeout(notifyTimer);
+  notifyTimer = setTimeout(() => {
+    notifyTimer = 0;
+    textureListeners.slice().forEach((fn) => {
+      try { fn(); } catch (e) {}
+    });
+  }, 50);
+}
 
 /**
- * Загрузка 15 индивидуальных прозрачных 256x256 PNG спрайтов котиков + 3D UI артов.
- * Вызывать один раз перед game.init().
+ * Загрузка 15 PNG котиков. В VK iframe `./assets` часто 404 — пробуем устойчивый URL,
+ * потом абсолютный GitHub Pages. Не оставляем поле на эмодзи 👑🚀🐉 навсегда.
  */
 export async function loadCatTextures() {
-  const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
-  textures = {};
-  uiTextures = {};
+  const href = (typeof window !== 'undefined' && window.location && window.location.href) || '';
+  textures = textures || {};
+  uiTextures = uiTextures || {};
 
   const jobs = [];
   for (let level = 1; level <= 15; level++) {
     jobs.push(
-      withTimeout(Assets.load(`${base}assets/cats/cat_${level}.png`), 2500, `cat_${level}`)
-        .then((tex) => { textures[level] = tex; })
+      loadOneCat(level, href)
+        .then((tex) => {
+          textures[level] = tex;
+          notifyCatTextures();
+        })
         .catch((e) => {
           console.warn(`Failed to load cat_${level}.png, fallback to emoji:`, e);
-          textures[level] = null;
+          if (!textures[level]) textures[level] = null;
         })
     );
   }
   jobs.push(
-    withTimeout(Assets.load(`${base}assets/ui/pedestal_gold.jpg`), 2500, 'pedestal')
+    tryLoadTexture(publicAsset('assets/ui/pedestal_gold.jpg'))
       .then((tex) => { uiTextures.pedestal_gold = tex; })
       .catch(() => {})
   );
   jobs.push(
-    withTimeout(Assets.load(`${base}assets/ui/logo_cat_empire.jpg`), 2500, 'logo')
+    tryLoadTexture(publicAsset('assets/ui/logo_cat_empire.jpg'))
       .then((tex) => { uiTextures.logo = tex; })
       .catch(() => {})
   );
   jobs.push(
-    withTimeout(Assets.load(`${base}assets/ui/btn_buy_pink.jpg`), 2500, 'btn')
+    tryLoadTexture(publicAsset('assets/ui/btn_buy_pink.jpg'))
       .then((tex) => { uiTextures.btn_buy_pink = tex; })
       .catch(() => {})
   );
@@ -48,7 +71,21 @@ export async function loadCatTextures() {
   });
 
   console.log('🎨 Текстуры загружены!');
+  notifyCatTextures();
   return textures;
+}
+
+async function loadOneCat(level, href) {
+  let lastErr;
+  for (const url of catSpriteUrls(level, href)) {
+    try {
+      const tex = await tryLoadTexture(url);
+      if (tex) return tex;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error(`cat_${level} missing`);
 }
 
 function greenEyesUrls() {
@@ -89,10 +126,11 @@ async function withTimeout(promise, ms, label) {
 }
 
 async function tryLoadTexture(url) {
+  if (!url) throw new Error('empty texture url');
   try {
-    return await withTimeout(Assets.load(url), 2500, url);
+    return await withTimeout(Assets.load(url), 8000, url);
   } catch (e) {
-    return await withTimeout(loadTextureFromImage(url), 2500, url);
+    return await withTimeout(loadTextureFromImage(url), 8000, url);
   }
 }
 

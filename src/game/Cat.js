@@ -94,6 +94,17 @@ export class Cat extends Container {
     }
   }
 
+  /** Когда PNG доехал после эмодзи-фолбэка — перерисовать котика. */
+  refreshArt() {
+    if (!getCatTexture(this.level)) return;
+    const glow = this._glowColor;
+    this._stopIdleAnimation();
+    this._draw();
+    this._startIdleAnimation();
+    this._setupRarityAura();
+    if (glow) this.setGlow(true, glow);
+  }
+
   // TASK-015B: Rarity Visual System — Аура под котиками 5+ уровня
   _setupRarityAura() {
     this._stopRarityAnimation();

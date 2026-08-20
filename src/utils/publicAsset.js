@@ -24,4 +24,23 @@ export function publicAsset(relPath) {
   return `${String(base).replace(/\/?$/, '/')}${String(relPath || '').replace(/^\.?\//, '')}`;
 }
 
+export const PAGES_ORIGIN = 'https://no1zilla.github.io/cat-empire';
+
+export function catSpriteRel(level) {
+  const n = Math.min(15, Math.max(1, Math.round(Number(level) || 1)));
+  return `assets/cats/cat_${n}.png`;
+}
+
+/** Кандидатные URL спрайта: iframe без слэша, затем абсолютный Pages. */
+export function catSpriteUrls(level, locationHref = '') {
+  const rel = catSpriteRel(level);
+  const urls = [];
+  const push = (u) => {
+    if (u && !urls.includes(u)) urls.push(u);
+  };
+  push(resolvePublicAsset(rel, locationHref));
+  push(`${PAGES_ORIGIN}/${rel}`);
+  return urls;
+}
+
 export default publicAsset;

@@ -22,6 +22,7 @@ import { quoteFillAll } from './fillAllPurchase.js';
 import { ACTION_BTN_H, ACTION_ROW_MARGIN } from '../ui/actionRow.js';
 import { ActionRow } from '../ui/ActionRow.js';
 import { CAT_DECK_H, catDeckFrame } from '../ui/catDeckLayout.js';
+import { whenCatTexturesChange } from '../utils/catTextures.js';
 import { isStarterSnapshot } from '../services/StorageService.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
@@ -308,6 +309,11 @@ export class Game {
     this._dailyOfferedThisBoot = false;
     this._bootHooksRan = false;
     this._applyFirstSessionChrome();
+    whenCatTexturesChange(() => {
+      if (this.grid && typeof this.grid.refreshCatArt === 'function') this.grid.refreshCatArt();
+      if (this.catDeck && typeof this.catDeck._draw === 'function') this.catDeck._draw();
+    });
+    if (this.grid && typeof this.grid.refreshCatArt === 'function') this.grid.refreshCatArt();
 
     // 8. Движок Merge и Drag
     const onMerge = (newLevel, slotIndex) => {

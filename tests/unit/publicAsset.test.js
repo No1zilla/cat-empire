@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import { resolvePublicAsset } from '../../src/utils/publicAsset.js';
+import { resolvePublicAsset, catSpriteUrls } from '../../src/utils/publicAsset.js';
 
 export function runPublicAssetTests() {
   console.log('🧪 Тестирование URL зеленоглазой кисы в iframe без слэша...');
@@ -28,6 +28,15 @@ export function runPublicAssetTests() {
   assert.strictEqual(
     resolvePublicAsset(rel, 'https://no1zilla.github.io/cat-empire/dev'),
     'https://no1zilla.github.io/cat-empire/dev/assets/cats/green_eyes_gift.jpg'
+  );
+
+  const catUrls = catSpriteUrls(1, 'https://no1zilla.github.io/cat-empire/dev');
+  assert.ok(catUrls.includes('https://no1zilla.github.io/cat-empire/dev/assets/cats/cat_1.png'));
+  assert.ok(catUrls.includes('https://no1zilla.github.io/cat-empire/assets/cats/cat_1.png'));
+  const noSlash = catSpriteUrls(12, 'https://no1zilla.github.io/cat-empire');
+  assert.ok(
+    noSlash.includes('https://no1zilla.github.io/cat-empire/assets/cats/cat_12.png'),
+    'котики не должны уезжать на github.io/assets/cats из iframe без слэша'
   );
 
   const modalSrc = readFileSync(new URL('../../src/ui/DesktopRewardModal.js', import.meta.url), 'utf8');

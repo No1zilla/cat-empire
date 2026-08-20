@@ -226,12 +226,9 @@ async function initApp() {
 
   updateSplashProgress(90, 'Загружаем текстуры котиков...');
   try {
-    await Promise.race([
-      loadCatTextures(),
-      new Promise((resolve) => setTimeout(resolve, 6000))
-    ]);
+    await withTimeout(loadCatTextures(), 12000, 'cat textures timeout');
   } catch (e) {
-    console.warn('⚠️ Спрайты не загружены, используются эмодзи:', e && e.message);
+    console.warn('⚠️ Спрайты ещё грузятся, поле обновится когда PNG доедут:', e && e.message);
   }
 
   updateSplashProgress(98, 'Строим королевство котиков...');

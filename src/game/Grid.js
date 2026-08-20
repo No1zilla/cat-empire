@@ -18,6 +18,12 @@ export class Grid extends Container {
     return this.slots.filter((cat) => cat !== null).length;
   }
 
+  refreshCatArt() {
+    this.slots.forEach((cat) => {
+      if (cat && typeof cat.refreshArt === 'function') cat.refreshArt();
+    });
+  }
+
   // Сочная монолитная подложка игрового поля 5x5
   _drawBackground() {
     const gridWidth = CONFIG.GRID_SIZE * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
