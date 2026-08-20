@@ -38,6 +38,13 @@ export function runViewInsetsTests() {
   assert.strictEqual(css.top, 47);
   assert.strictEqual(css.bottom, 34);
 
+  const statusOnly = resolveViewInsets({
+    css: { top: 47 },
+    vk: { top: 47, bottom: 0 },
+    platform: 'mobile_iphone'
+  });
+  assert.ok(statusOnly.top >= 47 + VK_MOBILE_CHROME_TOP, 'если VK прислал только статус-бар — добавляем ряд крестика');
+
   const fromVk = resolveViewInsets({
     css: { top: 47, bottom: 34 },
     vk: { top: 96, bottom: 21 },

@@ -72,12 +72,12 @@ export function resolveViewInsets({ css, vk, platform } = {}) {
   const isMobileWeb = p === 'mobile_web';
   const isMobile = isIphone || isAndroid || isMobileWeb;
 
-  if (isMobile && vkN.top === 0) {
-    if (isIphone) {
-      merged.top = Math.max(merged.top, cssN.top + VK_MOBILE_CHROME_TOP, VK_IPHONE_TOP_FALLBACK);
-    } else {
-      merged.top = Math.max(merged.top, cssN.top + VK_MOBILE_CHROME_TOP);
+  if (isIphone) {
+    if (merged.top < 72) {
+      merged.top = Math.max(VK_IPHONE_TOP_FALLBACK, merged.top + VK_MOBILE_CHROME_TOP);
     }
+  } else if ((isAndroid || isMobileWeb) && vkN.top === 0) {
+    merged.top = Math.max(merged.top, cssN.top + VK_MOBILE_CHROME_TOP);
   }
   if (isMobile && vkN.bottom === 0) {
     merged.bottom = Math.max(merged.bottom, cssN.bottom, VK_MOBILE_BOTTOM_FALLBACK);
