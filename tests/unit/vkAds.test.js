@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import {
   parseVkLaunchParams,
   isDesktopVkPlatform,
+  isMobileVkPlatform,
   PlatformService
 } from '../../src/services/PlatformService.js';
 import {
@@ -34,6 +35,8 @@ export async function runVkAdsTests() {
   assert.strictEqual(isDesktopVkPlatform('desktop_web'), true);
   assert.strictEqual(isDesktopVkPlatform('desktop_web_messenger'), true);
   assert.strictEqual(isDesktopVkPlatform('mobile_android'), false);
+  assert.strictEqual(isMobileVkPlatform('mobile_iphone'), true);
+  assert.strictEqual(isMobileVkPlatform('desktop_web'), false);
   assert.deepStrictEqual(getNativeAdFormatOrder(true), ['interstitial', 'reward']);
   assert.deepStrictEqual(getNativeAdFormatOrder(false), ['reward', 'interstitial']);
   assert.strictEqual(isAdUserClosed('AD_CLOSED_EARLY'), true);

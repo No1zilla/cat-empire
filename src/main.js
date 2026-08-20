@@ -8,6 +8,12 @@ import { soundManager } from './audio/SoundManager.js';
 import { showDesktopBannerAd } from './api/vkAds.js';
 import { saveProgress } from './api/client.js';
 import { vkIdentity } from './services/VkIdentity.js';
+import {
+  readCssSafeArea,
+  resolveViewInsets,
+  contentBoxSize,
+  applyContainerInsets
+} from './vk/viewInsets.js';
 
 // Глобальная блокировка браузерного выделения текста и drag-out элементов
 if (typeof document !== 'undefined') {
@@ -20,11 +26,31 @@ if (typeof document !== 'undefined') {
   document.addEventListener('pointerdown', unlockAudio, { passive: true });
 }
 
+let vkInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
+function liveInsets() {
+  const css = (typeof document !== 'undefined' && typeof getComputedStyle === 'function')
+    ? readCssSafeArea(getComputedStyle(document.documentElement))
+    : { top: 0, right: 0, bottom: 0, left: 0 };
+  return resolveViewInsets({
+    css,
+    vk: vkInsets,
+    platform: PlatformService.getVkPlatform()
+  });
+}
+
+function applyLiveInsets() {
+  if (typeof document === 'undefined') return;
+  applyContainerInsets(document.getElementById('game-container'), liveInsets());
+}
+
 function viewSize() {
+  applyLiveInsets();
   const el = typeof document !== 'undefined' ? document.getElementById('game-container') : null;
+  if (el) return contentBoxSize(el, CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT);
   const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-  const w = (el && el.clientWidth) || (vv && vv.width) || (typeof window !== 'undefined' ? window.innerWidth : CONFIG.GAME_WIDTH);
-  const h = (el && el.clientHeight) || (vv && vv.height) || (typeof window !== 'undefined' ? window.innerHeight : CONFIG.GAME_HEIGHT);
+  const w = (vv && vv.width) || (typeof window !== 'undefined' ? window.innerWidth : CONFIG.GAME_WIDTH);
+  const h = (vv && vv.height) || (typeof window !== 'undefined' ? window.innerHeight : CONFIG.GAME_HEIGHT);
   return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)) };
 }
 
@@ -118,7 +144,13 @@ async function initApp() {
     updateSplashProgress(15, 'Подключаем VK Bridge...');
     const vkService = new VKService();
     try {
+      vkService.onInsets = (next) => {
+        vkInsets = next;
+        applyLiveInsets();
+      };
       await vkService.init();
+      vkInsets = vkService.lastInsets || vkInsets;
+      applyLiveInsets();
     } catch (e) {
       console.warn('VK Bridge init warning:', e);
     }

@@ -9,6 +9,15 @@ export const DESKTOP_VK_PLATFORMS = new Set([
   'web_external'
 ]);
 
+export const MOBILE_VK_PLATFORMS = new Set([
+  'mobile_iphone',
+  'mobile_ipad',
+  'mobile_android',
+  'mobile_web',
+  'mobile_iphone_messenger',
+  'mobile_android_messenger'
+]);
+
 export function parseVkLaunchParams(raw) {
   const out = {};
   const cleaned = String(raw || '')
@@ -26,6 +35,12 @@ export function parseVkLaunchParams(raw) {
 
 export function isDesktopVkPlatform(platform) {
   return DESKTOP_VK_PLATFORMS.has(String(platform || '').toLowerCase());
+}
+
+export function isMobileVkPlatform(platform) {
+  const p = String(platform || '').toLowerCase();
+  if (!p || isDesktopVkPlatform(p)) return false;
+  return MOBILE_VK_PLATFORMS.has(p) || p.startsWith('mobile_') || p.includes('iphone') || p.includes('ipad');
 }
 
 function readLaunchParamString() {
@@ -69,10 +84,15 @@ export class PlatformService {
   static isDesktopVK() {
     return isDesktopVkPlatform(this.getVkPlatform());
   }
+
+  static isMobileVK() {
+    return isMobileVkPlatform(this.getVkPlatform());
+  }
 }
 
 export const isVK = () => PlatformService.isVK();
 export const isAndroid = () => PlatformService.isAndroid();
 export const isDesktopVK = () => PlatformService.isDesktopVK();
+export const isMobileVK = () => PlatformService.isMobileVK();
 
 export default PlatformService;

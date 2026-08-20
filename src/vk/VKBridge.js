@@ -2,6 +2,7 @@ import bridge from '@vkontakte/vk-bridge';
 import { eventTracker } from '../analytics/EventTracker.js';
 import { vkDesktopIframeSize } from '../config.js';
 import { PlatformService } from '../services/PlatformService.js';
+import { EMPTY_INSET, normalizeInset } from './viewInsets.js';
 
 export const VK_APP_ID = 54702054;
 export const VK_APP_LINK = `https://vk.com/app${VK_APP_ID}`;
@@ -51,6 +52,14 @@ export function wallPostMessage(message) {
 export class VKService {
   constructor() {
     this.bridge = bridge;
+    this.lastInsets = { ...EMPTY_INSET };
+    this.onInsets = null;
+  }
+
+  _setInsets(raw) {
+    this.lastInsets = normalizeInset(raw);
+    if (typeof this.onInsets === 'function') this.onInsets(this.lastInsets);
+    return this.lastInsets;
   }
 
   // Инициализация VK Bridge
@@ -64,6 +73,8 @@ export class VKService {
             console.log('🎬 VK Native Ad Event Result:', data);
           } else if (type === 'VKWebAppShowNativeAdsFailed') {
             console.warn('⚠️ VK Native Ad Event Failed:', data);
+          } else if (type === 'VKWebAppUpdateConfig' || type === 'VKWebAppGetConfigResult') {
+            if (data && data.insets) this._setInsets(data.insets);
           }
         });
       }
@@ -72,11 +83,46 @@ export class VKService {
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
       console.log('VKWebAppInit result:', result);
+      await this._readConfigInsets();
+      await this._setDarkBars();
       await this._resizeDesktopIframe();
       return result;
     } catch (error) {
       console.error('VKWebAppInit error:', error);
       return null;
+    }
+  }
+
+  async _readConfigInsets() {
+    if (!this.bridge || typeof this.bridge.send !== 'function') return this.lastInsets;
+    try {
+      const cfg = await Promise.race([
+        this.bridge.send('VKWebAppGetConfig'),
+        new Promise((resolve) => setTimeout(() => resolve(null), 800))
+      ]);
+      if (cfg && cfg.insets) this._setInsets(cfg.insets);
+    } catch (error) {
+      console.warn('VKWebAppGetConfig insets skipped:', error);
+    }
+    return this.lastInsets;
+  }
+
+  async _setDarkBars() {
+    if (!this.bridge || typeof this.bridge.send !== 'function') return;
+    if (typeof this.bridge.supports === 'function' && !this.bridge.supports('VKWebAppSetViewSettings')) {
+      return;
+    }
+    try {
+      await Promise.race([
+        this.bridge.send('VKWebAppSetViewSettings', {
+          status_bar_style: 'light',
+          action_bar_color: '#100b20',
+          navigation_bar_color: '#100b20'
+        }),
+        new Promise((resolve) => setTimeout(resolve, 400))
+      ]);
+    } catch (error) {
+      console.warn('VKWebAppSetViewSettings skipped:', error);
     }
   }
 
