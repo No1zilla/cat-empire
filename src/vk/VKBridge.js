@@ -1,5 +1,7 @@
 import bridge from '@vkontakte/vk-bridge';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { vkDesktopIframeSize } from '../config.js';
+import { PlatformService } from '../services/PlatformService.js';
 
 export const VK_APP_ID = 54702054;
 export const VK_APP_LINK = `https://vk.com/app${VK_APP_ID}`;
@@ -70,9 +72,34 @@ export class VKService {
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
       const result = await Promise.race([this.bridge.send('VKWebAppInit'), timeout]);
       console.log('VKWebAppInit result:', result);
+      await this._resizeDesktopIframe();
       return result;
     } catch (error) {
       console.error('VKWebAppInit error:', error);
+      return null;
+    }
+  }
+
+  async _resizeDesktopIframe() {
+    if (!PlatformService.isDesktopVK()) return null;
+    if (!this.bridge || typeof this.bridge.send !== 'function') return null;
+    if (typeof this.bridge.supports === 'function' && !this.bridge.supports('VKWebAppResizeWindow')) {
+      return null;
+    }
+    const viewW = typeof window !== 'undefined' ? window.innerWidth : 410;
+    const viewH = typeof window !== 'undefined' ? window.innerHeight : 700;
+    const size = vkDesktopIframeSize(viewW, viewH);
+    try {
+      const resized = await Promise.race([
+        this.bridge.send('VKWebAppResizeWindow', size),
+        new Promise((resolve) => setTimeout(() => resolve(null), 800))
+      ]);
+      if (resized && resized.width) {
+        console.log('VKWebAppResizeWindow:', resized);
+      }
+      return resized;
+    } catch (error) {
+      console.warn('VKWebAppResizeWindow skipped:', error);
       return null;
     }
   }

@@ -4,7 +4,8 @@ import {
   fitGameHeight,
   canvasCssSize,
   gameContainerOffsetX,
-  pointerToGameX
+  pointerToGameX,
+  vkDesktopIframeSize
 } from '../../src/config.js';
 import {
   ACTION_BTN_W,
@@ -89,6 +90,18 @@ export function runActionRowTests() {
     assert.ok(Math.abs(vkDesk.scale - 800 / 700) < 0.002);
     assert.strictEqual(vkDesk.height, 800);
     assert.ok(vkDesk.width > 410, 'VK desktop ~1000×800 не оставляет поле маркой');
+
+    const iframe800 = vkDesktopIframeSize(1000, 800);
+    assert.strictEqual(iframe800.width, 600, 'VK не даёт iframe уже 600px');
+    assert.strictEqual(iframe800.height, 800);
+    const afterResize = canvasCssSize(iframe800.width, iframe800.height, 410, 700);
+    assert.strictEqual(afterResize.height, 800);
+    assert.ok(iframe800.width - afterResize.width < 140, 'после ResizeWindow боковые поля узкие');
+
+    const iframeTall = vkDesktopIframeSize(1000, 1100);
+    assert.ok(iframeTall.width >= 600);
+    assert.ok(iframeTall.width <= 1000);
+    assert.strictEqual(iframeTall.height, 1100);
 
     const narrow = canvasCssSize(360, 700, 410, 700);
     assert.strictEqual(narrow.width, 360, 'узкий экран ужимает холст целиком, без полос по бокам внутри canvas');

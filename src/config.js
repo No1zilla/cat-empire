@@ -24,6 +24,32 @@ export const CONFIG = {
 export const GAME_HEIGHT_MIN = 700;
 export const GAME_HEIGHT_MAX = 1100;
 
+/** VKWebAppResizeWindow: ширина от 600 до 1000, высота от 500. */
+export const VK_DESKTOP_IFRAME_WIDTH_MIN = 600;
+export const VK_DESKTOP_IFRAME_WIDTH_MAX = 1000;
+export const VK_DESKTOP_IFRAME_HEIGHT_MIN = 500;
+export const VK_DESKTOP_IFRAME_HEIGHT_MAX = 10000;
+
+/**
+ * Размер desktop-iframe под поле 410×700.
+ * VK не даёт ширину < 600 — берём contain и зажимаем в лимиты кабинета.
+ */
+export function vkDesktopIframeSize(viewW, viewH, gameW = CONFIG.GAME_WIDTH, gameH = GAME_HEIGHT_MIN) {
+  const gw = Math.max(1, Number(gameW) || 410);
+  const gh = Math.max(1, Number(gameH) || GAME_HEIGHT_MIN);
+  const vh = Math.max(
+    VK_DESKTOP_IFRAME_HEIGHT_MIN,
+    Math.min(VK_DESKTOP_IFRAME_HEIGHT_MAX, Math.round(Number(viewH) || gh))
+  );
+  const idealW = Math.round(gw * (vh / gh));
+  const vw = Math.max(
+    VK_DESKTOP_IFRAME_WIDTH_MIN,
+    Math.min(VK_DESKTOP_IFRAME_WIDTH_MAX, idealW)
+  );
+  void viewW;
+  return { width: vw, height: vh };
+}
+
 /** Высота холста под iframe: ширина 410, сетка 77px. Не ниже 700. */
 export function fitGameHeight(viewW, viewH) {
   const w = CONFIG.GAME_WIDTH || 410;
