@@ -23,6 +23,12 @@
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
     }
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+    }
     html, body {
       width: 100%;
       height: 100%;
@@ -52,7 +58,7 @@
       position: absolute;
       inset: 0;
       z-index: 1;
-      padding: 0;
+      padding: var(--sat) var(--sar) var(--sab) var(--sal);
       box-sizing: border-box;
       background-image: radial-gradient(ellipse 55% 42% at 50% 42%, rgba(61, 35, 117, 0.35), #100b20 72%);
     }
@@ -198,7 +204,7 @@
       location.reload();
     };
   </script>
-  <script type="module" crossorigin src="./assets/index-i7XkG0ca.js"></script>
+  <script type="module" crossorigin src="./assets/index-CVWgMF_s.js"></script>
 </head>
 <body>
   <!-- 🔥 Единый Сплаш-Экран Загрузки в стиле MainMenu -->
