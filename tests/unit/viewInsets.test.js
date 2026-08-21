@@ -76,6 +76,28 @@ export function runViewInsetsTests() {
   });
   assert.deepStrictEqual(desktop, EMPTY_INSET, 'десктопный iframe не двигаем наугад');
 
+  const desktopOk = resolveViewInsets({
+    css: EMPTY_INSET,
+    vk: EMPTY_INSET,
+    platform: 'desktop_web_ok'
+  });
+  assert.deepStrictEqual(desktopOk, EMPTY_INSET, 'ПК ОК тоже без угаданных insets');
+
+  const iphoneOk = resolveViewInsets({
+    css: EMPTY_INSET,
+    vk: EMPTY_INSET,
+    platform: 'mobile_iphone_ok'
+  });
+  assert.strictEqual(iphoneOk.top, VK_IPHONE_TOP_FALLBACK);
+
+  const mobileWebOk = resolveViewInsets({
+    css: EMPTY_INSET,
+    vk: EMPTY_INSET,
+    platform: 'mobile_web_ok'
+  });
+  assert.ok(mobileWebOk.top >= VK_MOBILE_CHROME_TOP, 'mobile_web_ok — тот же хром, что mobile_web');
+  assert.ok(mobileWebOk.bottom >= VK_MOBILE_BOTTOM_FALLBACK);
+
   const fakeEl = {
     clientWidth: 390,
     clientHeight: 844,

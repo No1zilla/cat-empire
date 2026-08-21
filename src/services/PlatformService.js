@@ -6,7 +6,8 @@ export const DESKTOP_VK_PLATFORMS = new Set([
   'desktop_web',
   'desktop_web_messenger',
   'desktop_app_messenger',
-  'web_external'
+  'web_external',
+  'desktop_web_ok'
 ]);
 
 export const MOBILE_VK_PLATFORMS = new Set([
@@ -15,7 +16,10 @@ export const MOBILE_VK_PLATFORMS = new Set([
   'mobile_android',
   'mobile_web',
   'mobile_iphone_messenger',
-  'mobile_android_messenger'
+  'mobile_android_messenger',
+  'mobile_iphone_ok',
+  'mobile_android_ok',
+  'mobile_web_ok'
 ]);
 
 export function parseVkLaunchParams(raw) {
@@ -41,6 +45,13 @@ export function isMobileVkPlatform(platform) {
   const p = String(platform || '').toLowerCase();
   if (!p || isDesktopVkPlatform(p)) return false;
   return MOBILE_VK_PLATFORMS.has(p) || p.startsWith('mobile_') || p.includes('iphone') || p.includes('ipad');
+}
+
+/** Одноклассники: vk_platform=* _ok или vk_client=ok */
+export function isOkLaunch({ platform, client } = {}) {
+  const p = String(platform || '').toLowerCase();
+  const c = String(client || '').toLowerCase();
+  return c === 'ok' || p.endsWith('_ok');
 }
 
 function readLaunchParamString() {
@@ -88,11 +99,17 @@ export class PlatformService {
   static isMobileVK() {
     return isMobileVkPlatform(this.getVkPlatform());
   }
+
+  static isOK() {
+    const params = this.getLaunchParams();
+    return isOkLaunch({ platform: this.getVkPlatform(), client: params.vk_client });
+  }
 }
 
 export const isVK = () => PlatformService.isVK();
 export const isAndroid = () => PlatformService.isAndroid();
 export const isDesktopVK = () => PlatformService.isDesktopVK();
 export const isMobileVK = () => PlatformService.isMobileVK();
+export const isOK = () => PlatformService.isOK();
 
 export default PlatformService;

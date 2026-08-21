@@ -3,6 +3,7 @@ import {
   parseVkLaunchParams,
   isDesktopVkPlatform,
   isMobileVkPlatform,
+  isOkLaunch,
   PlatformService
 } from '../../src/services/PlatformService.js';
 import {
@@ -34,9 +35,13 @@ export async function runVkAdsTests() {
   assert.strictEqual(parseVkLaunchParams('?vk_platform=desktop_web&vk_user_id=1').vk_platform, 'desktop_web');
   assert.strictEqual(isDesktopVkPlatform('desktop_web'), true);
   assert.strictEqual(isDesktopVkPlatform('desktop_web_messenger'), true);
+  assert.strictEqual(isDesktopVkPlatform('desktop_web_ok'), true);
   assert.strictEqual(isDesktopVkPlatform('mobile_android'), false);
   assert.strictEqual(isMobileVkPlatform('mobile_iphone'), true);
+  assert.strictEqual(isMobileVkPlatform('mobile_iphone_ok'), true);
+  assert.strictEqual(isMobileVkPlatform('mobile_web_ok'), true);
   assert.strictEqual(isMobileVkPlatform('desktop_web'), false);
+  assert.strictEqual(isMobileVkPlatform('desktop_web_ok'), false);
   assert.deepStrictEqual(getNativeAdFormatOrder(true), ['interstitial', 'reward']);
   assert.deepStrictEqual(getNativeAdFormatOrder(false), ['reward', 'interstitial']);
   assert.strictEqual(isAdUserClosed('AD_CLOSED_EARLY'), true);
@@ -47,9 +52,16 @@ export async function runVkAdsTests() {
 
   installWindow({ search: '?vk_platform=desktop_web&vk_user_id=7' });
   assert.strictEqual(PlatformService.isDesktopVK(), true);
+  assert.strictEqual(PlatformService.isOK(), false);
 
   installWindow({ search: '?vk_platform=mobile_iphone&vk_user_id=7' });
   assert.strictEqual(PlatformService.isDesktopVK(), false);
+
+  installWindow({ search: '?vk_platform=desktop_web_ok&vk_user_id=7&vk_client=ok' });
+  assert.strictEqual(PlatformService.isDesktopVK(), true, 'ПК Одноклассников — тот же desktop iframe');
+  assert.strictEqual(PlatformService.isOK(), true);
+  assert.strictEqual(isOkLaunch({ platform: 'mobile_web_ok', client: '' }), true);
+  assert.strictEqual(isOkLaunch({ platform: 'desktop_web', client: 'ok' }), true);
 
   const desktopCalls = [];
   installWindow({

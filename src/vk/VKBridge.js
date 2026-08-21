@@ -155,7 +155,10 @@ export class VKService {
     try {
       const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
-      const user = await Promise.race([this.bridge.send('VKWebAppGetUserInfo'), timeout]);
+      const user = await Promise.race([
+        this.bridge.send('VKWebAppGetUserInfo', { use_local: PlatformService.isOK() }),
+        timeout
+      ]);
       if (user && user.id) {
         return {
           id: user.id,
@@ -290,7 +293,9 @@ export class VKService {
         eventTracker.trackShareTriggered('invite');
       }
       if (this.bridge && typeof this.bridge.send === 'function' && isVkEnvironment()) {
-        const res = await this.bridge.send('VKWebAppShowInviteBox');
+        const res = await this.bridge.send('VKWebAppShowInviteBox', {
+          message: 'Заходи в Империю Котиков'
+        });
         console.log('🤝 VKWebAppShowInviteBox result:', res);
         if (res && res.success) {
           return { success: true, res };

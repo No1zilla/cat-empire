@@ -2,6 +2,8 @@
  * Единый Модуль Идентификации VK (VkIdentity)
  * Гарантирует одинаковый vk_user_id на ПК, Android, iPhone и мобильном браузере
  */
+import { PlatformService } from './PlatformService.js';
+
 export class VkIdentity {
   constructor() {
     this.cachedVkUserId = null;
@@ -38,7 +40,10 @@ export class VkIdentity {
     if (!foundId && typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function') {
       try {
         const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
-        const userInfo = await Promise.race([window.vkBridge.send('VKWebAppGetUserInfo'), timeout]);
+        const userInfo = await Promise.race([
+          window.vkBridge.send('VKWebAppGetUserInfo', { use_local: PlatformService.isOK() }),
+          timeout
+        ]);
         if (userInfo && userInfo.id) {
           foundId = String(userInfo.id);
         }

@@ -69,7 +69,7 @@ export function resolveViewInsets({ css, vk, platform } = {}) {
   const p = String(platform || '').toLowerCase();
   const isIphone = p.includes('iphone') || p.includes('ipad');
   const isAndroid = p.includes('android');
-  const isMobileWeb = p === 'mobile_web';
+  const isMobileWeb = p === 'mobile_web' || p === 'mobile_web_ok';
   const isMobile = isIphone || isAndroid || isMobileWeb;
 
   if (isIphone) {
