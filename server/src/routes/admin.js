@@ -167,6 +167,8 @@ function simulatedDashboard() {
       requested_today: 12,
       failed_today: 9,
       skipped_today: 1,
+      failed_users: 3,
+      failed_users_today: 3,
       by_type: [
         {
           ad_type: 'fill_free',
@@ -198,8 +200,8 @@ function simulatedDashboard() {
         }
       ],
       reasons: [
-        { reason: 'no_ads', ad_type: 'fill_free', label: 'Заполнить поле', count: 6, today: 6 },
-        { reason: 'TIMEOUT_NO_RESPONSE', ad_type: 'reward_gems', label: 'Рубины', count: 3, today: 3 }
+        { reason: 'no_ads', ad_type: 'fill_free', label: 'Заполнить поле', count: 6, today: 6, users: 2, users_today: 2 },
+        { reason: 'TIMEOUT_NO_RESPONSE', ad_type: 'reward_gems', label: 'Рубины', count: 3, today: 3, users: 1, users_today: 1 }
       ],
       recent: [
         {
@@ -482,7 +484,9 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             COALESCE(NULLIF(props->>'error_reason', ''), 'unknown') AS reason,
             COALESCE(NULLIF(props->>'ad_type', ''), 'unknown') AS ad_type,
             COUNT(*)::int AS count,
-            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today
+            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today,
+            COUNT(DISTINCT user_id)::int AS users,
+            COUNT(DISTINCT user_id) FILTER (WHERE created_at >= CURRENT_DATE)::int AS users_today
           FROM analytics_events
           WHERE event = 'ad_failed'
           GROUP BY 1, 2
@@ -501,12 +505,13 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         ),
         pool.query(`
           SELECT
-            COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested_today,
-            COUNT(*) FILTER (WHERE event = 'ad_failed')::int AS failed_today,
-            COUNT(*) FILTER (WHERE event = 'ad_skipped')::int AS skipped_today
+            COUNT(*) FILTER (WHERE event = 'ad_requested' AND created_at >= CURRENT_DATE)::int AS requested_today,
+            COUNT(*) FILTER (WHERE event = 'ad_failed' AND created_at >= CURRENT_DATE)::int AS failed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_skipped' AND created_at >= CURRENT_DATE)::int AS skipped_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_failed' AND created_at >= CURRENT_DATE)::int AS failed_users_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_failed')::int AS failed_users
           FROM analytics_events
-          WHERE created_at >= CURRENT_DATE
-            AND event IN ('ad_requested', 'ad_failed', 'ad_skipped')
+          WHERE event IN ('ad_requested', 'ad_failed', 'ad_skipped')
         `)
       ]);
 
@@ -577,6 +582,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
           requested_today: Number(adTodayRows.rows[0]?.requested_today || 0),
           failed_today: Number(adTodayRows.rows[0]?.failed_today || 0),
           skipped_today: Number(adTodayRows.rows[0]?.skipped_today || 0),
+          failed_users: Number(adTodayRows.rows[0]?.failed_users || 0),
+          failed_users_today: Number(adTodayRows.rows[0]?.failed_users_today || 0),
           by_type: (adTypeRows.rows || []).map((row) => ({
             ad_type: row.ad_type,
             label: adTypeLabel(row.ad_type),
@@ -596,7 +603,9 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             ad_type: row.ad_type,
             label: adTypeLabel(row.ad_type),
             count: Number(row.count || 0),
-            today: Number(row.today || 0)
+            today: Number(row.today || 0),
+            users: Number(row.users || 0),
+            users_today: Number(row.users_today || 0)
           })),
           recent: (adRecentRows.rows || []).map((row) => {
             const props = row.props || {};

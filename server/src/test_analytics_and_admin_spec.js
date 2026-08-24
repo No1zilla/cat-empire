@@ -113,6 +113,10 @@ assert.ok(res4.data.ads, 'Дашборд должен отдавать рекл�
 assert.ok(typeof res4.data.ads.requested_today === 'number');
 assert.ok(Array.isArray(res4.data.ads.by_type));
 assert.ok(Array.isArray(res4.data.ads.reasons));
+assert.ok(typeof res4.data.ads.failed_users === 'number', 'Сколько уникальных игроков не увидели ролик');
+if (res4.data.ads.reasons[0]) {
+  assert.ok(typeof res4.data.ads.reasons[0].users === 'number');
+}
 assert.ok(Array.isArray(res4.data.ads.recent));
 console.log('  [Pass] Авторизация администратора прошла успешно, возвращены данные дашборда');
 console.log('✅ ТЕСТ 4 УСПЕШНО ПРОЙДЕН!\n');

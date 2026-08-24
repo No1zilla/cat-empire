@@ -156,18 +156,19 @@
     </div>
     <div class="table-card">
       <h2>Почему не показалась</h2>
+      <p class="hint" id="ads-fail-users-hint" style="margin:0 0 12px">Всего — попытки, не люди. Колонка «игроков» — сколько уникальных.</p>
       <table>
         <thead>
-          <tr><th>Причина VK</th><th>Откуда</th><th>Сегодня</th><th>Всего</th></tr>
+          <tr><th>Причина VK</th><th>Откуда</th><th>Сегодня</th><th>Всего</th><th>Игроков</th></tr>
         </thead>
-        <tbody id="ads-reasons-body"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+        <tbody id="ads-reasons-body"><tr><td colspan="5">Загрузка...</td></tr></tbody>
       </table>
       <h2 style="margin-top:22px">Последние вызовы рекламы</h2>
       <table>
         <thead>
-          <tr><th>Когда</th><th>Событие</th><th>Откуда</th><th>Причина / формат</th></tr>
+          <tr><th>Когда</th><th>Кто</th><th>Событие</th><th>Откуда</th><th>Причина / формат</th></tr>
         </thead>
-        <tbody id="ads-recent-body"><tr><td colspan="4">Загрузка...</td></tr></tbody>
+        <tbody id="ads-recent-body"><tr><td colspan="5">Загрузка...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -281,20 +282,26 @@
           ad_skipped: 'закрыл'
         };
         const ads = data.ads || {};
+        const failUsers = ads.failed_users || 0;
+        const failHint = document.getElementById('ads-fail-users-hint');
+        if (failHint) {
+          failHint.textContent = `Провалов всего по попыткам. Уникальных игроков без ролика: ${failUsers}`
+            + (ads.failed_users_today ? `, сегодня ${ads.failed_users_today}` : '');
+        }
         const adTypes = (ads.by_type || []).map((a) =>
           `<tr><td>${a.label || a.ad_type}</td><td>${a.requested_today}</td><td>${a.shown_today}</td><td>${a.completed_today}</td><td>${a.failed_today}</td><td>${a.skipped_today}</td></tr>`
         ).join('');
         rowsOrEmpty(document.getElementById('ads-types-body'), 6, adTypes, 'Рекламу ещё не вызывали');
 
         const reasons = (ads.reasons || []).map((r) =>
-          `<tr><td><code>${r.reason}</code></td><td>${r.label || r.ad_type}</td><td>${r.today}</td><td>${r.count}</td></tr>`
+          `<tr><td><code>${r.reason}</code></td><td>${r.label || r.ad_type}</td><td>${r.today}</td><td>${r.count}</td><td>${r.users || 0}</td></tr>`
         ).join('');
-        rowsOrEmpty(document.getElementById('ads-reasons-body'), 4, reasons, 'Провалов нет — или VK ещё не отвечал ошибкой');
+        rowsOrEmpty(document.getElementById('ads-reasons-body'), 5, reasons, 'Провалов нет — или VK ещё не отвечал ошибкой');
 
         const adRecent = (ads.recent || []).map((e) =>
-          `<tr><td>${fmtTime(e.created_at)}</td><td>${adEventLabel[e.event] || e.event}</td><td>${e.label || e.ad_type || '—'}</td><td>${[e.reason, e.format].filter(Boolean).join(' · ') || ''}</td></tr>`
+          `<tr><td>${fmtTime(e.created_at)}</td><td><code>${e.user_id || '—'}</code></td><td>${adEventLabel[e.event] || e.event}</td><td>${e.label || e.ad_type || '—'}</td><td>${[e.reason, e.format].filter(Boolean).join(' · ') || ''}</td></tr>`
         ).join('');
-        rowsOrEmpty(document.getElementById('ads-recent-body'), 4, adRecent, 'Вызовов рекламы нет');
+        rowsOrEmpty(document.getElementById('ads-recent-body'), 5, adRecent, 'Вызовов рекламы нет');
 
         const buy = data.purchases || {};
         document.getElementById('buy-today').innerText = buy.today || 0;
