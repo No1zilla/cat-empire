@@ -20,7 +20,7 @@ import {
   actionButtonIndexAt,
   runActionPress,
   clientXToActionIndex
-} from '../../src/ui/actionRow.js';
+} from '../../src/ui/actionRowLayout.js';
 import {
   CAT_DECK_H,
   CAT_CARD_H,

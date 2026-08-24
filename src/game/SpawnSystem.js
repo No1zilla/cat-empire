@@ -4,7 +4,7 @@ import { BALANCE } from '../config/balance.js';
 import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { ACTION_BTN_W, ACTION_BTN_H } from '../ui/actionRow.js';
+import { ACTION_BTN_W, ACTION_BTN_H } from '../ui/actionRowLayout.js';
 
 /**
  * Система спавна и покупки котиков (Чистая сочная 3D кнопка без наслоений текста)

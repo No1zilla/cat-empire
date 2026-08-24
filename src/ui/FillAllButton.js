@@ -2,7 +2,7 @@ import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { quoteFillAll } from '../game/fillAllPurchase.js';
-import { ACTION_BTN_W, ACTION_BTN_H } from './actionRow.js';
+import { ACTION_BTN_W, ACTION_BTN_H } from './actionRowLayout.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)

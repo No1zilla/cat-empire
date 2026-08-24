@@ -19,7 +19,7 @@ import { AutoMergeSystem } from './AutoMergeSystem.js';
 import { AutoMergeButton } from '../ui/AutoMergeButton.js';
 import { FillAllButton } from '../ui/FillAllButton.js';
 import { quoteFillAll } from './fillAllPurchase.js';
-import { ACTION_BTN_H, ACTION_ROW_MARGIN } from '../ui/actionRow.js';
+import { ACTION_BTN_H, ACTION_ROW_MARGIN } from '../ui/actionRowLayout.js';
 import { ActionRow } from '../ui/ActionRow.js';
 import { CAT_DECK_H, catDeckFrame } from '../ui/catDeckLayout.js';
 import { whenCatTexturesChange } from '../utils/catTextures.js';

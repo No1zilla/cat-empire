@@ -4,7 +4,7 @@ import { saveProgress } from '../api/client.js';
 import { AdModal } from './AdModal.js';
 import { OutOfRubiesModal } from './OutOfRubiesModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { ACTION_BTN_W, ACTION_BTN_H } from './actionRow.js';
+import { ACTION_BTN_W, ACTION_BTN_H } from './actionRowLayout.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
