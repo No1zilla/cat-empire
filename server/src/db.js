@@ -62,6 +62,19 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
   `);
 
+  // Дедупликация событий: доставка «хотя бы раз» (sendBeacon на pagehide + повтор
+  // flush при неудачном ответе) слала один и тот же батч дважды и раздувала метрики.
+  // Индекс частичный: у старых клиентов event_id = NULL, они пишутся как раньше.
+  try {
+    await pool.query('ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS event_id VARCHAR(64);');
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_analytics_event_id
+      ON analytics_events(event_id) WHERE event_id IS NOT NULL;
+    `);
+  } catch (e) {
+    console.warn('⚠️ Миграция event_id пропущена:', e.message);
+  }
+
   // Таблица сессий пользователей для Retention (TASK-067)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_sessions (

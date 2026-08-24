@@ -105,6 +105,18 @@ export class EventTracker {
     return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
   }
 
+  /**
+   * Уникальный id события. Доставка у нас «хотя бы раз»: flushSync шлёт очередь
+   * маячком на pagehide и не чистит её, а flush повторяет батч, если ответ не дошёл.
+   * Сервер гасит повторы по этому id, поэтому терять события не приходится.
+   */
+  _generateEventId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'ev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+  }
+
   setUserId(userId) {
     if (!userId || String(userId) === '0') return;
     const next = String(userId);
@@ -131,6 +143,7 @@ export class EventTracker {
   track(eventName, props = {}) {
     const event = {
       event: eventName,
+      event_id: this._generateEventId(),
       user_id: this.userId,
       session_id: this.sessionId,
       platform: this.platform,

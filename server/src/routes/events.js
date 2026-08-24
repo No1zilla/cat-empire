@@ -3,6 +3,42 @@ import pool from '../db.js';
 
 const router = express.Router();
 
+// Миграция event_id в db.js best-effort: если она не прошла, ON CONFLICT свалит
+// транзакцию и мы потеряем всю аналитику. Проверяем один раз ДО BEGIN — упавший
+// statement отравляет транзакцию целиком, ловить его внутри цикла нельзя.
+let dedupeSupported = null;
+
+const INSERT_DEDUPED = `
+  INSERT INTO analytics_events (event, event_id, user_id, session_id, platform, props)
+  VALUES ($1, $2, $3, $4, $5, $6)
+  ON CONFLICT (event_id) WHERE event_id IS NOT NULL DO NOTHING
+  RETURNING id
+`;
+
+const INSERT_PLAIN = `
+  INSERT INTO analytics_events (event, user_id, session_id, platform, props)
+  VALUES ($1, $2, $3, $4, $5)
+  RETURNING id
+`;
+
+async function canDedupe(client) {
+  if (dedupeSupported !== null) return dedupeSupported;
+  try {
+    const { rows } = await client.query(
+      `SELECT 1 FROM pg_indexes
+       WHERE tablename = 'analytics_events' AND indexname = 'idx_analytics_event_id'`
+    );
+    dedupeSupported = rows.length > 0;
+    if (!dedupeSupported) {
+      console.warn('⚠️ Индекса idx_analytics_event_id нет — пишем события без дедупликации');
+    }
+  } catch (e) {
+    dedupeSupported = false;
+    console.warn('⚠️ Проверка дедупликации не удалась, пишем как раньше:', e.message);
+  }
+  return dedupeSupported;
+}
+
 /**
  * POST /api/events/batch
  * Принимает батч аналитических событий и сохраняет в таблицу analytics_events
@@ -15,16 +51,20 @@ router.post('/batch', async (req, res) => {
       return res.status(400).json({ error: 'Массив events обязателен и не должен быть пустым' });
     }
 
+    let duplicates = 0;
+
     if (pool && process.env.DATABASE_URL) {
       let committed = false;
       try {
         const client = await pool.connect();
         try {
+          const dedupe = await canDedupe(client);
           await client.query('BEGIN');
 
           for (const ev of events) {
             const {
               event,
+              event_id = null,
               user_id = 'guest',
               session_id = '',
               platform = 'vk',
@@ -34,17 +74,29 @@ router.post('/batch', async (req, res) => {
 
             const eventProps = { ...props, timestamp };
 
-            await client.query(
-              `INSERT INTO analytics_events (event, user_id, session_id, platform, props)
-               VALUES ($1, $2, $3, $4, $5)`,
-              [
-                String(event || 'unknown'),
-                String(user_id),
-                String(session_id),
-                String(platform),
-                JSON.stringify(eventProps)
-              ]
-            );
+            const name = String(event || 'unknown');
+            const uid = String(user_id);
+            const sid = String(session_id);
+            const plat = String(platform);
+            const payload = JSON.stringify(eventProps);
+
+            // ON CONFLICT гасит повторную доставку того же события.
+            // Пустой RETURNING = дубль, значит и счётчики сессий трогать нельзя.
+            const inserted = dedupe
+              ? await client.query(INSERT_DEDUPED, [
+                  name,
+                  event_id ? String(event_id).slice(0, 64) : null,
+                  uid,
+                  sid,
+                  plat,
+                  payload
+                ])
+              : await client.query(INSERT_PLAIN, [name, uid, sid, plat, payload]);
+
+            if (inserted.rowCount === 0) {
+              duplicates += 1;
+              continue;
+            }
 
             // TASK-067: Авто-расчет retention метрик при старте сессии
             if (event === 'session_start' && user_id) {
@@ -93,7 +145,11 @@ router.post('/batch', async (req, res) => {
       }
     }
 
-    return res.json({ success: true, count: events.length });
+    return res.json({
+      success: true,
+      count: events.length - duplicates,
+      duplicates
+    });
   } catch (error) {
     console.error('❌ Ошибка записи событий в analytics_events:', error.message);
     return res.status(500).json({ error: 'Ошибка сервера при записи аналитики' });
