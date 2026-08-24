@@ -197,8 +197,12 @@ export class EventTracker {
     this.track('ad_requested', { ad_type: adType });
   }
 
-  trackAdShown(adType, isTestAd = false) {
-    this.track('ad_shown', { ad_type: adType, is_test_ad: Boolean(isTestAd) });
+  trackAdShown(adType, isTestAd = false, extra = {}) {
+    this.track('ad_shown', {
+      ad_type: adType,
+      is_test_ad: Boolean(isTestAd),
+      ...(extra && typeof extra === 'object' ? extra : {})
+    });
   }
 
   trackAdCompleted(adType, rewardGems = 5) {

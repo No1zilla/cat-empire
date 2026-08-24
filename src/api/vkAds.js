@@ -8,12 +8,28 @@ import { isDesktopVK } from '../services/PlatformService.js';
 
 export const NATIVE_AD_TIMEOUT_MS = 20000;
 
+/**
+ * Сколько ждать показа, если предпроверка сказала «рекламы нет».
+ * Она бывает ложноотрицательной, поэтому show всё равно пробуем — но коротко,
+ * чтобы не висеть 20с (на десктопе это было бы 2 формата × 20с = 40с пустого окна).
+ */
+export const NO_ADS_PROBE_TIMEOUT_MS = 4000;
+
 export function getNativeAdFormatOrder(isDesktop) {
   return isDesktop ? ['interstitial', 'reward'] : ['reward', 'interstitial'];
 }
 
+/** Что ответила предпроверка. Больше не приговор — только сигнал ждать меньше. */
 export function shouldSkipNativeAd(checkRes) {
   return Boolean(checkRes && checkRes.result === false);
+}
+
+/**
+ * Лимит запросов у VK общий на приложение, а не на формат: пробовать второй
+ * формат после такого отказа бессмысленно и только выжигает квоту дальше.
+ */
+export function isAdQuotaExhausted(reason) {
+  return String(reason || '').toLowerCase().includes('requests limit');
 }
 
 export function isAdUserClosed(reason) {
@@ -53,6 +69,7 @@ function tryNativeAdFormat(bridge, format) {
   return new Promise((resolve) => {
     const state = { resolved: false };
     let timeoutId = null;
+    let checkSaidNo = false;
 
     const cleanup = () => {
       if (timeoutId) {
@@ -64,7 +81,10 @@ function tryNativeAdFormat(bridge, format) {
       }
     };
 
-    const finish = (result) => finishOnce(state, cleanup, resolve, { ...result, format });
+    // check_said_no едет в аналитику: показ ПОСЛЕ отрицательной предпроверки —
+    // прямое доказательство, что она ложноотрицательная (TASK-083, гипотеза 1).
+    const finish = (result) =>
+      finishOnce(state, cleanup, resolve, { ...result, format, check_said_no: checkSaidNo });
 
     const onVkEvent = (e) => {
       if (!e || !e.detail) return;
@@ -98,8 +118,9 @@ function tryNativeAdFormat(bridge, format) {
         ]);
         console.log(`🔍 VKWebAppCheckNativeAds [${format}]:`, checkRes);
         if (shouldSkipNativeAd(checkRes)) {
-          finish({ success: false, reason: 'NO_ADS' });
-          return;
+          // Не сдаёмся здесь: раньше show не вызывался вообще, и все отказы
+          // были нашими собственными. Пробуем показать, но ждём коротко.
+          checkSaidNo = true;
         }
       } catch (checkErr) {
         console.log(`ℹ️ VKWebAppCheckNativeAds [${format}] bypass:`, checkErr);
@@ -112,8 +133,8 @@ function tryNativeAdFormat(bridge, format) {
       }
 
       timeoutId = setTimeout(() => {
-        finish({ success: false, reason: 'TIMEOUT_NO_RESPONSE' });
-      }, NATIVE_AD_TIMEOUT_MS);
+        finish({ success: false, reason: checkSaidNo ? 'NO_ADS' : 'TIMEOUT_NO_RESPONSE' });
+      }, checkSaidNo ? NO_ADS_PROBE_TIMEOUT_MS : NATIVE_AD_TIMEOUT_MS);
 
       try {
         const res = await bridge.send('VKWebAppShowNativeAds', params);
@@ -160,6 +181,11 @@ export async function showRewardedAd() {
       return result;
     }
     lastFail = result || lastFail;
+    // Лимит общий на приложение: второй формат его же и добьёт. Все замеченные
+    // «Requests limit reached» приходили на interstitial — первый формат десктопа.
+    if (result && isAdQuotaExhausted(result.reason)) {
+      break;
+    }
   }
   return lastFail;
 }
@@ -205,5 +231,6 @@ export default {
   showDesktopBannerAd,
   getNativeAdFormatOrder,
   isAdUserClosed,
-  shouldSkipNativeAd
+  shouldSkipNativeAd,
+  isAdQuotaExhausted
 };

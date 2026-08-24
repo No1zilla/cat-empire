@@ -133,6 +133,9 @@ export async function runVkAdsTests() {
   const closedShow = closedCalls.filter((c) => c.method === 'VKWebAppShowNativeAds');
   assert.strictEqual(closedShow.length, 1, 'Если игрок закрыл interstitial, reward не крутим следом');
 
+  // Предпроверка сказала «нет» — show всё равно пробуем (она ложноотрицательная),
+  // но ждём коротко, а не 20с. Раньше show не вызывался вообще и все отказы
+  // были нашими собственными: 8 из 8 за сутки (TASK-083).
   const noAdsCalls = [];
   installWindow({
     search: '?vk_platform=desktop_web&vk_user_id=7',
@@ -140,7 +143,7 @@ export async function runVkAdsTests() {
       send: async (method, params) => {
         noAdsCalls.push({ method, params: params || {} });
         if (method === 'VKWebAppCheckNativeAds') return { result: false };
-        throw new Error('show must not run when check says no ads');
+        return { result: false, error_reason: 'No ads' };
       },
       subscribe: () => {},
       unsubscribe: () => {}
@@ -148,11 +151,49 @@ export async function runVkAdsTests() {
   });
   const noAds = await showRewardedAd();
   assert.strictEqual(noAds.success, false);
-  assert.strictEqual(noAds.reason, 'NO_ADS');
+  assert.strictEqual(noAds.check_said_no, true, 'Флаг предпроверки уезжает в аналитику');
   assert.strictEqual(
     noAdsCalls.some((c) => c.method === 'VKWebAppShowNativeAds'),
-    false,
-    'Если VK сказал, что ролика нет, не висим 20 секунд на ShowNativeAds'
+    true,
+    'Отрицательная предпроверка больше не отменяет показ — VK спрашиваем сами'
+  );
+
+  // Показ ПОСЛЕ отрицательной предпроверки = она соврала. Это и надо померить.
+  installWindow({
+    search: '?vk_platform=desktop_web&vk_user_id=7',
+    bridge: {
+      send: async (method) => {
+        if (method === 'VKWebAppCheckNativeAds') return { result: false };
+        return { result: true };
+      },
+      subscribe: () => {},
+      unsubscribe: () => {}
+    }
+  });
+  const falseNegative = await showRewardedAd();
+  assert.strictEqual(falseNegative.success, true, 'Ролик есть, хотя предпроверка отрицала');
+  assert.strictEqual(falseNegative.check_said_no, true);
+
+  // Лимит общий на приложение: второй формат его же и добьёт
+  const quotaCalls = [];
+  installWindow({
+    search: '?vk_platform=desktop_web&vk_user_id=7',
+    bridge: {
+      send: async (method, params) => {
+        quotaCalls.push({ method, params: params || {} });
+        if (method === 'VKWebAppCheckNativeAds') return { result: true };
+        return { result: false, error_reason: 'Requests limit reached' };
+      },
+      subscribe: () => {},
+      unsubscribe: () => {}
+    }
+  });
+  const quota = await showRewardedAd();
+  assert.strictEqual(quota.success, false);
+  assert.strictEqual(
+    quotaCalls.filter((c) => c.method === 'VKWebAppShowNativeAds').length,
+    1,
+    'После «Requests limit reached» второй формат не запрашиваем'
   );
 
   const bannerCalls = [];

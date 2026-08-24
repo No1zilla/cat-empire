@@ -107,7 +107,11 @@ export class AdModal extends Container {
 
       if (realAdRes && realAdRes.success) {
         console.log('✅ Нативная реклама VK успешно просмотрена:', realAdRes.format || 'unknown');
-        eventTracker.trackAdShown(this.adType, false);
+        // check_said_no=true при успехе = предпроверка соврала (TASK-083)
+        eventTracker.trackAdShown(this.adType, false, {
+          format: realAdRes.format || '',
+          check_said_no: Boolean(realAdRes.check_said_no)
+        });
         eventTracker.trackAdCompleted(this.adType, this.rewardGems);
 
         if (this.economy && this.rewardGems > 0) {
@@ -128,7 +132,10 @@ export class AdModal extends Container {
       } else {
         this._openInviteFallback(
           realAdRes ? realAdRes.reason : 'ads_unavailable',
-          { format: realAdRes && realAdRes.format ? realAdRes.format : '' }
+          {
+            format: realAdRes && realAdRes.format ? realAdRes.format : '',
+            check_said_no: Boolean(realAdRes && realAdRes.check_said_no)
+          }
         );
       }
     } catch (e) {
