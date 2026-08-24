@@ -83,7 +83,9 @@ export function canvasCssSize(viewW, viewH, gameW = CONFIG.GAME_WIDTH, gameH = C
 
 /**
  * Сцена не сдвигается внутри канваса. Поле уже 410 = ширина холста.
- * renderer.width в backing-пикселях (410 * dpr) давал x≈205 и разъезд кнопок vs тапов.
+ * Раньше сюда передавали ширину в backing-пикселях и получали x≈205 и разъезд
+ * кнопок vs тапов. Осторожно: в Pixi v8 renderer.width — ЛОГИЧЕСКАЯ ширина (410),
+ * backing-размер это canvas.width = renderer.width × resolution.
  */
 export function gameContainerOffsetX(screenW, gameW = CONFIG.GAME_WIDTH) {
   void screenW;

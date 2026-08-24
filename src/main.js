@@ -54,12 +54,36 @@ function viewSize() {
   return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)) };
 }
 
+/** Потолок разрешения: выше 2.5 backing растёт быстрее, чем это видно глазу. */
+const MAX_RESOLUTION = 2.5;
+
+/**
+ * canvasCssSize растягивает холст и вверх (scale > 1), а resolution ставился один раз
+ * по devicePixelRatio — картинку 410×700 потом тянул браузер, отсюда мыло.
+ * Рендерим столько пикселей, сколько холст реально занимает на экране.
+ * Размеры передаём ЛОГИЧЕСКИЕ (410×700): backing = размер × resolution.
+ */
+function applyRenderResolution(app, cssScale, gameW, gameH) {
+  const renderer = app && app.renderer;
+  if (!renderer || typeof renderer.resize !== 'function') return;
+  const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+  const target = Math.min(MAX_RESOLUTION, Math.max(1, dpr * (Number(cssScale) || 1)));
+  if (Math.abs((renderer.resolution || 1) - target) < 0.01) return;
+  try {
+    renderer.resize(gameW, gameH, target);
+  } catch (e) {
+    console.warn('resolution update skipped:', e);
+  }
+}
+
 function applyCanvasFit(app) {
   if (!app || !app.canvas) return;
   const view = viewSize();
   const gameW = CONFIG.GAME_WIDTH;
   const gameH = (app.screen && app.screen.height) || CONFIG.GAME_HEIGHT;
   const css = canvasCssSize(view.w, view.h, gameW, gameH);
+  // Строго до CSS: resize с autoDensity перетирает style.width/height логическим размером
+  applyRenderResolution(app, css.scale, gameW, gameH);
   const style = app.canvas.style;
   style.setProperty('width', `${css.width}px`, 'important');
   style.setProperty('height', `${css.height}px`, 'important');
