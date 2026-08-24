@@ -26,7 +26,10 @@ const FLUSH_NOW = new Set([
   'iap_starter_tribute',
   'iap_edict_bought',
   'ad_completed',
-  'ad_failed'
+  'ad_failed',
+  'return_session',
+  'tutorial_skipped',
+  'tutorial_completed'
 ]);
 
 export class EventTracker {
@@ -56,6 +59,7 @@ export class EventTracker {
 
     // Авто-трекинг старта сессии
     this.trackSessionStart();
+    this.trackReturnSession();
     if (typeof window !== 'undefined') {
       this.flush();
       document.addEventListener('visibilitychange', () => {
@@ -230,6 +234,51 @@ export class EventTracker {
 
   trackShareTriggered(type) {
     this.track('share_triggered', { type });
+  }
+
+  // --- Онбординг и возвраты (TASK-082: диагностика D1/D7) ---
+
+  trackTutorialStarted() {
+    this.track('tutorial_started', {});
+  }
+
+  trackTutorialCompleted(elapsedMs) {
+    this.track('tutorial_completed', {
+      elapsed_ms: Number(elapsedMs) || 0
+    });
+  }
+
+  trackTutorialSkipped(elapsedMs) {
+    this.track('tutorial_skipped', {
+      elapsed_ms: Number(elapsedMs) || 0
+    });
+  }
+
+  // Фиксирует день с установки (0 = первый день) на каждый старт сессии,
+  // чтобы D1/D7/D30 можно было считать по реальным датам, а не задним числом.
+  trackReturnSession() {
+    const daysSinceInstall = this._daysSinceInstall();
+    this.track('return_session', {
+      days_since_install: daysSinceInstall,
+      is_first_session: daysSinceInstall === 0
+    });
+  }
+
+  _daysSinceInstall() {
+    if (typeof localStorage === 'undefined') return 0;
+    const KEY = 'cat_empire_first_seen_at';
+    try {
+      let firstSeen = localStorage.getItem(KEY);
+      if (!firstSeen) {
+        firstSeen = String(Date.now());
+        localStorage.setItem(KEY, firstSeen);
+        return 0;
+      }
+      const msPerDay = 24 * 60 * 60 * 1000;
+      return Math.floor((Date.now() - Number(firstSeen)) / msPerDay);
+    } catch (e) {
+      return 0;
+    }
   }
 
   // --- Отправка данных ---

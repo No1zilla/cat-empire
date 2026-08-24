@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { eventBus } from '../utils/EventBus.js';
 import { getTutorialTargets } from '../game/firstSession.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
  * Первый запуск: дыра над двумя котами, клики проходят на поле.
@@ -14,7 +15,8 @@ export class Tutorial extends Container {
     this.onComplete = onComplete || (() => {});
     this._handRaf = null;
     this._done = false;
-    this._onMerge = () => this._complete();
+    this._startedAt = Date.now();
+    this._onMerge = () => this._complete('merge');
     this.eventMode = 'passive';
     try {
       this._draw();
@@ -22,6 +24,7 @@ export class Tutorial extends Container {
       console.warn('Tutorial draw skipped:', e);
     }
     eventBus.on('CATS_MERGED', this._onMerge);
+    try { eventTracker.trackTutorialStarted(); } catch (e) {}
   }
 
   _draw() {
@@ -99,7 +102,7 @@ export class Tutorial extends Container {
     skip.cursor = 'pointer';
     skip.on('pointerdown', (e) => {
       e.stopPropagation();
-      this._complete();
+      this._complete('skip');
     });
     this.addChild(skip);
 
@@ -136,7 +139,7 @@ export class Tutorial extends Container {
     this.addChild(shade);
   }
 
-  _complete() {
+  _complete(reason = 'merge') {
     if (this._done) return;
     this._done = true;
     if (this._handRaf) {
@@ -144,6 +147,14 @@ export class Tutorial extends Container {
       this._handRaf = null;
     }
     eventBus.off('CATS_MERGED', this._onMerge);
+    const elapsedMs = Date.now() - (this._startedAt || Date.now());
+    try {
+      if (reason === 'skip') {
+        eventTracker.trackTutorialSkipped(elapsedMs);
+      } else {
+        eventTracker.trackTutorialCompleted(elapsedMs);
+      }
+    } catch (e) {}
     try {
       localStorage.setItem('cat_empire_tutorial_done', '1');
     } catch (e) {}

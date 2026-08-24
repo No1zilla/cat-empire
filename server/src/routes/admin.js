@@ -12,6 +12,10 @@ const CACHE_TTL_MS = 60000;
 const IAP_EVENTS = ['iap_purchase_completed', 'iap_starter_tribute', 'iap_edict_bought'];
 const BUTTON_EVENTS = [
   'session_start',
+  'return_session',
+  'tutorial_started',
+  'tutorial_completed',
+  'tutorial_skipped',
   'cat_bought',
   'fill_all_triggered',
   'merge_manual',
@@ -28,6 +32,10 @@ const BUTTON_EVENTS = [
 
 const BUTTON_LABELS = {
   session_start: 'Запуск двора',
+  return_session: 'Возврат (с учётом дня)',
+  tutorial_started: 'Туториал: начат',
+  tutorial_completed: 'Туториал: слили сами',
+  tutorial_skipped: 'Туториал: пропустили',
   cat_bought: 'Купить кота',
   fill_all_triggered: 'Заполнить поле',
   merge_manual: 'Слияние руками',
