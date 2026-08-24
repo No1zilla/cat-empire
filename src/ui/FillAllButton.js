@@ -264,7 +264,7 @@ export class FillAllButton extends Container {
       }
 
       if (data.count === 0 || (this.economy && !this.economy.canAfford(data.cost))) {
-        this._showWarning('Мало 🪙!');
+        this._showWarning('Мало монет!');
         return;
       }
 

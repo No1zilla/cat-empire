@@ -237,7 +237,7 @@ export class SpawnSystem extends Container {
     const cost = this.economy ? this.economy.getCatCost() : 10;
 
     if (this.economy && !this.economy.canAfford(cost)) {
-      this._showWarning('Мало 🪙!');
+      this._showWarning('Мало монет!');
       return;
     }
 

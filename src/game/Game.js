@@ -221,7 +221,7 @@ export class Game {
       const actualTotalCost = quote.cost;
 
       if (spawnCount === 0 || actualTotalCost <= 0) {
-        if (this.fillAllButton) this.fillAllButton._showWarning('Мало 🪙!');
+        if (this.fillAllButton) this.fillAllButton._showWarning('Мало монет!');
         return;
       }
 

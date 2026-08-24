@@ -9,6 +9,38 @@ import { eventBus } from '../utils/EventBus.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
+ * Число + золотая монета одним блоком, отцентрованным по (centerX, centerY).
+ * Монету рисуем, а не пишем эмодзи: 🪙 нет во Fredoka и падает в серый кружок.
+ */
+function withCoinIcon(textObj, centerX, centerY, radius = 6, gap = 3) {
+  const wrap = new Container();
+  textObj.anchor.set(0, 0.5);
+  textObj.position.set(0, 0);
+  const icon = UIUtils.createCoinIcon(radius);
+  icon.position.set(textObj.width + gap + radius, 0);
+  wrap.addChild(textObj);
+  wrap.addChild(icon);
+  wrap.pivot.set((textObj.width + gap + radius * 2) / 2, 0);
+  wrap.position.set(centerX, centerY);
+  return wrap;
+}
+
+/**
+ * Монета на кнопке справа от подписи. createButton центрует свой Text,
+ * поэтому сдвигаем его влево ровно на половину блока «зазор + монета».
+ */
+function attachCoinToButton(btn, btnW, btnH, radius = 7, gap = 4) {
+  const label = btn.children.find((c) => c instanceof Text);
+  if (!label) return btn;
+  const shift = (gap + radius * 2) / 2;
+  label.position.set(btnW / 2 - shift, btnH / 2);
+  const icon = UIUtils.createCoinIcon(radius);
+  icon.position.set(label.position.x + label.width / 2 + gap + radius, btnH / 2);
+  btn.addChild(icon);
+  return btn;
+}
+
+/**
  * Окно 7-дневного календаря подарков.
  */
 export class DailyRewardsModal extends Container {
@@ -117,9 +149,13 @@ export class DailyRewardsModal extends Container {
           wordWrapWidth: cardW - 8
         })
       });
-      prize.anchor.set(0.5);
-      prize.position.set(x + cardW / 2, y + 48);
-      this.addChild(prize);
+      if (reward.coins > 0) {
+        this.addChild(withCoinIcon(prize, x + cardW / 2, y + 48, 6));
+      } else {
+        prize.anchor.set(0.5);
+        prize.position.set(x + cardW / 2, y + 48);
+        this.addChild(prize);
+      }
 
       if (isPast) {
         const check = new Text({
@@ -147,15 +183,20 @@ export class DailyRewardsModal extends Container {
       done.position.set(W / 2, statusY + 24);
       this.addChild(done);
     } else {
+      const claimW = modalW - 60;
+      const claimH = 46;
       const claimBtn = UIUtils.createButton(
         modalX + 30,
         statusY,
-        modalW - 60,
-        46,
+        claimW,
+        claimH,
         `ЗАБРАТЬ • ${state.reward.label}`,
         0xFF6B6B,
         () => this._claim(false)
       );
+      if (state.reward.coins > 0) {
+        attachCoinToButton(claimBtn, claimW, claimH);
+      }
       this.addChild(claimBtn);
 
       const adBtn = UIUtils.createButton(
