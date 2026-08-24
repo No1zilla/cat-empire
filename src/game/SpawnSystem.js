@@ -5,6 +5,7 @@ import { Cat } from './Cat.js';
 import { saveProgress } from '../api/client.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { ACTION_BTN_W, ACTION_BTN_H } from '../ui/actionRowLayout.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
  * Система спавна и покупки котиков (Чистая сочная 3D кнопка без наслоений текста)
@@ -238,12 +239,18 @@ export class SpawnSystem extends Container {
 
     if (this.economy && !this.economy.canAfford(cost)) {
       this._showWarning('Мало монет!');
+      eventTracker.trackActionBlocked('no_coins', {
+        context: 'buy_cat',
+        cost: Number(cost),
+        balance: Number(this.economy.coins) || 0
+      });
       return;
     }
 
     const emptySlot = this.grid.getFreeSlotIndex ? this.grid.getFreeSlotIndex() : -1;
     if (emptySlot === -1) {
       this._showWarning('Поле полно!');
+      eventTracker.trackActionBlocked('grid_full', { context: 'buy_cat' });
       return;
     }
 

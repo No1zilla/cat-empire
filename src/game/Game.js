@@ -134,7 +134,7 @@ export class Game {
     };
 
     this.hud = new HUD(this.app, openCollection, openMenu, {
-      onOpenShop: () => this.showRubyShop(),
+      onOpenShop: () => this.showRubyShop('hud'),
       onWatchRubyAd: () => this.showRubyAd()
     });
     this.hud.position.set(0, 0);
@@ -222,6 +222,11 @@ export class Game {
 
       if (spawnCount === 0 || actualTotalCost <= 0) {
         if (this.fillAllButton) this.fillAllButton._showWarning('Мало монет!');
+        eventTracker.trackActionBlocked('no_coins', {
+          context: 'fill_all',
+          free_slots: freeSlots.length,
+          balance: this.economy ? Number(this.economy.coins) || 0 : 0
+        });
         return;
       }
 
@@ -274,7 +279,7 @@ export class Game {
       this._saveToLocalStorage();
       return count;
     }, () => {
-      this.showRubyShop();
+      this.showRubyShop('auto_merge_no_rubies');
     });
 
     this.actionRow = new ActionRow({
@@ -325,6 +330,12 @@ export class Game {
       eventBus.emit('CATS_MERGED', { level: newLevel, combo });
       dailyQuestsService.progress('merge', 1);
       eventTracker.trackManualMerge(newLevel - 1, newLevel);
+      // Один раз за установку: время до первого самостоятельного слияния
+      try {
+        eventTracker.trackFirstMerge(
+          localStorage.getItem('cat_empire_tutorial_outcome') === 'skip'
+        );
+      } catch (e) {}
       this._saveToLocalStorage();
 
       if (newLevel > this.maxCatLevel) {
@@ -676,7 +687,7 @@ export class Game {
       onOpenQuests: () => this.showDailyQuests(),
       onOpenLeaderboard: () => this.showLeaderboard(),
       onInvite: () => this.inviteFriends(),
-      onOpenShop: () => this.showRubyShop(),
+      onOpenShop: () => this.showRubyShop('menu'),
       onOpenCourt: () => this.joinCourt(),
       dailyAvailable: dailyRewardsService.getState().canClaim,
       questsClaimable: dailyQuestsService.getState().claimable
@@ -777,13 +788,13 @@ export class Game {
     this.showDailyRewards();
   }
 
-  showRubyShop() {
+  showRubyShop(source = 'unknown') {
     const modal = new RubyShopModal(this.app, this.economy, () => {
       this._applyIncomeBuffs();
       this._saveToLocalStorage();
       if (this.liveOpsRow) this.liveOpsRow._tick();
       this._layoutChrome();
-    });
+    }, source);
     modal.zIndex = 9999999;
     this.app.stage.addChild(modal);
   }

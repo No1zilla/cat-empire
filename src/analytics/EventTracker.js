@@ -29,7 +29,11 @@ const FLUSH_NOW = new Set([
   'ad_failed',
   'return_session',
   'tutorial_skipped',
-  'tutorial_completed'
+  'tutorial_completed',
+  // Разовое за установку и начало оплаты — терять нельзя,
+  // игрок часто уходит из игры сразу после них
+  'first_merge',
+  'purchase_initiated'
 ]);
 
 export class EventTracker {
@@ -169,14 +173,90 @@ export class EventTracker {
     });
   }
 
+  /**
+   * Сессия на 40 секунд с нулём действий и такая же с пятью слияниями — разные
+   * истории, а по одной длительности неразличимы. Копим счётчики за сессию.
+   */
+  _bumpSessionCounter(key, by = 1) {
+    if (!this.sessionCounters) this.sessionCounters = {};
+    this.sessionCounters[key] = (this.sessionCounters[key] || 0) + by;
+  }
+
   trackSessionEnd() {
     const durationSeconds = Math.floor((Date.now() - this.sessionStartTime) / 1000);
+    const c = this.sessionCounters || {};
     this.track('session_end', {
-      duration_seconds: durationSeconds
+      duration_seconds: durationSeconds,
+      merges: Number(c.merges || 0),
+      buys: Number(c.buys || 0),
+      blocked: Number(c.blocked || 0),
+      ads_watched: Number(c.ads_watched || 0),
+      max_level_reached: Number(c.max_level || 0),
+      // Пустая сессия — главный признак «зашёл и сразу вышел»
+      idle: !(c.merges || c.buys)
     });
   }
 
+  /**
+   * Игрок захотел действие и не смог. Это одновременно триггер монетизации
+   * и точка выхода — раньше мы показывали тост и никуда его не писали.
+   */
+  trackActionBlocked(reason, extra = {}) {
+    this._bumpSessionCounter('blocked');
+    this.track('action_blocked', {
+      reason: String(reason || 'unknown').slice(0, 40),
+      ...(extra && typeof extra === 'object' ? extra : {})
+    });
+  }
+
+  trackShopOpened(source = 'unknown') {
+    this.track('shop_opened', { source: String(source).slice(0, 40) });
+  }
+
+  /**
+   * Пара к iap_purchase_completed: без неё видно только успешные покупки,
+   * и непонятно, 13 покупок — это из 15 попыток или из 300.
+   */
+  trackPurchaseInitiated(pack, votes, rubies) {
+    this.track('purchase_initiated', {
+      pack: String(pack || '').slice(0, 40),
+      votes: Number(votes) || 0,
+      rubies: Number(rubies) || 0
+    });
+  }
+
+  /**
+   * Время до первого самостоятельного слияния — лучший предиктор удержания
+   * в merge-играх. Пишется один раз за всю жизнь установки.
+   */
+  trackFirstMerge(wasTutorialSkipped = false) {
+    if (typeof localStorage === 'undefined') return;
+    const KEY = 'cat_empire_first_merge_done';
+    try {
+      if (localStorage.getItem(KEY)) return;
+      localStorage.setItem(KEY, '1');
+    } catch (e) {
+      return;
+    }
+    this.track('first_merge', {
+      seconds_since_install: this._secondsSinceInstall(),
+      was_tutorial_skipped: Boolean(wasTutorialSkipped)
+    });
+  }
+
+  _secondsSinceInstall() {
+    if (typeof localStorage === 'undefined') return 0;
+    try {
+      const firstSeen = Number(localStorage.getItem('cat_empire_first_seen_at'));
+      if (!firstSeen) return 0;
+      return Math.max(0, Math.floor((Date.now() - firstSeen) / 1000));
+    } catch (e) {
+      return 0;
+    }
+  }
+
   trackCatBought(cost, totalCatsBought, coinsBalance) {
+    this._bumpSessionCounter('buys');
     this.track('cat_bought', {
       cost: Number(cost),
       total_cats_bought: Number(totalCatsBought),
@@ -193,6 +273,7 @@ export class EventTracker {
   }
 
   trackManualMerge(levelFrom, levelTo) {
+    this._bumpSessionCounter('merges');
     this.track('merge_manual', {
       level_from: Number(levelFrom),
       level_to: Number(levelTo)
@@ -219,6 +300,7 @@ export class EventTracker {
   }
 
   trackAdCompleted(adType, rewardGems = 5) {
+    this._bumpSessionCounter('ads_watched');
     this.track('ad_completed', { ad_type: adType, reward_gems: Number(rewardGems) });
   }
 
@@ -238,7 +320,10 @@ export class EventTracker {
   }
 
   trackMaxCatLevelReached(level) {
-    this.track('max_cat_level_reached', { level: Number(level) });
+    const lvl = Number(level) || 0;
+    if (!this.sessionCounters) this.sessionCounters = {};
+    this.sessionCounters.max_level = Math.max(this.sessionCounters.max_level || 0, lvl);
+    this.track('max_cat_level_reached', { level: lvl });
   }
 
   trackOfflineBonusClaimed(coins, multiplier, offlineSeconds) {

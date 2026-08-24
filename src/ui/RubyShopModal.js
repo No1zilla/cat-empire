@@ -90,7 +90,7 @@ function markOrderProcessed(orderId) {
 }
 
 export class RubyShopModal extends Container {
-  constructor(app, economy, onClose) {
+  constructor(app, economy, onClose, source = 'unknown') {
     super();
     this.app = app;
     this.economy = economy;
@@ -100,6 +100,7 @@ export class RubyShopModal extends Container {
     this.eventMode = 'static';
     this.zIndex = 999999;
     this._draw();
+    try { eventTracker.trackShopOpened(source); } catch (e) {}
   }
 
   _draw() {
@@ -235,6 +236,15 @@ export class RubyShopModal extends Container {
     if (this._busy) return;
     this._busy = true;
     const stage = this.app && this.app.stage ? this.app.stage : this.parent;
+
+    // Пара к iap_purchase_completed: разница между ними и есть отвал на оплате
+    try {
+      eventTracker.trackPurchaseInitiated(
+        pack && pack.id,
+        pack && pack.votes,
+        pack && pack.rubies
+      );
+    } catch (e) {}
 
     try {
       const result = await this.vkService.showOrderBox(pack.id);

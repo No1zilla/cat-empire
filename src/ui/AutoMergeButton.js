@@ -5,6 +5,7 @@ import { AdModal } from './AdModal.js';
 import { OutOfRubiesModal } from './OutOfRubiesModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { ACTION_BTN_W, ACTION_BTN_H } from './actionRowLayout.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -287,10 +288,16 @@ export class AutoMergeButton extends Container {
           this._showWarning(`−${UIUtils.formatRubies(5)} (Слито ${mergesDone} пар!) ⚡`);
         } catch (e) {
           this._showWarning('Мало рубинов!');
+          eventTracker.trackActionBlocked('no_rubies', {
+            context: 'auto_merge',
+            cost: GEM_COST,
+            balance: this.economy ? Number(this.economy.gems) || 0 : 0
+          });
           return;
         }
       } else {
         this._showWarning('Нет пар для слияния! 🚫');
+        eventTracker.trackActionBlocked('no_pairs', { context: 'auto_merge' });
         this.updateLabel();
         return;
       }

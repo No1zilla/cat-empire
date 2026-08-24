@@ -157,6 +157,8 @@ export class Tutorial extends Container {
     } catch (e) {}
     try {
       localStorage.setItem('cat_empire_tutorial_done', '1');
+      // Исход нужен потом для first_merge: скипнувшие и прошедшие — разные когорты
+      localStorage.setItem('cat_empire_tutorial_outcome', reason === 'skip' ? 'skip' : 'merge');
     } catch (e) {}
     const done = this.onComplete;
     this.onComplete = () => {};

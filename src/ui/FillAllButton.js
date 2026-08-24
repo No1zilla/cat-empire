@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { quoteFillAll } from '../game/fillAllPurchase.js';
 import { ACTION_BTN_W, ACTION_BTN_H } from './actionRowLayout.js';
+import { eventTracker } from '../analytics/EventTracker.js';
 
 /**
  * Объёмная сочная кнопка «📦 Заполнить» (Янтарно-золотой градиент)
@@ -260,11 +261,18 @@ export class FillAllButton extends Container {
 
       if (data.freeSlotsCount === 0) {
         this._showWarning('Нет свободных мест! 🚫');
+        eventTracker.trackActionBlocked('grid_full', { context: 'fill_all' });
         return;
       }
 
       if (data.count === 0 || (this.economy && !this.economy.canAfford(data.cost))) {
         this._showWarning('Мало монет!');
+        eventTracker.trackActionBlocked('no_coins', {
+          context: 'fill_all',
+          cost: Number(data.cost) || 0,
+          free_slots: Number(data.freeSlotsCount) || 0,
+          balance: this.economy ? Number(this.economy.coins) || 0 : 0
+        });
         return;
       }
 
