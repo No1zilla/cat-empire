@@ -11,6 +11,7 @@ const CACHE_TTL_MS = 60000;
 
 const IAP_EVENTS = ['iap_purchase_completed', 'iap_starter_tribute', 'iap_edict_bought'];
 const BUTTON_EVENTS = [
+  'session_start',
   'cat_bought',
   'fill_all_triggered',
   'merge_manual',
@@ -21,10 +22,12 @@ const BUTTON_EVENTS = [
   'daily_reward_claimed',
   'vassals_summoned',
   'edict_daily_claimed',
-  'invite_reward_granted'
+  'invite_reward_granted',
+  'offline_bonus_claimed'
 ];
 
 const BUTTON_LABELS = {
+  session_start: 'Запуск двора',
   cat_bought: 'Купить кота',
   fill_all_triggered: 'Заполнить поле',
   merge_manual: 'Слияние руками',
@@ -35,8 +38,52 @@ const BUTTON_LABELS = {
   daily_reward_claimed: 'Ежедневка',
   vassals_summoned: 'Вассалы',
   edict_daily_claimed: 'Паёк указа',
-  invite_reward_granted: 'Награда за друга'
+  invite_reward_granted: 'Награда за друга',
+  offline_bonus_claimed: 'Офлайн бонус'
 };
+
+const EVENT_LABELS = {
+  ...BUTTON_LABELS,
+  session_end: 'Выход',
+  ad_requested: 'Ролик: запрос',
+  ad_shown: 'Ролик: показ',
+  ad_completed: 'Ролик: просмотр',
+  ad_failed: 'Ролик: провал',
+  ad_skipped: 'Ролик: закрыл',
+  iap_purchase_completed: 'Покупка',
+  iap_starter_tribute: 'Стартовый пак',
+  iap_edict_bought: 'Указ',
+  max_cat_level_reached: 'Новый макс. уровень'
+};
+
+/** Сутки как в кабинете VK — календарный день Москвы, не UTC. */
+const MSK_DAY = `(created_at AT TIME ZONE 'Europe/Moscow')::date = (NOW() AT TIME ZONE 'Europe/Moscow')::date`;
+const MSK_FIRST_SEEN = `(first_seen_at AT TIME ZONE 'Europe/Moscow')::date = (NOW() AT TIME ZONE 'Europe/Moscow')::date`;
+
+function funnelFromRow(row = {}) {
+  const n = (key) => Number(row[key] || 0);
+  const startedToday = n('started_today');
+  const pct = (part) => (startedToday > 0 ? Number(((part / startedToday) * 100).toFixed(1)) : 0);
+  return {
+    started: n('started'),
+    bought_cat: n('bought_cat'),
+    merged: n('merged'),
+    filled: n('filled'),
+    watched_ad: n('watched_ad'),
+    used_automerge: n('used_automerge'),
+    started_today: startedToday,
+    bought_cat_today: n('bought_cat_today'),
+    merged_today: n('merged_today'),
+    filled_today: n('filled_today'),
+    watched_ad_today: n('watched_ad_today'),
+    used_automerge_today: n('used_automerge_today'),
+    bought_pct: pct(n('bought_cat_today')),
+    merged_pct: pct(n('merged_today')),
+    filled_pct: pct(n('filled_today')),
+    ad_pct: pct(n('watched_ad_today')),
+    automerge_pct: pct(n('used_automerge_today'))
+  };
+}
 
 const AD_EVENTS = ['ad_requested', 'ad_shown', 'ad_completed', 'ad_failed', 'ad_skipped'];
 
@@ -84,6 +131,7 @@ function maskUserId(userId) {
 
 function simulatedDashboard() {
   return {
+    day_tz: 'Europe/Moscow',
     activity: {
       dau_today: 142,
       dau_vk: 120,
@@ -105,13 +153,20 @@ function simulatedDashboard() {
       ads_per_dau: 2.9
     },
     gameplay: {
-      funnel: {
+      funnel: funnelFromRow({
         started: 500,
         bought_cat: 480,
         merged: 425,
+        filled: 400,
         watched_ad: 310,
-        used_automerge: 215
-      },
+        used_automerge: 215,
+        started_today: 40,
+        bought_cat_today: 38,
+        merged_today: 34,
+        filled_today: 32,
+        watched_ad_today: 25,
+        used_automerge_today: 17
+      }),
       level_distribution: [
         { level: 1, users: 500 },
         { level: 2, users: 425 },
@@ -281,13 +336,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         adTypeRows,
         adReasonRows,
         adRecentRows,
-        adTodayRows
+        adTodayRows,
+        funnelRows
       ] = await Promise.all([
         pool.query(`
           WITH today AS (
             SELECT user_id, session_id
             FROM analytics_events
-            WHERE created_at >= CURRENT_DATE
+            WHERE ${MSK_DAY}
           ),
           owners AS (
             SELECT
@@ -312,7 +368,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
               WHERE person_id LIKE 'guest_%' OR person_id IN ('guest', '0', '')
             )::int AS dau_guest,
             COUNT(*)::int AS total_sessions_today,
-            (SELECT COUNT(*)::int FROM user_sessions WHERE first_seen_at >= CURRENT_DATE) AS new_users_today
+            (SELECT COUNT(*)::int FROM user_sessions WHERE ${MSK_FIRST_SEEN}) AS new_users_today
           FROM owners
         `),
         pool.query(`
@@ -331,7 +387,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             COUNT(*) FILTER (WHERE event = 'ad_requested')::int AS requested_today,
             COUNT(*) FILTER (WHERE event = 'ad_completed' AND (props->>'is_test_ad' = 'false' OR props->>'is_test_ad' IS NULL))::int AS commercial_completed_today
           FROM analytics_events
-          WHERE created_at >= CURRENT_DATE
+          WHERE ${MSK_DAY}
         `),
         pool.query(`
           SELECT
@@ -366,9 +422,9 @@ router.get('/dashboard', adminAuth, async (req, res) => {
           `
           SELECT
             COUNT(*)::int AS all_time,
-            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today,
-            COALESCE(SUM(rubies) FILTER (WHERE created_at >= CURRENT_DATE), 0)::int AS rubies_today,
-            COALESCE(SUM(votes) FILTER (WHERE created_at >= CURRENT_DATE), 0)::int AS votes_today
+            COUNT(*) FILTER (WHERE ${MSK_DAY})::int AS today,
+            COALESCE(SUM(rubies) FILTER (WHERE ${MSK_DAY}), 0)::int AS rubies_today,
+            COALESCE(SUM(votes) FILTER (WHERE ${MSK_DAY}), 0)::int AS votes_today
           FROM (
             SELECT DISTINCT ON (COALESCE(NULLIF(props->>'order_id', ''), id::text))
               created_at,
@@ -431,7 +487,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         pool.query(
           `
           SELECT event,
-            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today,
+            COUNT(*) FILTER (WHERE ${MSK_DAY})::int AS today,
             COUNT(*)::int AS all_time
           FROM analytics_events
           WHERE event IN (${btnList})
@@ -442,7 +498,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         pool.query(`
           SELECT event, COUNT(*)::int AS count
           FROM analytics_events
-          WHERE created_at >= CURRENT_DATE
+          WHERE ${MSK_DAY}
           GROUP BY event
           ORDER BY count DESC
           LIMIT 25
@@ -450,7 +506,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         pool.query(`
           SELECT COUNT(*)::int AS today_total
           FROM analytics_events
-          WHERE created_at >= CURRENT_DATE
+          WHERE ${MSK_DAY}
         `),
         pool.query(`
           SELECT event, user_id, platform, props, created_at
@@ -467,11 +523,11 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             COUNT(*) FILTER (WHERE event = 'ad_completed')::int AS completed,
             COUNT(*) FILTER (WHERE event = 'ad_failed')::int AS failed,
             COUNT(*) FILTER (WHERE event = 'ad_skipped')::int AS skipped,
-            COUNT(*) FILTER (WHERE event = 'ad_requested' AND created_at >= CURRENT_DATE)::int AS requested_today,
-            COUNT(*) FILTER (WHERE event = 'ad_shown' AND created_at >= CURRENT_DATE)::int AS shown_today,
-            COUNT(*) FILTER (WHERE event = 'ad_completed' AND created_at >= CURRENT_DATE)::int AS completed_today,
-            COUNT(*) FILTER (WHERE event = 'ad_failed' AND created_at >= CURRENT_DATE)::int AS failed_today,
-            COUNT(*) FILTER (WHERE event = 'ad_skipped' AND created_at >= CURRENT_DATE)::int AS skipped_today
+            COUNT(*) FILTER (WHERE event = 'ad_requested' AND ${MSK_DAY})::int AS requested_today,
+            COUNT(*) FILTER (WHERE event = 'ad_shown' AND ${MSK_DAY})::int AS shown_today,
+            COUNT(*) FILTER (WHERE event = 'ad_completed' AND ${MSK_DAY})::int AS completed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_failed' AND ${MSK_DAY})::int AS failed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_skipped' AND ${MSK_DAY})::int AS skipped_today
           FROM analytics_events
           WHERE event IN (${AD_EVENTS.map((_, i) => `$${i + 1}`).join(', ')})
           GROUP BY 1
@@ -484,9 +540,9 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             COALESCE(NULLIF(props->>'error_reason', ''), 'unknown') AS reason,
             COALESCE(NULLIF(props->>'ad_type', ''), 'unknown') AS ad_type,
             COUNT(*)::int AS count,
-            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS today,
+            COUNT(*) FILTER (WHERE ${MSK_DAY})::int AS today,
             COUNT(DISTINCT user_id)::int AS users,
-            COUNT(DISTINCT user_id) FILTER (WHERE created_at >= CURRENT_DATE)::int AS users_today
+            COUNT(DISTINCT user_id) FILTER (WHERE ${MSK_DAY})::int AS users_today
           FROM analytics_events
           WHERE event = 'ad_failed'
           GROUP BY 1, 2
@@ -505,13 +561,33 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         ),
         pool.query(`
           SELECT
-            COUNT(*) FILTER (WHERE event = 'ad_requested' AND created_at >= CURRENT_DATE)::int AS requested_today,
-            COUNT(*) FILTER (WHERE event = 'ad_failed' AND created_at >= CURRENT_DATE)::int AS failed_today,
-            COUNT(*) FILTER (WHERE event = 'ad_skipped' AND created_at >= CURRENT_DATE)::int AS skipped_today,
-            COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_failed' AND created_at >= CURRENT_DATE)::int AS failed_users_today,
+            COUNT(*) FILTER (WHERE event = 'ad_requested' AND ${MSK_DAY})::int AS requested_today,
+            COUNT(*) FILTER (WHERE event = 'ad_failed' AND ${MSK_DAY})::int AS failed_today,
+            COUNT(*) FILTER (WHERE event = 'ad_skipped' AND ${MSK_DAY})::int AS skipped_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_failed' AND ${MSK_DAY})::int AS failed_users_today,
             COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_failed')::int AS failed_users
           FROM analytics_events
           WHERE event IN ('ad_requested', 'ad_failed', 'ad_skipped')
+        `),
+        pool.query(`
+          SELECT
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'session_start')::int AS started,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'cat_bought')::int AS bought_cat,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'merge_manual')::int AS merged,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'fill_all_triggered')::int AS filled,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_completed')::int AS watched_ad,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'merge_auto_triggered')::int AS used_automerge,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'session_start' AND ${MSK_DAY})::int AS started_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'cat_bought' AND ${MSK_DAY})::int AS bought_cat_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'merge_manual' AND ${MSK_DAY})::int AS merged_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'fill_all_triggered' AND ${MSK_DAY})::int AS filled_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_completed' AND ${MSK_DAY})::int AS watched_ad_today,
+            COUNT(DISTINCT user_id) FILTER (WHERE event = 'merge_auto_triggered' AND ${MSK_DAY})::int AS used_automerge_today
+          FROM analytics_events
+          WHERE event IN (
+            'session_start', 'cat_bought', 'merge_manual',
+            'fill_all_triggered', 'ad_completed', 'merge_auto_triggered'
+          )
         `)
       ]);
 
@@ -536,6 +612,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
 
       const buy = purchaseRows.rows[0] || {};
       resultPayload = {
+        day_tz: 'Europe/Moscow',
         activity: {
           dau_today: actRows.rows[0]?.dau_today || 0,
           dau_vk: actRows.rows[0]?.dau_vk || 0,
@@ -555,6 +632,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             : 0
         },
         gameplay: {
+          funnel: funnelFromRow(funnelRows.rows[0] || {}),
           level_distribution: lvlRows.rows
         },
         purchases: {
@@ -624,6 +702,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
           today_total: Number(todayTotalRows.rows[0]?.today_total || 0),
           by_type: (eventCountRows.rows || []).map((row) => ({
             event: row.event,
+            label: EVENT_LABELS[row.event] || row.event,
             count: Number(row.count || 0)
           })),
           recent: (eventRecentRows.rows || []).map((row) => ({

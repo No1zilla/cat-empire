@@ -16,6 +16,7 @@ router.post('/batch', async (req, res) => {
     }
 
     if (pool && process.env.DATABASE_URL) {
+      let committed = false;
       try {
         const client = await pool.connect();
         try {
@@ -77,6 +78,7 @@ router.post('/batch', async (req, res) => {
           }
 
           await client.query('COMMIT');
+          committed = true;
         } catch (err) {
           await client.query('ROLLBACK');
           console.error('❌ Ошибка транзакции analytics_events:', err.message);
@@ -84,7 +86,10 @@ router.post('/batch', async (req, res) => {
           client.release();
         }
       } catch (dbErr) {
-        console.warn('⚠️ PostgreSQL недоступен, событие обработано автономно:', dbErr.message);
+        console.warn('⚠️ PostgreSQL недоступен, события не записаны:', dbErr.message);
+      }
+      if (!committed) {
+        return res.status(500).json({ error: 'Не записали события' });
       }
     }
 

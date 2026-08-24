@@ -19,6 +19,16 @@ const API_BASE = resolveAnalyticsApiBase();
 
 const OFFLINE_CACHE_KEY = 'cat_empire_offline_events_v1';
 
+const FLUSH_NOW = new Set([
+  'session_start',
+  'session_end',
+  'iap_purchase_completed',
+  'iap_starter_tribute',
+  'iap_edict_bought',
+  'ad_completed',
+  'ad_failed'
+]);
+
 export class EventTracker {
   constructor(userId = 'guest', platform = 'vk') {
     this.userId = this._resolveUserId(userId);
@@ -28,9 +38,9 @@ export class EventTracker {
     this.sessionStartTime = Date.now();
     this.isFlushing = false;
 
-    // Автоматическая батчевая отправка каждые 10 секунд
+    // В VK WebView 10с слишком долго: игрок закрывает сплэш, батч не уходит
     if (typeof window !== 'undefined') {
-      this._flushInterval = setInterval(() => this.flush(), 10000);
+      this._flushInterval = setInterval(() => this.flush(), 3000);
 
       // Трекинг завершения сессии при закрытии вкладки / приложения
       window.addEventListener('beforeunload', () => {
@@ -46,6 +56,12 @@ export class EventTracker {
 
     // Авто-трекинг старта сессии
     this.trackSessionStart();
+    if (typeof window !== 'undefined') {
+      this.flush();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') this.flush();
+      });
+    }
   }
 
   _vkUserIdFromLaunch() {
@@ -98,6 +114,7 @@ export class EventTracker {
         if (ev && ev.user_id === prev) ev.user_id = next;
       });
       this._saveOfflineEvents();
+      if (typeof window !== 'undefined') this.flush();
     }
   }
 
@@ -120,8 +137,7 @@ export class EventTracker {
     this.queue.push(event);
     this._saveOfflineEvents();
 
-    // Если накопилось >= 10 событий — отправляем немедленно
-    if (this.queue.length >= 10) {
+    if (this.queue.length >= 10 || FLUSH_NOW.has(eventName)) {
       this.flush();
     }
   }
@@ -219,6 +235,8 @@ export class EventTracker {
   // --- Отправка данных ---
 
   async flush() {
+    // Node-тесты и SSR не должны стучать в прод. global fetch в Node 18+ есть.
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return false;
     if (!this.queue.length || this.isFlushing) return false;
     this.isFlushing = true;
 
@@ -228,7 +246,8 @@ export class EventTracker {
       const response = await fetch(`${API_BASE}/events/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: batch })
+        body: JSON.stringify({ events: batch }),
+        keepalive: true
       });
 
       if (response.ok) {

@@ -75,6 +75,45 @@ assert.ok(guestTracker.queue.every((ev) => ev.user_id === '816275327'));
 guestTracker.destroy();
 console.log('✅ ТЕСТ 4 УСПЕШНО ПРОЙДЕН!\n');
 
+console.log('📌 ТЕСТ 5: без window flush не ходит в сеть (Node fetch не в прод)');
+let fetchCalls = 0;
+const prevFetch = globalThis.fetch;
+globalThis.fetch = async () => {
+  fetchCalls += 1;
+  return { ok: true };
+};
+const batchTracker = new EventTracker('user_flush', 'vk');
+for (let i = 0; i < 12; i++) batchTracker.track('cat_bought', { i });
+assert.strictEqual(fetchCalls, 0, 'Node без window не должен POST /events/batch');
+assert.ok(batchTracker.queue.length >= 12);
+batchTracker.destroy();
+console.log('✅ ТЕСТ 5 УСПЕШНО ПРОЙДЕН!\n');
+
+console.log('📌 ТЕСТ 6: в браузере session_start уходит сразу с keepalive');
+const browserCalls = [];
+globalThis.fetch = async (url, opts) => {
+  browserCalls.push({ url, opts });
+  return { ok: true };
+};
+globalThis.window = {
+  addEventListener() {},
+  location: { origin: 'https://no1zilla.github.io', search: '', hash: '' },
+  innerWidth: 410,
+  innerHeight: 700
+};
+globalThis.document = { addEventListener() {}, visibilityState: 'visible' };
+const browserTracker = new EventTracker('816275327', 'vk');
+assert.ok(browserCalls.length >= 1, 'session_start должен уйти сразу');
+assert.strictEqual(browserCalls[0].opts.keepalive, true);
+const sent = JSON.parse(browserCalls[0].opts.body);
+assert.strictEqual(sent.events[0].event, 'session_start');
+assert.strictEqual(sent.events[0].user_id, '816275327');
+browserTracker.destroy();
+delete globalThis.window;
+delete globalThis.document;
+globalThis.fetch = prevFetch;
+console.log('✅ ТЕСТ 6 УСПЕШНО ПРОЙДЕН!\n');
+
 console.log('🎉 =========================================================');
 console.log('🎉 ВСЕ ТЕСТЫ TASK-066 (EventTracker) УСПЕШНО ПРОЙДЕНЫ!');
 console.log('🎉 =========================================================');

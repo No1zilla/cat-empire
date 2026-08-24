@@ -3,6 +3,7 @@
 
 import assert from 'assert';
 import eventsRouter from './routes/events.js';
+import pool from './db.js';
 
 console.log('🧪 =========================================================');
 console.log('🧪 ТЕСТ-СУИТ TASK-066: Backend POST /api/events/batch');
@@ -52,13 +53,33 @@ const mockReqValid = {
 statusCode = 200;
 jsonRes = null;
 
+const dbUrlForTest2 = process.env.DATABASE_URL;
+delete process.env.DATABASE_URL;
 await layer.route.stack[0].handle(mockReqValid, mockRes, () => {});
+if (dbUrlForTest2 !== undefined) process.env.DATABASE_URL = dbUrlForTest2;
 
 assert.strictEqual(statusCode, 200);
 assert.strictEqual(jsonRes.success, true);
 assert.strictEqual(jsonRes.count, 2);
 console.log('  [Pass] Батч из 2 событий успешно обработан с кодом 200: { success: true, count: 2 }');
 console.log('✅ ТЕСТ 2 УСПЕШНО ПРОЙДЕН!\n');
+
+console.log('📌 ТЕСТ 3: если БД задана и insert падает — 500, клиент не дропает очередь');
+const savedDbUrl = process.env.DATABASE_URL;
+process.env.DATABASE_URL = 'postgres://analytics-test';
+const origConnect = pool.connect;
+pool.connect = async () => {
+  throw new Error('insert fail');
+};
+statusCode = 200;
+jsonRes = null;
+await layer.route.stack[0].handle(mockReqValid, mockRes, () => {});
+assert.strictEqual(statusCode, 500);
+assert.ok(jsonRes.error);
+pool.connect = origConnect;
+if (savedDbUrl === undefined) delete process.env.DATABASE_URL;
+else process.env.DATABASE_URL = savedDbUrl;
+console.log('✅ ТЕСТ 3 УСПЕШНО ПРОЙДЕН!\n');
 
 console.log('🎉 =========================================================');
 console.log('🎉 ВСЕ БЭКЕНД ТЕСТЫ TASK-066 УСПЕШНО ПРОЙДЕНЫ!');

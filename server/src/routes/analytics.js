@@ -119,6 +119,7 @@ router.get('/gameplay', async (req, res) => {
           started: 100,
           bought_cat: 95,
           merged: 85,
+          filled: 70,
           watched_ad: 60,
           used_automerge: 40
         },
@@ -146,6 +147,7 @@ router.get('/gameplay', async (req, res) => {
         COUNT(DISTINCT user_id) FILTER (WHERE event = 'session_start')::int AS started,
         COUNT(DISTINCT user_id) FILTER (WHERE event = 'cat_bought')::int AS bought_cat,
         COUNT(DISTINCT user_id) FILTER (WHERE event = 'merge_manual')::int AS merged,
+        COUNT(DISTINCT user_id) FILTER (WHERE event = 'fill_all_triggered')::int AS filled,
         COUNT(DISTINCT user_id) FILTER (WHERE event = 'ad_completed')::int AS watched_ad,
         COUNT(DISTINCT user_id) FILTER (WHERE event = 'merge_auto_triggered')::int AS used_automerge
       FROM analytics_events
