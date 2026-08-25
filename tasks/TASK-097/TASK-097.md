@@ -1,6 +1,6 @@
 # 📌 TASK-097: Вернуть connectivity-телеметрию — без неё нельзя проверить, доступен ли Railway из РФ
 
-> **Статус:** 🔴 Не начато
+> **Статус:** ✅ Исправлено
 > **Приоритет:** P0 — блокирует [TASK-098](../TASK-098/TASK-098.md), самую дорогую по деньгам гипотезу сейчас
 > **Зависимости:** нет
 
@@ -38,10 +38,30 @@ if (!reportedOkThisSession) {
 
 Данные смотреть в **статистике самого VK Mini App** (кабинет разработчика → аналитика → пользовательские события), не в нашей БД — иначе снова замкнутый круг.
 
+## Реализация
+
+Вшито в саму точку `fetch()` внутри `attempt()` — не оборачивает `apiRequest()` снаружи, а именно различает «fetch бросил исключение» (сеть не работает) от «получили HTTP-ответ, пусть и не ok» (сеть работает, сервер ответил хоть чем-то):
+
+```js
+try {
+  response = await fetch(url, {...});
+} catch (netErr) {
+  trackAccessEvent('backend_api_unreachable');
+  throw netErr;
+}
+if (!reportedReachableThisSession) {
+  reportedReachableThisSession = true;
+  trackAccessEvent('backend_api_reachable');
+}
+```
+
+`bridge` импортирован напрямую (`import bridge from '@vkontakte/vk-bridge'`), не через `window.vkBridge` — тот глобал нигде реально не присваивается (отдельный баг, не в этом патче).
+
 ## Критерии
 
-- [ ] `backend_api_reachable` / `backend_api_unreachable` шлются через `VKWebAppTrackEvent`
-- [ ] Не более одного `reachable` за сессию (не спамить)
-- [ ] Каждая сетевая ошибка `apiRequest()` даёт `unreachable`
-- [ ] Проверено вживую: событие реально долетает до статистики VK
-- [ ] `npm test` зелёный
+- [x] `backend_api_reachable` / `backend_api_unreachable` шлются через `VKWebAppTrackEvent`
+- [x] Не более одного `reachable` за сессию (не спамить)
+- [x] Каждая сетевая ошибка внутри `apiRequest()` даёт `unreachable`
+- [x] Проверено вживую в дев-сервере: `ERR_CONNECTION_REFUSED` корректно ловится, игра не падает
+- [ ] Проверено, что событие реально долетает до статистики VK (нужен реальный VK-запуск)
+- [x] `npm test` и `build:vk` зелёные

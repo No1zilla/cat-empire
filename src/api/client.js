@@ -1,6 +1,20 @@
 // Модуль API клиента для взаимодействия с бэкенд-сервером через чистый HTTPS тоннель
+import bridge from '@vkontakte/vk-bridge';
 import { showRewardedAd, showDesktopBannerAd } from './vkAds.js';
 export { showRewardedAd, showDesktopBannerAd };
+
+// TASK-097: диагностика доступности бэкенда независимо от самого бэкенда — событие
+// уходит через инфраструктуру VK (VKWebAppTrackEvent), а не через Railway, поэтому
+// доходит до статистики VK, даже если сеть до Railway у игрока не работает.
+// Смотреть в статистике самого VK Mini App, не в нашей БД — иначе замкнутый круг.
+let reportedReachableThisSession = false;
+function trackAccessEvent(eventName) {
+  try {
+    bridge.send('VKWebAppTrackEvent', { event_name: eventName }).catch(() => {});
+  } catch (e) {
+    // Телеметрия не должна ронять игру
+  }
+}
 
 export const RAILWAY_API = 'https://cat-empire-production.up.railway.app/api';
 
@@ -99,12 +113,24 @@ async function apiRequest(endpoint, options = {}) {
   const url = `${resolveApiBase()}${endpoint}`;
 
   const attempt = async (withSign) => {
-    const response = await fetch(url, {
-      ...fetchOptions,
-      headers: requestHeaders(options, withSign),
-      credentials: 'omit',
-      signal: controller.signal
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        ...fetchOptions,
+        headers: requestHeaders(options, withSign),
+        credentials: 'omit',
+        signal: controller.signal
+      });
+    } catch (netErr) {
+      // fetch() бросил — соединение не установилось вообще (не путать с HTTP-ошибкой ниже)
+      trackAccessEvent('backend_api_unreachable');
+      throw netErr;
+    }
+    // Любой HTTP-ответ, даже не ok, доказывает, что сеть до Railway работает
+    if (!reportedReachableThisSession) {
+      reportedReachableThisSession = true;
+      trackAccessEvent('backend_api_reachable');
+    }
     if (!response.ok) return null;
     return await response.json();
   };
