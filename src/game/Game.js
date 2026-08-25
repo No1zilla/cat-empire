@@ -528,10 +528,19 @@ export class Game {
   }
 
   // TASK-042a: Дебаунсированное сохранение через storageService (VK Storage + DB + localStorage)
+  //
+  // TASK-105: раньше здесь стояла та же проверка isStarterSnapshot, что и в разовом
+  // сохранении сразу после загрузки (ниже) — но _cloudSaveOk выставляется в true ТОЛЬКО
+  // если этот же guard её пропустил. Пока игрок в стартовом диапазоне (<=2 купленных
+  // кота, 0 слияний), guard блокирует сохранение, а значит _cloudSaveOk никогда не
+  // станет true — заперто само на себя. Купил кота, перезагрузил страницу — прогресс
+  // терялся всегда, без сети, без Railway, на любом устройстве. Здесь снимаем guard:
+  // это уже РЕАЛЬНОЕ действие игрока, а не разовая загрузочная заглушка ниже. Пустой
+  // снимок не перезатрёт лучший облачный прогресс — это уже защищено рангом в
+  // storageService.mergeStates().
   _syncToCloud() {
     if (!this.economy) return;
     const snap = this._getStateSnapshot();
-    if (!this._cloudSaveOk && isStarterSnapshot(snap)) return;
     this._cloudSaveOk = true;
     syncManager.scheduleSave(snap, 800);
   }
@@ -547,7 +556,7 @@ export class Game {
       if (!this.economy) return;
 
       if (document.hidden) {
-        if (!this._cloudSaveOk && isStarterSnapshot(this._getStateSnapshot())) return;
+        // TASK-105: тот же самозапирающийся guard, что был в _syncToCloud — снят по той же причине
         await syncManager.flushImmediate(this._getStateSnapshot());
       } else {
         // Возврат на вкладку — подтянуть свежие данные из облака
@@ -599,7 +608,6 @@ export class Game {
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('pagehide', () => {
       if (!this.economy) return;
-      if (!this._cloudSaveOk && isStarterSnapshot(this._getStateSnapshot())) return;
       syncManager.flushImmediate(this._getStateSnapshot());
     });
   }
