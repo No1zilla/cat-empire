@@ -1,111 +1,44 @@
 import { chromium } from 'playwright';
 import path from 'path';
-import http from 'http';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
+import {
+  SCENES,
+  SNAPSHOTS_DIR,
+  assertDistBuilt,
+  captureScene,
+  ensureDir,
+  openGamePage,
+  startStaticServer
+} from './helpers/visualHarness.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const distDir = path.resolve(__dirname, '../dist');
-const snapshotsDir = path.resolve(__dirname, '../snapshots');
+/**
+ * Генератор золотых эталонов.
+ *
+ * ВНИМАНИЕ: запуск объявляет текущий вид игры нормой. Перед коммитом
+ * глазами проверьте каждый PNG — файл с именем main_menu обязан быть меню,
+ * а не игровым полем (ровно так эталоны и протухли, см. TASK-095).
+ */
+const PORT = 8766;
 
-if (!fs.existsSync(snapshotsDir)) {
-  fs.mkdirSync(snapshotsDir, { recursive: true });
-}
+async function run() {
+  assertDistBuilt();
+  ensureDir(SNAPSHOTS_DIR);
 
-// Простой локальный HTTP сервер
-function startServer(port = 8766) {
-  const mimeTypes = {
-    '.html': 'text/html',
-    '.js': 'text/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.svg': 'image/svg+xml'
-  };
-
-  const server = http.createServer((req, res) => {
-    let filePath = path.join(distDir, req.url === '/' ? 'index.html' : req.url);
-    const ext = path.extname(filePath);
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (err, content) => {
-      if (err) {
-        res.writeHead(404);
-        res.end('Not found');
-      } else {
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(content);
-      }
-    });
-  });
-
-  return new Promise((resolve) => {
-    server.listen(port, () => resolve(server));
-  });
-}
-
-async function runVisualTests() {
   console.log('⚡ Запуск локального сервера для визуального тестирования...');
-  const server = await startServer(8766);
-  console.log('🌐 Сервер запущен на http://localhost:8766');
+  const server = await startStaticServer(PORT);
+  console.log(`🌐 Сервер запущен на http://localhost:${PORT}`);
 
-  console.log('🎨 Запуск Visual Snapshot Testing...');
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 410, height: 700 } });
-  const page = await context.newPage();
+  const { page, errors } = await openGamePage(browser, PORT);
 
-  const errors = [];
-  page.on('pageerror', err => errors.push(err.message));
-  page.on('console', msg => {
-    if (msg.type() === 'error') errors.push(msg.text());
-  });
-
-  await page.goto('http://localhost:8766');
-  // Ждём полной загрузки и склеивания спрайтов
-  await page.waitForTimeout(6000);
-
-  // 1. Скриншот: Главное Стартовое Меню
-  const mainMenuPath = path.join(snapshotsDir, 'golden_main_menu.png');
-  await page.screenshot({ path: mainMenuPath });
-  console.log('✅ [Snapshot 1/4] Главное Меню зафиксировано:', mainMenuPath);
-
-  // 2. Закрытие меню для открытия игрового экрана
-  await page.evaluate(() => {
-    if (window.game && window.game._mainMenuInstance) {
-      if (window.game._mainMenuInstance.parent) {
-        window.game._mainMenuInstance.parent.removeChild(window.game._mainMenuInstance);
-      }
-      window.game._mainMenuInstance.destroy();
-      window.game._mainMenuInstance = null;
-    }
-  });
-  await page.waitForTimeout(800);
-
-  // 3. Скриншот: Шапка HUD (капсулы монет, гемов, дохода, меню)
-  const hudPath = path.join(snapshotsDir, 'golden_hud_header.png');
-  await page.screenshot({ path: hudPath, clip: { x: 0, y: 0, width: 410, height: 60 } });
-  console.log('✅ [Snapshot 2/4] Шапка HUD зафиксирована (clip 410x60):', hudPath);
-
-  // 4. Скриншот: Полный игровой экран и сетка 5x5
-  const gameplayPath = path.join(snapshotsDir, 'golden_gameplay_grid.png');
-  await page.screenshot({ path: gameplayPath });
-  console.log('✅ [Snapshot 3/4] Игровой экран зафиксирован:', gameplayPath);
-
-  // 5. Клик по кнопке 🐾 в HUD (X = 375, Y = 25)
-  await page.mouse.move(375, 25);
-  await page.mouse.down();
-  await page.mouse.up();
-  await page.waitForTimeout(800);
-
-  await page.mouse.move(205, 518); // Клик по Настройки
-  await page.mouse.down();
-  await page.mouse.up();
-  await page.waitForTimeout(800);
-
-  const settingsPath = path.join(snapshotsDir, 'golden_settings_modal.png');
-  await page.screenshot({ path: settingsPath });
-  console.log('✅ [Snapshot 4/4] Окно Настроек зафиксировано:', settingsPath);
+  let index = 0;
+  for (const scene of SCENES) {
+    index++;
+    const buffer = await captureScene(page, scene);
+    const target = path.join(SNAPSHOTS_DIR, scene.goldenFile);
+    fs.writeFileSync(target, buffer);
+    console.log(`✅ [Snapshot ${index}/${SCENES.length}] ${scene.name} → ${scene.goldenFile}`);
+  }
 
   await browser.close();
   server.close();
@@ -113,12 +46,12 @@ async function runVisualTests() {
   if (errors.length > 0) {
     console.error('❌ Найдены критические ошибки JS при создании снапшотов:', errors);
     process.exit(1);
-  } else {
-    console.log('🎉 Все 4 золотых Visual Snapshots успешно зафиксированы и проверены!');
   }
+  console.log(`🎉 Все ${SCENES.length} золотых Visual Snapshots зафиксированы.`);
+  console.log('👀 Просмотрите PNG глазами: перегенерация делает текущий UI эталоном.');
 }
 
-runVisualTests().catch(e => {
+run().catch((e) => {
   console.error('Ошибка визуального теста:', e);
   process.exit(1);
 });

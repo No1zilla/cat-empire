@@ -11,6 +11,8 @@
     "build:android": "PLATFORM=android vite build && npx cap copy android",
     "preview": "vite preview",
     "test": "node tests/runAll.js",
+    "test:visual": "npm run build && node tests/test_visual_regression.js",
+    "test:visual:bless": "npm run build && node tests/test_visual_snapshots.js",
     "predeploy": "PLATFORM=vk vite build",
     "deploy": "vk-miniapps-deploy"
   },

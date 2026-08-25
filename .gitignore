@@ -17,3 +17,6 @@ server/prisma/dev.db-journal
 *.log
 .gradle
 server/node_modules
+
+# visual regression debug artifacts
+snapshots/diffs/
