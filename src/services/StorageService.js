@@ -166,6 +166,19 @@ export class StorageService {
       resultState = this.mergeStates(resultState, this._normalizeState(serverProfile.user));
     }
 
+    // TASK-106: облако ответило или мы точно знаем состояние этого устройства?
+    // Если оба хранилища промолчали (таймаут 6с — из РФ до Railway это обычное дело)
+    // и локального кэша нет, мы НЕ знаем прогресс игрока. Ниже подставится стартовый
+    // снимок — и без этого флага он уехал бы в облако и затёр настоящую империю.
+    this.lastLoadVerified = Boolean(
+      (vkStorage && vkStorage[STORAGE_KEY]) ||
+      (serverProfile && serverProfile.user) ||
+      localData
+    );
+    if (!this.lastLoadVerified) {
+      console.warn('⚠️ Прогресс не подтверждён ни одним хранилищем — облачные записи заморожены до успешной загрузки');
+    }
+
     const finalState = this._normalizeState(resultState) || {
       coins: 100,
       gems: 10,
@@ -191,19 +204,6 @@ export class StorageService {
     } catch (e) {}
   }
 
-  _isDowngrade(data) {
-    if (!data || data.isReset) return false;
-    try {
-      const bestLvl = Number(localStorage.getItem(BEST_LEVEL_KEY)) || 1;
-      const bestMerges = Number(localStorage.getItem(BEST_MERGES_KEY)) || 0;
-      const lvl = Number(data.maxCatLevel) || 1;
-      const merges = Number(data.totalMerges) || 0;
-      return lvl < bestLvl || (lvl === bestLvl && merges + 8 < bestMerges);
-    } catch (e) {
-      return false;
-    }
-  }
-
   _writeLocalCache(data, timestamp) {
     if (typeof localStorage === 'undefined' || !data) return;
     try {
@@ -223,18 +223,28 @@ export class StorageService {
     const timestamp = Number(data.updatedAt) || Date.now();
     const resetSave = Boolean(data.isReset)
       || (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1');
-    const skipCloud = this._isDowngrade(data) && !resetSave;
-    if (!skipCloud && !resetSave) this._rememberHighWater(data);
+    if (!resetSave) this._rememberHighWater(data);
     this._writeLocalCache(data, timestamp);
 
     if (!resetSave && !isStarterSnapshot(data) && typeof localStorage !== 'undefined') {
       try { localStorage.removeItem('cat_empire_is_reset'); } catch (e) {}
     }
 
-    if (skipCloud) {
-      console.warn('🛑 Отказ писать в облако более слабый сейв, чем уже был');
+    // TASK-106: не затираем облако состоянием, которого не подтверждали.
+    // Если загрузка свалилась в стартовую заглушку по таймауту, писать её в VK Storage
+    // и на сервер нельзя — именно так терялась настоящая империя. Локальный кэш выше
+    // уже записан, игрок не теряет сессию; в облако уйдёт после успешной загрузки.
+    if (this.lastLoadVerified === false && isStarterSnapshot(data) && !resetSave) {
+      console.warn('🛑 Загрузка не подтверждена — стартовый снимок в облако не пишем');
       return;
     }
+
+    // Раньше здесь стоял ранний return по _isDowngrade — «не писать сейв слабее прежнего».
+    // Метки рекорда живут в localStorage и только растут, поэтому после потери облачного
+    // прогресса игрок навсегда оказывался ниже собственного рекорда и КАЖДОЕ сохранение
+    // отбрасывалось — отыграть путь назад было невозможно, ведь он не сохранялся.
+    // Защита от отката осталась на сервере (userService.saveUserProgress), и там она
+    // сравнивает с РЕАЛЬНО сохранённым значением, а не с протухшей локальной меткой.
 
     const compactGrid = Array.isArray(data.gridState)
       ? data.gridState.map((c) => [c.slotIndex, c.catLevel])

@@ -2,7 +2,6 @@ import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { BALANCE } from '../config/balance.js';
 import { Cat } from './Cat.js';
-import { saveProgress } from '../api/client.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { ACTION_BTN_W, ACTION_BTN_H } from '../ui/actionRowLayout.js';
 import { eventTracker } from '../analytics/EventTracker.js';
@@ -274,20 +273,12 @@ export class SpawnSystem extends Container {
 
     this._animateBounce(cat);
     this.updateButtonLabel();
+    // onCoinSpend уводит состояние в storageService (localStorage + VK Storage + сервер).
+    // TASK-106: здесь же стоял прямой вызов saveProgress() в обход storageService —
+    // он дублировал это сохранение и шёл мимо всех проверок, поэтому неподтверждённый
+    // стартовый снимок всё равно затирал облако. Единственный путь сохранения — через
+    // storageService, иначе защиту можно обойти, не заметив.
     this.onCoinSpend(cost);
-
-    try {
-      await saveProgress({
-        coins: this.economy ? this.economy.coins : undefined,
-        gems: this.economy ? this.economy.gems : undefined,
-        totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined,
-        totalCatsCreated: this.economy ? this.economy.totalCatsCreated : undefined,
-        totalMerges: this.economy ? this.economy.totalMerges : undefined,
-        gridState: this.grid.exportState()
-      });
-    } catch (err) {
-      console.error('Ошибка автосохранения при покупке кота:', err);
-    }
   }
 
   _animateBounce(cat) {
