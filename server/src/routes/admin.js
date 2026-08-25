@@ -353,7 +353,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
         adReasonRows,
         adRecentRows,
         adTodayRows,
-        funnelRows
+        funnelRows,
+        sessionRows
       ] = await Promise.all([
         pool.query(`
           WITH today AS (
@@ -604,6 +605,26 @@ router.get('/dashboard', adminAuth, async (req, res) => {
             'session_start', 'cat_bought', 'merge_manual',
             'fill_all_triggered', 'ad_completed', 'merge_auto_triggered'
           )
+        `),
+        // Средняя длительность сессии. Берём МАКСИМУМ на session_id: после
+        // возврата из фона session_end может прийти повторно, и среднее по всем
+        // строкам занижало бы. Регуляркой отсекаем мусор до приведения типа —
+        // Postgres волен переставить условия WHERE и уронить CAST.
+        pool.query(`
+          SELECT COALESCE(ROUND(AVG(dur))::int, 0) AS avg_session_sec,
+                 COUNT(*)::int AS sessions_measured
+          FROM (
+            SELECT session_id, MAX(dur) AS dur
+            FROM (
+              SELECT session_id,
+                     CASE WHEN props->>'duration_seconds' ~ '^[0-9]+$'
+                          THEN (props->>'duration_seconds')::numeric END AS dur
+              FROM analytics_events
+              WHERE event = 'session_end' AND ${MSK_DAY}
+            ) raw
+            WHERE dur IS NOT NULL AND dur <= 14400
+            GROUP BY session_id
+          ) per_session
         `)
       ]);
 
@@ -634,7 +655,8 @@ router.get('/dashboard', adminAuth, async (req, res) => {
           dau_vk: actRows.rows[0]?.dau_vk || 0,
           dau_guest: actRows.rows[0]?.dau_guest || 0,
           total_sessions_today: actRows.rows[0]?.total_sessions_today || 0,
-          avg_session_sec: 280,
+          avg_session_sec: sessionRows.rows[0]?.avg_session_sec || 0,
+          sessions_measured: sessionRows.rows[0]?.sessions_measured || 0,
           new_users_today: actRows.rows[0]?.new_users_today || 0
         },
         retention: retRows.rows[0] || { d1_retention: 0, d7_retention: 0, d30_retention: 0, avg_sessions_per_dau: 1 },

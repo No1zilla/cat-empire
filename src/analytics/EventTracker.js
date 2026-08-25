@@ -19,6 +19,13 @@ const API_BASE = resolveAnalyticsApiBase();
 
 const OFFLINE_CACHE_KEY = 'cat_empire_offline_events_v1';
 
+// Отлучка короче получаса — та же сессия. Так считают все мобильные аналитики:
+// иначе переключение на мессенджер и обратно плодило бы «сессии».
+const SESSION_GAP_MS = 30 * 60 * 1000;
+
+// pagehide и visibilitychange на мобильных прилетают подряд — второй игнорируем
+const SESSION_END_DEBOUNCE_MS = 2000;
+
 const FLUSH_NOW = new Set([
   'session_start',
   'session_end',
@@ -45,31 +52,63 @@ export class EventTracker {
     this.sessionStartTime = Date.now();
     this.isFlushing = false;
 
+    this.sessionCounters = {};
+    this._lastSessionEndAt = 0;
+    this._hiddenAt = 0;
+
     // В VK WebView 10с слишком долго: игрок закрывает сплэш, батч не уходит
     if (typeof window !== 'undefined') {
       this._flushInterval = setInterval(() => this.flush(), 3000);
-
-      // Трекинг завершения сессии при закрытии вкладки / приложения
-      window.addEventListener('beforeunload', () => {
-        this.trackSessionEnd();
-        this.flushSync();
-      });
-
-      // Восстановление сети
-      window.addEventListener('online', () => {
-        this.flush();
-      });
+      this._bindLifecycle();
     }
 
     // Авто-трекинг старта сессии
     this.trackSessionStart();
     this.trackReturnSession();
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') this.flush();
+  }
+
+  /**
+   * beforeunload на iOS и Android часто не срабатывает вовсе — приложение просто
+   * уходит в фон и его убивают. Поэтому сессию закрываем по pagehide и по уходу
+   * вкладки в hidden, а beforeunload оставляем подстраховкой для десктопа.
+   */
+  _bindLifecycle() {
+    const end = () => {
+      this._hiddenAt = Date.now();
+      this.trackSessionEnd();
+      this.flushSync();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        end();
+      } else {
+        this._resumeSession();
+      }
+    });
+    window.addEventListener('pagehide', end);
+    window.addEventListener('beforeunload', end);
+    window.addEventListener('online', () => this.flush());
+  }
+
+  /**
+   * Вернулись из фона. Короткая отлучка — та же сессия, длинная — новая:
+   * иначе переключение на другое приложение и обратно плодило бы сессии.
+   */
+  _resumeSession() {
+    const away = this._hiddenAt ? Date.now() - this._hiddenAt : 0;
+    this._hiddenAt = 0;
+    if (away < SESSION_GAP_MS) {
       this.flush();
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') this.flush();
-      });
+      return;
     }
+    this.sessionId = this._generateSessionId();
+    this.sessionStartTime = Date.now();
+    this.sessionCounters = {};
+    this._lastSessionEndAt = 0;
+    this.trackSessionStart();
+    this.trackReturnSession();
   }
 
   _vkUserIdFromLaunch() {
@@ -183,7 +222,10 @@ export class EventTracker {
   }
 
   trackSessionEnd() {
-    const durationSeconds = Math.floor((Date.now() - this.sessionStartTime) / 1000);
+    const now = Date.now();
+    if (now - (this._lastSessionEndAt || 0) < SESSION_END_DEBOUNCE_MS) return;
+    this._lastSessionEndAt = now;
+    const durationSeconds = Math.floor((now - this.sessionStartTime) / 1000);
     const c = this.sessionCounters || {};
     this.track('session_end', {
       duration_seconds: durationSeconds,
