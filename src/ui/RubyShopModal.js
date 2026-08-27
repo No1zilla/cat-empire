@@ -4,13 +4,11 @@ import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { RUBY_PACKS, EDICT_PACK } from '../config/rubyShop.js';
 import { eventTracker } from '../analytics/EventTracker.js';
-import VKService from '../vk/VKBridge.js';
 import { empireMeta, EDICT } from '../game/EmpireMeta.js';
-import { purchaseVkItem } from '../game/iapBuy.js';
+import { getPlatform } from '../platform/index.js';
+import { wasOrderProcessed, markOrderProcessed } from '../game/orderLedger.js';
 import { StarterTributeModal } from './StarterTributeModal.js';
 import { storageService } from '../services/StorageService.js';
-
-const PROCESSED_ORDERS_KEY = 'cat_empire_iap_orders';
 
 export const RUBY_PACK_BTN_H = 70;
 export const RUBY_PACK_BTN_GAP = 14;
@@ -69,33 +67,12 @@ function votesWord(n) {
   return 'голосов';
 }
 
-function wasOrderProcessed(orderId) {
-  if (!orderId || typeof localStorage === 'undefined') return false;
-  try {
-    const list = JSON.parse(localStorage.getItem(PROCESSED_ORDERS_KEY) || '[]');
-    return Array.isArray(list) && list.includes(String(orderId));
-  } catch (e) {
-    return false;
-  }
-}
-
-function markOrderProcessed(orderId) {
-  if (!orderId || typeof localStorage === 'undefined') return;
-  try {
-    const list = JSON.parse(localStorage.getItem(PROCESSED_ORDERS_KEY) || '[]');
-    const next = Array.isArray(list) ? list : [];
-    next.push(String(orderId));
-    localStorage.setItem(PROCESSED_ORDERS_KEY, JSON.stringify(next.slice(-40)));
-  } catch (e) {}
-}
-
 export class RubyShopModal extends Container {
   constructor(app, economy, onClose, source = 'unknown') {
     super();
     this.app = app;
     this.economy = economy;
     this.onClose = onClose || (() => {});
-    this.vkService = new VKService();
     this._busy = false;
     this.eventMode = 'static';
     this.zIndex = 999999;
@@ -247,16 +224,16 @@ export class RubyShopModal extends Container {
     } catch (e) {}
 
     try {
-      const result = await this.vkService.showOrderBox(pack.id);
+      const result = await getPlatform().purchase(pack.id);
       if (!result || result.cancelled) {
         if (stage) UIUtils.showToast(stage, 'Покупка отменена');
         return;
       }
       if (result.unavailable) {
-        if (stage) UIUtils.showToast(stage, 'Покупки доступны внутри VK');
+        if (stage) UIUtils.showToast(stage, 'Покупки здесь недоступны');
         return;
       }
-      if (!result.success) {
+      if (!result.ok) {
         if (stage) UIUtils.showToast(stage, 'Оплата не прошла');
         return;
       }
@@ -269,7 +246,7 @@ export class RubyShopModal extends Container {
 
       if (this.economy) this.economy.addGems(pack.rubies);
 
-      // TASK-109: сохранить ДО того, как пометить заказ обработанным. Раньше заказ
+      // TASK-109/112: сохранить ДО того, как пометить заказ обработанным. Раньше заказ
       // сжигался первым, а падение записи глоталось молча: игрок платил голосами,
       // видел успех, рубины исчезали при следующей загрузке — и вернуть их было
       // нельзя, wasOrderProcessed уже отвечал «зачислено».
@@ -299,7 +276,7 @@ export class RubyShopModal extends Container {
       this._close();
     } catch (e) {
       console.warn('Ruby shop buy error:', e);
-      if (stage) UIUtils.showToast(stage, 'Не удалось открыть оплату VK');
+      if (stage) UIUtils.showToast(stage, 'Не удалось открыть оплату');
     } finally {
       this._busy = false;
     }
@@ -310,23 +287,31 @@ export class RubyShopModal extends Container {
     this._busy = true;
     const stage = this.app && this.app.stage ? this.app.stage : this.parent;
     try {
-      const result = await purchaseVkItem(EDICT_PACK.id);
+      const result = await getPlatform().purchase(EDICT_PACK.id);
       if (result.cancelled) {
         if (stage) UIUtils.showToast(stage, 'Покупка отменена');
         return;
       }
       if (result.unavailable) {
-        if (stage) UIUtils.showToast(stage, 'Покупки доступны внутри VK');
+        if (stage) UIUtils.showToast(stage, 'Покупки здесь недоступны');
         return;
       }
       if (!result.ok) {
-        if (stage) UIUtils.showToast(stage, result.duplicate ? 'Этот заказ уже зачислен' : 'Оплата не прошла');
+        if (stage) UIUtils.showToast(stage, 'Оплата не прошла');
         return;
       }
+
+      const orderId = result.orderId || `${EDICT_PACK.id}:${Date.now()}`;
+      if (wasOrderProcessed(orderId)) {
+        if (stage) UIUtils.showToast(stage, 'Этот заказ уже зачислен');
+        return;
+      }
+
       if (this.economy) this.economy.addGems(EDICT.rubies);
       empireMeta.activateEdict();
-      eventTracker.track('iap_edict_bought', { rubies: EDICT.rubies });
-      // TASK-109: молчать о несохранённой покупке нельзя — игрок заплатил
+
+      // TASK-112: заказ сжигаем только после подтверждённого сохранения. Раньше это
+      // делала сама покупка, до записи — оплаченный указ мог пропасть без возврата.
       try {
         await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined });
       } catch (e) {
@@ -336,6 +321,9 @@ export class RubyShopModal extends Container {
         this._close();
         return;
       }
+
+      markOrderProcessed(orderId);
+      eventTracker.track('iap_edict_bought', { rubies: EDICT.rubies });
       if (stage) UIUtils.showToast(stage, 'Указ издан. Семь ночей ×2 и паёк каждый день');
       this._close();
     } catch (e) {

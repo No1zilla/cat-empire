@@ -3,7 +3,8 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { STARTER_TRIBUTE, empireMeta } from '../game/EmpireMeta.js';
-import { purchaseVkItem } from '../game/iapBuy.js';
+import { getPlatform } from '../platform/index.js';
+import { wasOrderProcessed, markOrderProcessed } from '../game/orderLedger.js';
 import { incomeBoosterService } from '../game/IncomeBooster.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import { AdModal } from './AdModal.js';
@@ -126,27 +127,31 @@ export class StarterTributeModal extends Container {
     this._busy = true;
     const stage = this.app && this.app.stage ? this.app.stage : this.parent;
     try {
-      const result = await purchaseVkItem(STARTER_TRIBUTE.id);
+      const result = await getPlatform().purchase(STARTER_TRIBUTE.id);
       if (result.cancelled) {
         if (stage) UIUtils.showToast(stage, 'Покупка отменена');
         return;
       }
       if (result.unavailable) {
-        if (stage) UIUtils.showToast(stage, 'Покупки доступны внутри VK');
-        return;
-      }
-      if (result.duplicate) {
-        if (stage) UIUtils.showToast(stage, 'Этот заказ уже зачислен');
+        if (stage) UIUtils.showToast(stage, 'Покупки здесь недоступны');
         return;
       }
       if (!result.ok) {
         if (stage) UIUtils.showToast(stage, 'Оплата не прошла');
         return;
       }
+
+      const orderId = result.orderId || `${STARTER_TRIBUTE.id}:${Date.now()}`;
+      if (wasOrderProcessed(orderId)) {
+        if (stage) UIUtils.showToast(stage, 'Этот заказ уже зачислен');
+        return;
+      }
+
       if (this.economy) this.economy.addGems(STARTER_TRIBUTE.rubies);
       incomeBoosterService.activate(Date.now(), STARTER_TRIBUTE.boosterMs);
       empireMeta.claimStarter();
-      // TASK-109: за ларец платят голосами — о несохранённой выдаче игрок обязан узнать
+
+      // TASK-112: сжигаем заказ только после подтверждённой записи выдачи.
       try {
         await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined });
       } catch (e) {
@@ -156,6 +161,8 @@ export class StarterTributeModal extends Container {
         this._close();
         return;
       }
+
+      markOrderProcessed(orderId);
       eventTracker.track('iap_starter_tribute', { rubies: STARTER_TRIBUTE.rubies });
       if (stage) UIUtils.showToast(stage, 'Кото-Бог дал ларец. +80 рубинов и час ×2');
       this.onGranted();

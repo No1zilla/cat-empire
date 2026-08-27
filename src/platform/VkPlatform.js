@@ -13,7 +13,6 @@
 import { Platform } from './Platform.js';
 import { VKService } from '../vk/VKBridge.js';
 import { showRewardedAd, showDesktopBannerAd } from '../api/vkAds.js';
-import { purchaseVkItem } from '../game/iapBuy.js';
 import { vkIdentity } from '../services/VkIdentity.js';
 import { isDesktopVK } from '../services/PlatformService.js';
 import { VK_GROUP_ID } from '../config/vkCommunity.js';
@@ -23,7 +22,6 @@ export class VkPlatform extends Platform {
     super();
     this.service = deps.service || new VKService();
     this.ads = deps.ads || { showRewardedAd, showDesktopBannerAd };
-    this.purchaseItem = deps.purchaseItem || purchaseVkItem;
     this.identity = deps.identity || vkIdentity;
     this.isDesktopVk = deps.isDesktopVK || isDesktopVK;
     this.groupId = deps.groupId !== undefined ? deps.groupId : VK_GROUP_ID;
@@ -86,8 +84,18 @@ export class VkPlatform extends Platform {
     return this.ads.showDesktopBannerAd();
   }
 
+  /**
+   * Касса VK. Возвращает результат КАК ЕСТЬ и намеренно НЕ трогает реестр заказов:
+   * сжигать заказ можно только после подтверждённой выдачи, а знает об этом
+   * вызывающий код (см. src/game/orderLedger.js). Раньше пометка жила внутри
+   * покупки — из-за этого оплаченные рубины пропадали без возможности повтора.
+   */
   async purchase(itemId) {
-    return this.purchaseItem(itemId);
+    const res = await this.service.showOrderBox(itemId);
+    if (!res || res.cancelled) return { ok: false, cancelled: true };
+    if (res.unavailable) return { ok: false, unavailable: true };
+    if (!res.success) return { ok: false };
+    return { ok: true, orderId: res.orderId || `${itemId}:${Date.now()}`, res: res.res };
   }
 
   async share(link) {

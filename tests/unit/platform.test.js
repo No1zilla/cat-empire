@@ -18,6 +18,7 @@ function fakeVkService() {
     async sharePost(msg) { calls.push(['sharePost', msg]); return { success: true }; },
     async showInviteBox() { calls.push(['showInviteBox']); return { success: true }; },
     async joinGroup(id) { calls.push(['joinGroup', id]); return { success: true }; },
+    async showOrderBox(item) { calls.push(['showOrderBox', item]); return { success: true, orderId: `order_${item}` }; },
     triggerHaptic(style) { calls.push(['haptic', style]); }
   };
 }
@@ -65,7 +66,6 @@ export async function runPlatformTests() {
   const vk = new VkPlatform({
     service,
     ads: { async showRewardedAd() { return { success: true }; }, async showDesktopBannerAd() { return { success: true }; } },
-    purchaseItem: async (id) => ({ ok: true, orderId: `order_${id}` }),
     identity: {
       async getVkUserId() { return '12345'; },
       persistProfile() {},

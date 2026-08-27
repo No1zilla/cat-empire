@@ -26,6 +26,7 @@ import { runBootProgressTests } from './unit/bootProgress.test.js';
 import { runSessionLifecycleTests } from './unit/sessionLifecycle.test.js';
 import { runViewInsetsTests } from './unit/viewInsets.test.js';
 import { runPlatformTests } from './unit/platform.test.js';
+import { runOrderLedgerTests } from './unit/orderLedger.test.js';
 import { runVkAuthTests } from './unit/vkAuth.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
@@ -62,6 +63,7 @@ async function main() {
     await runSessionLifecycleTests();
     await runBootProgressTests();
     await runPlatformTests();
+    await runOrderLedgerTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {
