@@ -1,9 +1,12 @@
 import { saveProgress } from '../api/client.js';
-import { VKService } from '../vk/VKBridge.js';
+import { getPlatform } from '../platform/index.js';
 import { vkIdentity } from './VkIdentity.js';
 import { isStarterSnapshot } from '../game/bootProgress.js';
 
-const vkService = new VKService();
+// TASK-110: облако — это «облако текущей платформы», а не VK. В VK за этим стоит
+// тот же VKWebAppStorageGet/Set, в Telegram — CloudStorage. Берём платформу лениво,
+// внутри вызова: модуль грузится и в тестах, где никакой платформы вокруг нет.
+const cloud = () => getPlatform();
 const STORAGE_KEY = 'cat_empire_progress';
 const BEST_LEVEL_KEY = 'cat_empire_best_max_level';
 const BEST_MERGES_KEY = 'cat_empire_best_merges';
@@ -156,19 +159,19 @@ export class StorageService {
     // самого ВКонтакте: он и быстрее, и привязан к аккаунту, то есть сам по себе даёт
     // кросс-платформенность между десктопом и телефоном.
     let resultState = localData;
-    const vkStorage = await vkService.storageGet([STORAGE_KEY]).catch((e) => {
-      console.warn('Ошибка загрузки из VK Storage:', e);
+    const cloudState = await cloud().storageGet([STORAGE_KEY]).catch((e) => {
+      console.warn('Ошибка загрузки из облака платформы:', e);
       return null;
     });
 
-    if (vkStorage && vkStorage[STORAGE_KEY]) {
-      resultState = this.mergeStates(resultState, this._normalizeState(vkStorage[STORAGE_KEY]));
+    if (cloudState && cloudState[STORAGE_KEY]) {
+      resultState = this.mergeStates(resultState, this._normalizeState(cloudState[STORAGE_KEY]));
     }
 
     // Подтверждено ли состояние? Если VK Storage промолчал и локального кэша нет,
     // прогресс игрока нам неизвестен — ниже подставится стартовый снимок, и без
     // этого флага он уехал бы в облако и затёр настоящую империю.
-    this.lastLoadVerified = Boolean((vkStorage && vkStorage[STORAGE_KEY]) || localData);
+    this.lastLoadVerified = Boolean((cloudState && cloudState[STORAGE_KEY]) || localData);
     if (!this.lastLoadVerified) {
       console.warn('⚠️ Прогресс не подтверждён ни одним хранилищем — облачные записи заморожены до успешной загрузки');
     }
@@ -277,7 +280,7 @@ export class StorageService {
     if (resetSave) compact.x = 1;
 
     // TASK-107: VK Storage — единственное хранилище прогресса, его ждём и проверяем.
-    const stored = await vkService.storageSet(STORAGE_KEY, compact);
+    const stored = await cloud().storageSet(STORAGE_KEY, compact);
     this.lastCloudSaveOk = Boolean(stored);
     if (!stored) {
       console.warn('⚠️ VK Storage не подтвердил запись прогресса');
@@ -375,7 +378,7 @@ export class StorageService {
 
     // Гарантированно параллельно отправляем и дожидаемся перезаписи в VK Storage и серверную БД
     await Promise.allSettled([
-      vkService.storageSet(STORAGE_KEY, {
+      cloud().storageSet(STORAGE_KEY, {
         c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: now, x: 1
       }),
       saveProgress(resetPayload)

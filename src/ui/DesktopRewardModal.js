@@ -5,7 +5,7 @@ import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { eventTracker } from '../analytics/EventTracker.js';
-import VKService from '../vk/VKBridge.js';
+import { getPlatform } from '../platform/index.js';
 import { loadGreenEyesTexture } from '../utils/catTextures.js';
 import { storageService } from '../services/StorageService.js';
 
@@ -18,7 +18,7 @@ export class DesktopRewardModal extends Container {
     this.economy = economy;
     this.onRewardGranted = onRewardGranted || (() => {});
     this.rewardGems = INVITE_FALLBACK_GEMS;
-    this.vkService = new VKService();
+    this.platform = getPlatform();
     this._isClosed = false;
 
     this.eventMode = 'static';
@@ -207,7 +207,7 @@ export class DesktopRewardModal extends Container {
     this._isInviting = true;
 
     try {
-      const inviteRes = await this.vkService.showInviteBox();
+      const inviteRes = await this.platform.invite();
 
       if (inviteRes && inviteRes.success && !inviteRes.simulated) {
         console.log('✅ Приглашение друзей отправлено, начисляем рубины');

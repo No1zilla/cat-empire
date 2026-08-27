@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { DAILY_REWARD_TABLE, dailyRewardsService } from '../game/DailyRewards.js';
-import { showRewardedAd } from '../api/client.js';
+import { getPlatform } from '../platform/index.js';
 import { isAdUserClosed } from '../api/vkAds.js';
 import { eventBus } from '../utils/EventBus.js';
 import { eventTracker } from '../analytics/EventTracker.js';
@@ -230,7 +230,7 @@ export class DailyRewardsModal extends Container {
     let multiplier = 1;
     if (doubleWithAd) {
       eventTracker.trackAdRequested('daily_reward_double');
-      const ad = await showRewardedAd();
+      const ad = await getPlatform().showRewardedAd();
       if (!ad || !ad.success) {
         const reason = ad && ad.reason ? ad.reason : 'ads_unavailable';
         if (ad && isAdUserClosed(ad.reason)) {

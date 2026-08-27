@@ -1,6 +1,6 @@
 import { Graphics, Container, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { VKService } from '../vk/VKBridge.js';
+import { getPlatform } from '../platform/index.js';
 
 // Система управления перетаскиванием (Drag-and-Drop) и Тапом (Tap to Move / Tap to Merge)
 export class DragSystem {
@@ -12,7 +12,7 @@ export class DragSystem {
     this.dragging = null; // { cat, originalSlot, offset }
     this.selectedSlot = null; // Выбранная тапом ячейка
     this._selectionRing = null;
-    this.vkService = new VKService();
+    this.platform = getPlatform();
     this._comboCount = 0;
     this._lastMergeAt = 0;
 
@@ -52,7 +52,7 @@ export class DragSystem {
     this._selectionRing.stroke({ color: 0x00ff88, width: 3.5, alpha: 0.95 });
 
     this.grid.addChild(this._selectionRing);
-    this.vkService.triggerHaptic('light');
+    this.platform.haptic('light');
   }
 
   // Снять выделение
@@ -217,7 +217,7 @@ export class DragSystem {
           this.makeDraggable(newCat);
           this._playMergeEffect(targetSlot, newCat);
           stateChanged = true;
-          this.vkService.triggerHaptic('medium');
+          this.platform.haptic('medium');
         } else {
           this._returnCatToSlot(cat, originalSlot);
         }
@@ -255,7 +255,7 @@ export class DragSystem {
         if (newCat) {
           this.makeDraggable(newCat);
           this._playMergeEffect(slotIndex, newCat);
-          this.vkService.triggerHaptic('medium');
+          this.platform.haptic('medium');
           if (typeof this.onStateChange === 'function') {
             this.onStateChange();
           }

@@ -39,7 +39,7 @@ import { eventBus } from '../utils/EventBus.js';
 import { dailyRewardsService } from './DailyRewards.js';
 import { dailyQuestsService } from './DailyQuests.js';
 import { soundManager } from '../audio/SoundManager.js';
-import { VKService } from '../vk/VKBridge.js';
+import { getPlatform } from '../platform/index.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { INVITE_FALLBACK_GEMS } from '../ui/DesktopRewardModal.js';
 import { RUBY_AD_REWARD } from '../config/rubyShop.js';
@@ -867,8 +867,8 @@ export class Game {
       UIUtils.showToast(this.app.stage, 'Новая территория. Новые котики.');
       if (firstFlight && !empireMeta.snapshot().vassalsSummoned) {
         const vassals = new VassalsModal(this.app, this.economy, () => {
-          const vk = new VKService();
-          return vk.showInviteBox();
+          const vk = getPlatform();
+          return vk.invite();
         }, () => this._saveToLocalStorage());
         this.app.stage.addChild(vassals);
       }
@@ -877,12 +877,12 @@ export class Game {
   }
 
   async joinCourt() {
-    const vk = new VKService();
+    const vk = getPlatform();
     if (empireMeta.snapshot().communityJoined) {
       UIUtils.showToast(this.app.stage, 'Ты уже во дворе');
       return;
     }
-    const result = await vk.joinGroup(VK_GROUP_ID);
+    const result = await vk.joinCommunity(VK_GROUP_ID);
     if (result && result.noGroup) {
       UIUtils.showToast(this.app.stage, 'Двор скоро откроется');
       return;
@@ -909,8 +909,8 @@ export class Game {
   }
 
   async inviteFriends() {
-    const vk = new VKService();
-    const result = await vk.showInviteBox();
+    const vk = getPlatform();
+    const result = await vk.invite();
     if (result && result.success && !result.simulated) {
       if (this.economy) this.economy.addGems(INVITE_FALLBACK_GEMS);
       this._saveToLocalStorage();

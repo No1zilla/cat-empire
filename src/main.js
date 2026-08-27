@@ -1,13 +1,11 @@
 import { Application, Container, Graphics } from 'pixi.js';
 import { CONFIG, fitGameHeight, canvasCssSize } from './config.js';
-import { VKService } from './vk/VKBridge.js';
 import { PlatformService } from './services/PlatformService.js';
+import { getPlatform } from './platform/index.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 import { soundManager } from './audio/SoundManager.js';
-import { showDesktopBannerAd } from './api/vkAds.js';
 import { saveProgress } from './api/client.js';
-import { vkIdentity } from './services/VkIdentity.js';
 import {
   readCssSafeArea,
   resolveViewInsets,
@@ -163,43 +161,51 @@ function hideSplashScreen() {
 async function initApp() {
   console.log(`🚀 Инициализация приложения (${PlatformService.platform.toUpperCase()})...`);
   
+  // TASK-110: запуск больше не знает про VK. Платформа сама решает, что такое
+  // «инициализация» и «профиль» — в VK за этим VK Bridge, в Telegram WebApp.
+  const platform = getPlatform();
   let userInfo = null;
-  if (PlatformService.isVK()) {
-    updateSplashProgress(15, 'Подключаем VK Bridge...');
-    const vkService = new VKService();
-    try {
-      vkService.onInsets = (next) => {
-        vkInsets = next;
-        applyLiveInsets();
-      };
-      await vkService.init();
-      vkInsets = vkService.lastInsets || vkInsets;
-      applyLiveInsets();
-    } catch (e) {
-      console.warn('VK Bridge init warning:', e);
-    }
 
-    updateSplashProgress(35, 'Получаем профиль игрока...');
-    try {
-      userInfo = await vkService.getUserInfo();
-      if (userInfo && userInfo.id) {
-        vkIdentity.persistProfile(userInfo);
+  updateSplashProgress(15, 'Подключаемся к платформе...');
+  try {
+    platform.onInsets = (next) => {
+      vkInsets = next;
+      applyLiveInsets();
+    };
+    await platform.init();
+    vkInsets = platform.insets || vkInsets;
+    applyLiveInsets();
+  } catch (e) {
+    console.warn('Platform init warning:', e);
+  }
+
+  updateSplashProgress(35, 'Получаем профиль игрока...');
+  try {
+    userInfo = await platform.getUserInfo();
+    if (userInfo && userInfo.id) {
+      platform.persistProfile(userInfo);
+      // Параметры запуска VK нужны клиенту для заголовка x-vk-sign — это
+      // единственное, что осталось платформенно-специфичным в бутстрапе.
+      if (platform.id === 'vk') {
         try {
           if (!localStorage.getItem('cat_empire_vk_launch_params')) {
             localStorage.setItem('cat_empire_vk_launch_params', `vk_user_id=${userInfo.id}`);
           }
         } catch (e) {}
       }
-    } catch (e) {
-      console.warn('VK UserInfo warning:', e);
     }
+  } catch (e) {
+    console.warn('Platform profile warning:', e);
+  }
 
-    showDesktopBannerAd().catch((e) => {
-      console.warn('VK banner during splash skipped:', e);
-    });
-  } else {
-    updateSplashProgress(35, 'Инициализация Android...');
+  if (!userInfo || !userInfo.id) {
     userInfo = { firstName: 'Котовед', lastName: 'Игрок' };
+  }
+
+  if (platform.capabilities.banner) {
+    platform.showBannerAd().catch((e) => {
+      console.warn('Banner during splash skipped:', e);
+    });
   }
 
   // 3. Создать PIXI.Application для PixiJS v8
@@ -287,9 +293,9 @@ async function initApp() {
   // Скрывать сплэш строго после полной готовности сцены
   hideSplashScreen();
 
-  if (PlatformService.isVK() && PlatformService.isDesktopVK()) {
-    showDesktopBannerAd().catch((e) => {
-      console.warn('VK desktop banner skipped:', e);
+  if (platform.capabilities.banner) {
+    platform.showBannerAd().catch((e) => {
+      console.warn('Desktop banner skipped:', e);
     });
   }
 

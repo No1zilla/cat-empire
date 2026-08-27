@@ -1,7 +1,7 @@
 import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { showRewardedAd } from '../api/client.js';
+import { getPlatform } from '../platform/index.js';
 import { isAdUserClosed } from '../api/vkAds.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import { grantOfflineCoins, persistOfflineClaim, resolveOfflinePayout } from '../game/offlineClaim.js';
@@ -193,11 +193,11 @@ export class OfflineEarningsModal extends Container {
 
     let adSuccess = true;
     if (isTriple) {
-      const hasBridge = typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function';
+      const hasBridge = getPlatform().capabilities.ads;
       if (hasBridge) {
         this._setStatus('Ищем рекламу…');
         eventTracker.trackAdRequested('offline_bonus');
-        const adRes = await showRewardedAd();
+        const adRes = await getPlatform().showRewardedAd();
         if (adRes && adRes.success) {
           eventTracker.trackAdShown('offline_bonus', false);
           eventTracker.trackAdCompleted('offline_bonus', 0);

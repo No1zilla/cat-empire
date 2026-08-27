@@ -1,6 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { showRewardedAd } from '../api/client.js';
+import { getPlatform } from '../platform/index.js';
 import { isAdUserClosed } from '../api/vkAds.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { UIUtils } from '../utils/UIUtils.js';
@@ -35,12 +35,11 @@ export class AdModal extends Container {
 
     eventTracker.trackAdRequested(this.adType);
 
-    const hasVkBridge = typeof window !== 'undefined' && window.vkBridge && typeof window.vkBridge.send === 'function';
-
-    if (hasVkBridge) {
-      // В VK: нативная реклама (на ПК — interstitial, затем reward). Симулятор не показываем.
-      this._drawVkLoadingHint();
-      this._startVkNativeAd();
+    // TASK-110: спрашиваем платформу, а не ищем window.vkBridge. В VK за этим
+    // нативная реклама, в Telegram будет Adsgram — модалка про это знать не должна.
+    if (getPlatform().capabilities.ads) {
+      this._drawAdLoadingHint();
+      this._startPlatformAd();
     } else {
       // 2. В локальной веб-среде — отрисовываем чистый 60 FPS холст-симулятор с 3D кнопкой ✕
       eventTracker.trackAdShown(this.adType, true);
@@ -50,7 +49,7 @@ export class AdModal extends Container {
     }
   }
 
-  _drawVkLoadingHint() {
+  _drawAdLoadingHint() {
     const W = CONFIG.GAME_WIDTH || 375;
     const H = CONFIG.GAME_HEIGHT || 667;
 
@@ -63,8 +62,8 @@ export class AdModal extends Container {
 
     const hint = new Text({
       text: isDesktopVK()
-        ? 'Загружаем рекламу VK...\nНа компьютере сначала полноэкранная'
-        : 'Загружаем рекламу VK...',
+        ? 'Загружаем ролик...\nНа компьютере сначала полноэкранная'
+        : 'Загружаем ролик...',
       style: new TextStyle({
         fontFamily: 'Arial, sans-serif',
         fontSize: 18,
@@ -83,7 +82,7 @@ export class AdModal extends Container {
   }
 
   _openInviteFallback(reason, extra = {}) {
-    console.log('🎬 Нативная реклама VK недоступна. Фолбэк: приглашение друзей.', reason);
+    console.log('🎬 Реклама недоступна. Фолбэк: приглашение друзей.', reason);
     eventTracker.trackAdFailed(this.adType, reason || 'ads_unavailable', extra);
     const stage = (this.app && this.app.stage)
       ? this.app.stage
@@ -100,14 +99,14 @@ export class AdModal extends Container {
     }
   }
 
-  async _startVkNativeAd() {
-    console.log('🎬 Запуск нативной рекламы VK (reward + interstitial)...');
+  async _startPlatformAd() {
+    console.log('🎬 Запуск рекламы платформы...');
     try {
-      const realAdRes = await showRewardedAd();
+      const realAdRes = await getPlatform().showRewardedAd();
       if (this._isClosed) return;
 
       if (realAdRes && realAdRes.success) {
-        console.log('✅ Нативная реклама VK успешно просмотрена:', realAdRes.format || 'unknown');
+        console.log('✅ Ролик досмотрен:', realAdRes.format || 'unknown');
         // check_said_no=true при успехе = предпроверка соврала (TASK-083)
         eventTracker.trackAdShown(this.adType, false, {
           format: realAdRes.format || '',

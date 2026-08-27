@@ -2,7 +2,7 @@ import { Container, Graphics, Text, TextStyle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { PlatformService } from '../services/PlatformService.js';
-import { VKService } from '../vk/VKBridge.js';
+import { getPlatform } from '../platform/index.js';
 import { storageService } from '../services/StorageService.js';
 import { soundManager } from '../audio/SoundManager.js';
 
@@ -127,7 +127,7 @@ export class SettingsModal extends Container {
     this.addChild(syncContainer);
 
     // 6. Кнопки Социального Расшаривания VK
-    const vkService = new VKService();
+    const platform = getPlatform();
     const shareBtn = UIUtils.createButton(
       modalX + 25,
       modalY + 238,
@@ -137,7 +137,7 @@ export class SettingsModal extends Container {
       0x0077FF, // VK Brand Blue
       async () => {
         const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        const res = await vkService.shareLink();
+        const res = await platform.share();
         if (!appStage) return;
         if (res && res.success && !res.simulated) UIUtils.showToast(appStage, 'Ссылка отправлена');
         else if (res && res.reason === 'user_cancelled') UIUtils.showToast(appStage, 'Отменено');
@@ -156,7 +156,7 @@ export class SettingsModal extends Container {
       0x4A76A8, // VK Wall Post Blue
       async () => {
         const appStage = (this.app && this.app.stage) ? this.app.stage : (window.game && window.game.app ? window.game.app.stage : this.parent);
-        const res = await vkService.sharePost('Моя Империя Котиков растёт. Заходи поиграть.');
+        const res = await platform.sharePost('Моя Империя Котиков растёт. Заходи поиграть.');
         if (!appStage) return;
         if (res && res.success && !res.simulated) UIUtils.showToast(appStage, 'Пост на стене');
         else if (res && res.reason === 'user_cancelled') UIUtils.showToast(appStage, 'Пост отменён');
