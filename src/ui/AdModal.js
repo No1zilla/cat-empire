@@ -12,6 +12,23 @@ import { storageService } from '../services/StorageService.js';
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
  */
+/**
+ * Каким должен быть ролик на этой платформе.
+ *
+ * Развилка стоит отдельно и экспортируется, потому что цена ошибки здесь —
+ * бесплатные рубины: симулятор ролика ВЫДАЁТ награду, и на живой платформе без
+ * настроенной рекламы он превращает кнопку «+5» в печатный станок.
+ *
+ * @returns {'native'|'simulator'|'refuse'}
+ */
+export function resolveAdMode(platform) {
+  if (!platform) return 'refuse';
+  if (platform.capabilities && platform.capabilities.ads) return 'native';
+  // Симулятор — только когда платформы нет вообще: локальная разработка в браузере.
+  if (platform.id === 'standalone') return 'simulator';
+  return 'refuse';
+}
+
 export class AdModal extends Container {
   constructor(app, economy, onRewardGranted, rewardGems = 5, customTitle = null, skipInviteFallback = false) {
     super();
@@ -37,16 +54,34 @@ export class AdModal extends Container {
 
     // TASK-110: спрашиваем платформу, а не ищем window.vkBridge. В VK за этим
     // нативная реклама, в Telegram будет Adsgram — модалка про это знать не должна.
-    if (getPlatform().capabilities.ads) {
+    const platform = getPlatform();
+    const mode = resolveAdMode(platform);
+    if (mode === 'native') {
       this._drawAdLoadingHint();
       this._startPlatformAd();
-    } else {
-      // 2. В локальной веб-среде — отрисовываем чистый 60 FPS холст-симулятор с 3D кнопкой ✕
+    } else if (mode === 'simulator') {
+      // Локальная разработка без платформы: рисуем симулятор ролика, чтобы можно
+      // было пройти сценарий целиком.
       eventTracker.trackAdShown(this.adType, true);
       this._drawOverlayShield();
       this._drawInstantCloseButton();
       this._startSimulatorVideoPlayer();
+    } else {
+      // Живая платформа, но реклама не настроена (Telegram без блока Adsgram).
+      // Симулятор здесь недопустим: он ВЫДАЁТ награду, то есть печатает рубины
+      // нажатием кнопки. Честно закрываемся без выдачи.
+      this._refuseWithoutAds();
     }
+  }
+
+  /** Рекламы на этой платформе нет: ничего не выдаём и говорим об этом прямо. */
+  _refuseWithoutAds() {
+    eventTracker.trackAdFailed(this.adType, 'ADS_NOT_CONFIGURED');
+    const stage = (this.app && this.app.stage)
+      ? this.app.stage
+      : (this.parent || (window.game && window.game.app ? window.game.app.stage : null));
+    this._close();
+    if (stage) UIUtils.showToast(stage, 'Ролики сюда ещё не завезли');
   }
 
   _drawAdLoadingHint() {

@@ -2,7 +2,8 @@ import assert from 'node:assert';
 import { Platform } from '../../src/platform/Platform.js';
 import { VkPlatform } from '../../src/platform/VkPlatform.js';
 import { TelegramPlatform, TG_CLOUD_VALUE_LIMIT } from '../../src/platform/TelegramPlatform.js';
-import { createPlatform, resolvePlatformId, getPlatform, setPlatform } from '../../src/platform/index.js';
+import { createPlatform, resolvePlatformId, getPlatform, setPlatform, detectTelegram } from '../../src/platform/index.js';
+import { resolveAdMode } from '../../src/ui/AdModal.js';
 
 function fakeVkService() {
   const calls = [];
@@ -206,6 +207,18 @@ export async function runPlatformTests() {
   const prevWindow = global.window;
   global.window = { Telegram: { WebApp: { initData: 'query_id=AA' } } };
   assert.strictEqual(resolvePlatformId(), 'telegram', 'Живой клиент Telegram сильнее сборочного флага');
+
+  // Ловушка, которая уже один раз стоила VK-сборке платформы: SDK Telegram
+  // подключён в общий index.html и создаёт window.Telegram.WebApp в ЛЮБОМ
+  // браузере — с пустой initData. Это не запуск из Telegram.
+  global.window = { Telegram: { WebApp: { initData: '', initDataUnsafe: {} } } };
+  assert.strictEqual(detectTelegram(), false, 'Пустая initData — это просто загруженный SDK, а не Telegram');
+  assert.strictEqual(resolvePlatformId(), 'vk', 'VK-сборка с загруженным SDK остаётся VK');
+
+  // Клиент без подписи, но с пользователем — настоящий запуск.
+  global.window = { Telegram: { WebApp: { initData: '', initDataUnsafe: { user: { id: 7 } } } } };
+  assert.strictEqual(detectTelegram(), true, 'Заполненный initDataUnsafe.user — живой клиент');
+
   if (prevWindow === undefined) delete global.window;
   else global.window = prevWindow;
 
@@ -214,5 +227,18 @@ export async function runPlatformTests() {
   assert.strictEqual(getPlatform(), stub, 'Платформу можно подменить в тесте');
   setPlatform(null);
 
+  // Симулятор ролика начисляет награду, поэтому на живой платформе без рекламы
+  // он недопустим: иначе «+5» в шапке печатает рубины нажатием.
+  assert.strictEqual(resolveAdMode(vk), 'native', 'В VK реклама настоящая');
+  assert.strictEqual(resolveAdMode(withAds), 'native', 'В Telegram с блоком Adsgram — настоящая');
+  assert.strictEqual(
+    resolveAdMode(tg),
+    'refuse',
+    'Telegram без блока Adsgram обязан отказать, а не показать симулятор с наградой'
+  );
+  assert.strictEqual(resolveAdMode(new Platform()), 'simulator', 'Без платформы это локальная разработка');
+  assert.strictEqual(resolveAdMode(null), 'refuse');
+
   console.log('  ✅ Контракт платформы держится: VK делегирует старый код, Telegram живёт без бэкенда');
+  console.log('  ✅ Симулятор ролика доступен только локально — на живой платформе рубины не печатаются');
 }

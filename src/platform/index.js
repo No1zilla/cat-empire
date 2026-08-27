@@ -16,10 +16,25 @@ import { TelegramPlatform } from './TelegramPlatform.js';
 let current = null;
 
 /** Есть ли вокруг живой Telegram WebApp. */
+/**
+ * Есть ли вокруг ЖИВОЙ запуск из Telegram.
+ *
+ * Осторожно: `telegram-web-app.js` подключён в общий index.html и создаёт
+ * `window.Telegram.WebApp` в ЛЮБОМ браузере — внутри VK, на десктопе, где угодно.
+ * Снаружи Telegram у него `initData === ''` и пустой `initDataUnsafe`, поэтому
+ * проверять само существование объекта нельзя: так VK-сборка объявляла себя
+ * Telegram-ом и теряла и хранилище, и рекламу, и кассу VK.
+ *
+ * Признак настоящего запуска — подписанная строка `initData`. Некоторые клиенты
+ * отдают её пустой, но заполняют `initDataUnsafe.user`, поэтому годится и это.
+ */
 export function detectTelegram() {
   if (typeof window === 'undefined') return false;
   const app = window.Telegram && window.Telegram.WebApp;
-  return Boolean(app && app.initData !== undefined);
+  if (!app) return false;
+  if (app.initData) return true;
+  const user = app.initDataUnsafe && app.initDataUnsafe.user;
+  return Boolean(user && user.id);
 }
 
 /** Есть ли признаки запуска внутри VK. */

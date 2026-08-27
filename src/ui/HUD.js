@@ -2,6 +2,7 @@ import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
+import { getPlatform } from '../platform/index.js';
 
 /**
  * Премиальный HUD AAA-уровня с подключением TOKENS (TASK-047)
@@ -132,7 +133,11 @@ export class HUD extends Container {
     });
     this.addChild(gemHit);
 
-    const plus5 = createChip(plus5X, capY, plus5W, capH, gemsFill, 0xffffff, 0.4);
+    // Чип «+5» — это ролик за рубины. Без рекламы он ведёт в никуда, поэтому
+    // просто не рисуется: пустая кнопка в шапке дороже, чем её отсутствие.
+    const adsAvailable = getPlatform().capabilities.ads;
+    const plus5 = adsAvailable ? createChip(plus5X, capY, plus5W, capH, gemsFill, 0xffffff, 0.4) : null;
+    if (plus5) {
     plus5.eventMode = 'static';
     plus5.cursor = 'pointer';
     plus5.hitArea = new Rectangle(0, 0, plus5W, capH);
@@ -154,6 +159,7 @@ export class HUD extends Container {
       this.onWatchRubyAd();
     });
     this.addChild(plus5);
+    }
 
     // 4. КАПСУЛА 3: Доход в секунду
     this.addChild(createChip(cap3X, capY, cap3W, capH, panelFill, panelStroke));
