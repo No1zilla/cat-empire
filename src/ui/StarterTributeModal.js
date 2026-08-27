@@ -146,7 +146,16 @@ export class StarterTributeModal extends Container {
       if (this.economy) this.economy.addGems(STARTER_TRIBUTE.rubies);
       incomeBoosterService.activate(Date.now(), STARTER_TRIBUTE.boosterMs);
       empireMeta.claimStarter();
-      try { await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
+      // TASK-109: за ларец платят голосами — о несохранённой выдаче игрок обязан узнать
+      try {
+        await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined });
+      } catch (e) {
+        console.error('Ларец: рубины не сохранились', e);
+        eventTracker.track('iap_grant_failed', { pack: 'starter_tribute', rubies: STARTER_TRIBUTE.rubies });
+        if (stage) UIUtils.showToast(stage, 'Рубины не сохранились. Открой игру ещё раз');
+        this._close();
+        return;
+      }
       eventTracker.track('iap_starter_tribute', { rubies: STARTER_TRIBUTE.rubies });
       if (stage) UIUtils.showToast(stage, 'Кото-Бог дал ларец. +80 рубинов и час ×2');
       this.onGranted();

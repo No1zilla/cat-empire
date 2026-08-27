@@ -268,8 +268,28 @@ export class RubyShopModal extends Container {
       }
 
       if (this.economy) this.economy.addGems(pack.rubies);
+
+      // TASK-109: сохранить ДО того, как пометить заказ обработанным. Раньше заказ
+      // сжигался первым, а падение записи глоталось молча: игрок платил голосами,
+      // видел успех, рубины исчезали при следующей загрузке — и вернуть их было
+      // нельзя, wasOrderProcessed уже отвечал «зачислено».
+      let saved = true;
+      try {
+        await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined });
+      } catch (e) {
+        saved = false;
+        console.error('Покупка: рубины не сохранились', e);
+      }
+
+      if (!saved) {
+        // Заказ НЕ помечаем: VK отдаст тот же orderId, и начисление можно повторить.
+        eventTracker.track('iap_grant_failed', { pack: pack.id, rubies: pack.rubies });
+        if (stage) UIUtils.showToast(stage, 'Рубины не сохранились. Открой игру ещё раз');
+        this._close();
+        return;
+      }
+
       markOrderProcessed(orderId);
-      try { await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
       eventTracker.track('iap_purchase_completed', {
         pack: pack.id,
         votes: pack.votes,
@@ -306,7 +326,16 @@ export class RubyShopModal extends Container {
       if (this.economy) this.economy.addGems(EDICT.rubies);
       empireMeta.activateEdict();
       eventTracker.track('iap_edict_bought', { rubies: EDICT.rubies });
-      try { await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
+      // TASK-109: молчать о несохранённой покупке нельзя — игрок заплатил
+      try {
+        await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined });
+      } catch (e) {
+        console.error('Указ: рубины не сохранились', e);
+        eventTracker.track('iap_grant_failed', { pack: 'edict', rubies: EDICT.rubies });
+        if (stage) UIUtils.showToast(stage, 'Рубины не сохранились. Открой игру ещё раз');
+        this._close();
+        return;
+      }
       if (stage) UIUtils.showToast(stage, 'Указ издан. Семь ночей ×2 и паёк каждый день');
       this._close();
     } catch (e) {
