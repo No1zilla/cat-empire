@@ -4,6 +4,7 @@ import userService from '../services/userService.js';
 import playerAuth, { requirePlayer, telegramBotToken } from '../middleware/playerAuth.js';
 import { playerKey } from '../utils/playerKey.js';
 import { findStarsItem } from '../utils/starsCatalog.js';
+import { handleTelegramUpdate as handleUpdate } from '../services/starsService.js';
 
 /**
  * Покупки за Telegram Stars (TASK-114).
@@ -116,68 +117,6 @@ router.post('/invoice', playerAuth, requirePlayer, async (req, res) => {
 });
 
 /**
- * Разбор апдейта: вынесено отдельно, чтобы тест мог прогнать сценарий оплаты
- * без живого HTTP и без токена бота.
- */
-export async function handleTelegramUpdate(update, deps = {}) {
-  const grantGems = deps.grantGems || ((key, amount) => userService.addGems(key, amount));
-  const alreadyGranted = deps.alreadyGranted || chargeAlreadyGranted;
-  const record = deps.record || recordGrant;
-  const answerPreCheckout = deps.answerPreCheckout
-    || ((id) => callTelegram('answerPreCheckoutQuery', { pre_checkout_query_id: id, ok: true }));
-
-  // Шаг 1: Telegram спрашивает, подтверждаем ли платёж. Молчание = отказ игроку.
-  if (update && update.pre_checkout_query) {
-    const query = update.pre_checkout_query;
-    let known = false;
-    try {
-      const parsed = JSON.parse(query.invoice_payload || '{}');
-      known = Boolean(findStarsItem(parsed.i));
-    } catch (e) {
-      known = false;
-    }
-    if (!known) {
-      await (deps.rejectPreCheckout || ((id) => callTelegram('answerPreCheckoutQuery', {
-        pre_checkout_query_id: id,
-        ok: false,
-        error_message: 'Этот товар больше недоступен'
-      })))(query.id);
-      return { handled: 'pre_checkout_rejected' };
-    }
-    await answerPreCheckout(query.id);
-    return { handled: 'pre_checkout_ok' };
-  }
-
-  // Шаг 2: деньги прошли — выдаём товар.
-  const payment = update && update.message && update.message.successful_payment;
-  if (!payment) return { handled: 'ignored' };
-
-  let parsed = null;
-  try {
-    parsed = JSON.parse(payment.invoice_payload || '{}');
-  } catch (e) {
-    parsed = null;
-  }
-
-  const item = findStarsItem(parsed && parsed.i);
-  const key = parsed && parsed.k;
-  if (!item || !key) {
-    console.error('successful_payment с непонятным payload:', payment.invoice_payload);
-    return { handled: 'bad_payload' };
-  }
-
-  const chargeId = payment.telegram_payment_charge_id;
-  if (await alreadyGranted(chargeId)) {
-    return { handled: 'duplicate', chargeId };
-  }
-
-  await grantGems(key, item.rubies);
-  await record({ key, item, chargeId, stars: payment.total_amount });
-
-  return { handled: 'granted', key, itemId: item.id, rubies: item.rubies, chargeId };
-}
-
-/**
  * POST /api/telegram/webhook — апдейты бота.
  * Защита — секретный заголовок из setWebhook: без него любой мог бы прислать
  * поддельный successful_payment и выписать себе рубины.
@@ -194,7 +133,17 @@ router.post('/webhook', async (req, res) => {
   }
 
   try {
-    const result = await handleTelegramUpdate(req.body || {});
+    const result = await handleUpdate(req.body || {}, {
+      grantGems: (key, amount) => userService.addGems(key, amount),
+      alreadyGranted: chargeAlreadyGranted,
+      record: recordGrant,
+      answerPreCheckout: (id) => callTelegram('answerPreCheckoutQuery', { pre_checkout_query_id: id, ok: true }),
+      rejectPreCheckout: (id) => callTelegram('answerPreCheckoutQuery', {
+        pre_checkout_query_id: id,
+        ok: false,
+        error_message: 'Этот товар больше недоступен'
+      })
+    });
     if (result.handled === 'granted') {
       console.log(`⭐ Выдано ${result.rubies} рубинов игроку ${result.key} за ${result.itemId}`);
     }

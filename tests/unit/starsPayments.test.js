@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { handleTelegramUpdate } from '../../server/src/routes/stars.js';
+import { handleTelegramUpdate } from '../../server/src/services/starsService.js';
 import { findStarsItem, STARS_CATALOG } from '../../server/src/utils/starsCatalog.js';
 import { playerKey, parsePlayerKey } from '../../server/src/utils/playerKey.js';
 

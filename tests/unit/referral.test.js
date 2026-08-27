@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { claimReferral, isFreshInvitee, REFERRAL_REWARD } from '../../server/src/routes/referral.js';
+import { claimReferral, isFreshInvitee, REFERRAL_REWARD } from '../../server/src/services/referralService.js';
 import { telegramInviteLink, parseReferralParam, TG_BOT_USERNAME } from '../../src/config/telegram.js';
 
 function harness({ users = {}, links = new Set() } = {}) {

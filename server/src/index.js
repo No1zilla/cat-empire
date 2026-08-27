@@ -16,7 +16,7 @@ import paymentsRouter, {
 import { fetchGithubPages, shouldProxyToPages } from './pagesProxy.js';
 import { isSignatureEnforced } from './middleware/vkAuth.js';
 import starsRouter from './routes/stars.js';
-import referralRouter, { ensureReferralTable } from './routes/referral.js';
+import referralRouter from './routes/referral.js';
 import { isTelegramAuthEnforced } from './middleware/playerAuth.js';
 
 // Загрузка переменных окружения
