@@ -29,14 +29,24 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 24, как локально: на 20 шаг тестов падал за секунду, и сравнивать
+          # прод с рабочей машиной проще, когда рантайм один и тот же.
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      # Логи шага в API недоступны без токена, поэтому хвост вывода выносится
+      # аннотацией — её видно снаружи и по ней сразу ясно, что именно упало.
       - name: Tests
-        run: npm test
+        run: |
+          set -o pipefail
+          node --version
+          npm test 2>&1 | tee test-output.log || {
+            echo "::error::$(tail -c 900 test-output.log | tr '\n' ' ')"
+            exit 1
+          }
 
       # ADSGRAM_BLOCK_ID задаётся в Settings → Secrets and variables → Actions → Variables.
       # Пока он пуст, игра честно сообщает, что рекламы нет, вместо пустого показа.
