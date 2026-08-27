@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import vkAuth from '../middleware/vkAuth.js';
+import vkAuth, { requireVkSign } from '../middleware/vkAuth.js';
 import userService from '../services/userService.js';
 
 const router = Router();
 
 // GET /api/user/profile - Получение или авто-создание профиля
-router.get('/profile', vkAuth, async (req, res) => {
+router.get('/profile', vkAuth, requireVkSign, async (req, res) => {
   try {
     const user = await userService.getOrCreateUser(req.vkUserId);
     res.json({ user });
@@ -16,7 +16,7 @@ router.get('/profile', vkAuth, async (req, res) => {
 });
 
 // POST /api/user/save - Сохранение прогресса игрока
-router.post('/save', vkAuth, async (req, res) => {
+router.post('/save', vkAuth, requireVkSign, async (req, res) => {
   try {
     const body = req.body || {};
     const user = await userService.saveUserProgress(req.vkUserId, {

@@ -14,6 +14,7 @@ import paymentsRouter, {
   coerceVkPaymentContentType
 } from './routes/payments.js';
 import { fetchGithubPages, shouldProxyToPages } from './pagesProxy.js';
+import { isSignatureEnforced } from './middleware/vkAuth.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -44,7 +45,11 @@ app.use('/admin', express.static(path.join(__dirname, 'public/admin')));
 
 // Базовый роут проверки работы бэкенда
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', serverTime: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    serverTime: new Date().toISOString(),
+    vkSignature: isSignatureEnforced() ? 'enforced' : 'disabled_no_secret'
+  });
 });
 
 async function proxyGithubPages(req, res) {
