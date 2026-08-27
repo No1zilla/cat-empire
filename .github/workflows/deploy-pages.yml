@@ -1,0 +1,123 @@
+name: Deploy to GitHub Pages
+
+# Один воркфлоу на все сборки. Раньше их было три (прод, dev, telegram), и все
+# писали в одну ветку gh-pages от одного пуша: второй приходил и получал отказ —
+# так VK-сборка однажды осталась без выкаченного фикса, хотя собралась зелёной.
+#
+# Общая группа очереди эту гонку не лечит: GitHub держит в группе ровно один
+# ожидающий запуск, и третий пришедший ОТМЕНЯЕТ ждущего. Поэтому сборки съехались
+# в один job — внутри него шаги идут последовательно, и конкурировать некому.
+# Группа всё равно нужна: пуши в main и dev порождают два запуска.
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # 24, как на рабочей машине: на 20 шаг тестов падал за секунду.
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Логи шага недоступны через API без токена, поэтому хвост падения
+      # выносится аннотацией — по ней сразу видно, что именно упало.
+      - name: Tests
+        run: |
+          set -o pipefail
+          node --version
+          npm test 2>&1 | tee test-output.log || {
+            echo "::error::$(tail -c 900 test-output.log | tr '\n' ' ')"
+            exit 1
+          }
+
+      # ---------- main: VK в корень, Telegram в /tg ----------
+
+      - name: Build for VK (prod)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          PLATFORM=vk npm run build
+          cp dist/index.html dist/vk.html
+
+      - name: Publish VK prod to gh-pages (root)
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: .
+          keep_files: true
+          commit_message: 'deploy: prod build from main'
+
+      # ADSGRAM_BLOCK_ID задаётся в Settings → Secrets and variables → Actions → Variables.
+      # Пока он пуст, игра честно сообщает, что рекламы нет, вместо пустого показа.
+      - name: Build for Telegram
+        if: github.ref == 'refs/heads/main'
+        env:
+          VK_PAGES_BASE: /cat-empire/tg/
+          ADSGRAM_BLOCK_ID: ${{ vars.ADSGRAM_BLOCK_ID }}
+        run: npm run build:tg
+
+      - name: Publish Telegram build to gh-pages (/tg)
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: tg
+          keep_files: true
+          commit_message: 'deploy: telegram build from main'
+
+      # ---------- dev: та же VK-сборка в /dev ----------
+
+      - name: Build for VK (dev)
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          PLATFORM=vk npm run build
+          cp dist/index.html dist/vk.html
+
+      - name: Publish dev build to gh-pages (/dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: dev
+          keep_files: true
+          commit_message: 'deploy: dev build from dev branch'
+
+      - name: Build /dev.html redirect
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          mkdir -p redirect_dist
+          echo '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=./dev/"><script>window.location.href="./dev/";</script></head><body><a href="./dev/">Click here if not redirected</a></body></html>' > redirect_dist/dev.html
+
+      - name: Publish /dev.html redirect
+        if: github.ref == 'refs/heads/dev'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./redirect_dist
+          destination_dir: .
+          keep_files: true
+          commit_message: 'deploy: dev.html redirect fallback'
