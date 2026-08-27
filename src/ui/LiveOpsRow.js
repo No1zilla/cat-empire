@@ -4,8 +4,8 @@ import { ACTION_ROW_MARGIN } from './actionRowLayout.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { empireMeta } from '../game/EmpireMeta.js';
 import { getLiveOpsLayout } from '../game/liveOpsLayout.js';
-import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { storageService } from '../services/StorageService.js';
 
 const ROW_H = 32;
 const GREEN = 0x2ecc71;
@@ -140,7 +140,7 @@ export class LiveOpsRow extends Container {
     }
     this.economy.addGems(gained);
     eventTracker.track('edict_daily_claimed', { rubies: gained });
-    try { await saveProgress({ gems: this.economy.gems }); } catch (e) {}
+    try { await storageService.persistCurrency({ gems: this.economy.gems }); } catch (e) {}
     this.onBuffs();
     this._tick();
     if (stage) UIUtils.showToast(stage, `Паёк указа: +${UIUtils.formatRubies(gained)}`);

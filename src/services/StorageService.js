@@ -1,4 +1,4 @@
-import { saveProgress, fetchProfile } from '../api/client.js';
+import { saveProgress } from '../api/client.js';
 import { VKService } from '../vk/VKBridge.js';
 import { vkIdentity } from './VkIdentity.js';
 
@@ -144,37 +144,25 @@ export class StorageService {
       } catch (e) {}
     }
 
+    // TASK-107: прогресс живёт в VK Storage. Сервер из пути загрузки убран целиком —
+    // он на Railway, а до него из РФ ответ регулярно шёл дольше таймаута, и игра
+    // сваливалась в стартовую заглушку (TASK-106). VK Storage идёт через инфраструктуру
+    // самого ВКонтакте: он и быстрее, и привязан к аккаунту, то есть сам по себе даёт
+    // кросс-платформенность между десктопом и телефоном.
     let resultState = localData;
-    const [vkStorage, serverProfile] = await Promise.race([
-      Promise.all([
-        vkService.storageGet([STORAGE_KEY]).catch((e) => {
-          console.warn('Ошибка загрузки из VK Storage:', e);
-          return null;
-        }),
-        fetchProfile().catch((e) => {
-          console.warn('Ошибка загрузки с бэкенда:', e);
-          return null;
-        })
-      ]),
-      new Promise((resolve) => setTimeout(() => resolve([null, null]), 6000))
-    ]);
+    const vkStorage = await vkService.storageGet([STORAGE_KEY]).catch((e) => {
+      console.warn('Ошибка загрузки из VK Storage:', e);
+      return null;
+    });
 
     if (vkStorage && vkStorage[STORAGE_KEY]) {
       resultState = this.mergeStates(resultState, this._normalizeState(vkStorage[STORAGE_KEY]));
     }
-    if (serverProfile && serverProfile.user) {
-      resultState = this.mergeStates(resultState, this._normalizeState(serverProfile.user));
-    }
 
-    // TASK-106: облако ответило или мы точно знаем состояние этого устройства?
-    // Если оба хранилища промолчали (таймаут 6с — из РФ до Railway это обычное дело)
-    // и локального кэша нет, мы НЕ знаем прогресс игрока. Ниже подставится стартовый
-    // снимок — и без этого флага он уехал бы в облако и затёр настоящую империю.
-    this.lastLoadVerified = Boolean(
-      (vkStorage && vkStorage[STORAGE_KEY]) ||
-      (serverProfile && serverProfile.user) ||
-      localData
-    );
+    // Подтверждено ли состояние? Если VK Storage промолчал и локального кэша нет,
+    // прогресс игрока нам неизвестен — ниже подставится стартовый снимок, и без
+    // этого флага он уехал бы в облако и затёр настоящую империю.
+    this.lastLoadVerified = Boolean((vkStorage && vkStorage[STORAGE_KEY]) || localData);
     if (!this.lastLoadVerified) {
       console.warn('⚠️ Прогресс не подтверждён ни одним хранилищем — облачные записи заморожены до успешной загрузки');
     }
@@ -260,17 +248,63 @@ export class StorageService {
       t: timestamp
     };
     if (resetSave) compact.x = 1;
-    await Promise.allSettled([
-      vkService.storageSet(STORAGE_KEY, compact),
-      saveProgress({
-        ...data,
-        isReset: resetSave,
-        firstName: data.firstName || profile.firstName,
-        lastName: data.lastName != null ? data.lastName : profile.lastName,
-        avatar: data.avatar || profile.avatar,
-        updatedAt: timestamp
-      })
-    ]);
+
+    // TASK-107: VK Storage — единственное хранилище прогресса, его ждём и проверяем.
+    const stored = await vkService.storageSet(STORAGE_KEY, compact);
+    this.lastCloudSaveOk = Boolean(stored);
+    if (!stored) {
+      console.warn('⚠️ VK Storage не подтвердил запись прогресса');
+    }
+
+    // Сервер прогресс больше не хранит — копия уходит только ради таблицы лидеров,
+    // которая ранжирует игроков запросом FROM users. Специально без await: медленный
+    // Railway не должен ни задерживать игру, ни влиять на судьбу сохранения.
+    saveProgress({
+      ...data,
+      isReset: resetSave,
+      firstName: data.firstName || profile.firstName,
+      lastName: data.lastName != null ? data.lastName : profile.lastName,
+      avatar: data.avatar || profile.avatar,
+      updatedAt: timestamp
+    }).catch(() => {});
+  }
+
+  /**
+   * TASK-107: докрутить валюту к сохранённому состоянию и записать его целиком.
+   *
+   * Рубины за рекламу, покупки и награды раньше уходили прямым вызовом
+   * saveProgress({ gems }) в API — мимо VK Storage. Пока источником правды был
+   * сервер, это работало; теперь такие рубины (включая купленные за деньги)
+   * просто не дожили бы до следующей загрузки. Читаем текущий снимок, правим
+   * нужные поля и сохраняем обычным путём — в VK Storage, локально и на сервер.
+   */
+  async persistCurrency(patch = {}) {
+    const current = this._readLocalCache() || {};
+    const next = { ...current };
+    ['coins', 'gems', 'totalCatsBought', 'totalMerges', 'maxCatLevel'].forEach((key) => {
+      if (patch[key] !== undefined && patch[key] !== null) next[key] = patch[key];
+    });
+    next.updatedAt = Date.now();
+    return this.saveProgress(next);
+  }
+
+  /** Текущий локальный снимок в нормализованном виде (или null, если кэша нет). */
+  _readLocalCache() {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('cat_empire_grid_state');
+      return this._normalizeState({
+        coins: parseFloat(localStorage.getItem('cat_empire_last_coins') || '100'),
+        gems: parseInt(localStorage.getItem('cat_empire_last_gems') || '10', 10),
+        maxCatLevel: parseInt(localStorage.getItem('cat_empire_last_max_level') || '1', 10),
+        totalCatsBought: parseInt(localStorage.getItem('cat_empire_last_total_bought') || '0', 10),
+        totalMerges: parseInt(localStorage.getItem('cat_empire_last_total_merges') || '0', 10),
+        updatedAt: parseInt(localStorage.getItem('cat_empire_last_updated_at') || '0', 10),
+        gridState: raw ? JSON.parse(raw) : null
+      });
+    } catch (e) {
+      return null;
+    }
   }
 
   // Полный гарантийный сброс игрового прогресса в 0 во всех 3 элементах (LocalStorage, VK Storage и Сервер DB)

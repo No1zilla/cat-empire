@@ -1,12 +1,13 @@
 import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { showRewardedAd, saveProgress } from '../api/client.js';
+import { showRewardedAd } from '../api/client.js';
 import { isAdUserClosed } from '../api/vkAds.js';
 import { getCatTexture } from '../utils/catTextures.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import { DesktopRewardModal } from './DesktopRewardModal.js';
 import { isDesktopVK } from '../services/PlatformService.js';
+import { storageService } from '../services/StorageService.js';
 
 /**
  * Всплывающее модальное окно с полноценным 60 FPS анимированным рекламным видеоплеером VK
@@ -116,7 +117,7 @@ export class AdModal extends Container {
 
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
-          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+          try { await storageService.persistCurrency({ gems: this.economy.gems }); } catch (err) {}
         }
         this._close();
         if (typeof this.onRewardGranted === 'function') {
@@ -407,7 +408,7 @@ export class AdModal extends Container {
 
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
-          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+          try { await storageService.persistCurrency({ gems: this.economy.gems }); } catch (err) {}
         }
 
         setTimeout(() => {

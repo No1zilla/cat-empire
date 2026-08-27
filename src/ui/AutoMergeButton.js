@@ -1,11 +1,11 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { saveProgress } from '../api/client.js';
 import { AdModal } from './AdModal.js';
 import { OutOfRubiesModal } from './OutOfRubiesModal.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { ACTION_BTN_W, ACTION_BTN_H } from './actionRowLayout.js';
 import { eventTracker } from '../analytics/EventTracker.js';
+import { storageService } from '../services/StorageService.js';
 
 /**
  * Объёмная кнопка бустера «⚡ Соединить все» с анимацией нажатия и градиентом
@@ -303,7 +303,7 @@ export class AutoMergeButton extends Container {
       }
 
       try {
-        await saveProgress({
+        await storageService.persistCurrency({
           coins: this.economy ? this.economy.coins : undefined,
           gems: this.economy ? this.economy.gems : undefined,
           totalCatsBought: this.economy ? this.economy.totalCatsBought : undefined

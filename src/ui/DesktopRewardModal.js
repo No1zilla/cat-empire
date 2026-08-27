@@ -4,10 +4,10 @@
 import { Container, Graphics, Text, TextStyle, Sprite } from 'pixi.js';
 import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
-import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
 import { loadGreenEyesTexture } from '../utils/catTextures.js';
+import { storageService } from '../services/StorageService.js';
 
 export const INVITE_FALLBACK_GEMS = 5;
 
@@ -215,7 +215,7 @@ export class DesktopRewardModal extends Container {
 
         if (this.economy && this.rewardGems > 0) {
           this.economy.addGems(this.rewardGems);
-          try { await saveProgress({ gems: this.economy.gems }); } catch (err) {}
+          try { await storageService.persistCurrency({ gems: this.economy.gems }); } catch (err) {}
         }
 
         const stage = (this.app && this.app.stage) ? this.app.stage : this.parent;

@@ -5,10 +5,10 @@ import { TOKENS } from '../styles/design-tokens.js';
 import { STARTER_TRIBUTE, empireMeta } from '../game/EmpireMeta.js';
 import { purchaseVkItem } from '../game/iapBuy.js';
 import { incomeBoosterService } from '../game/IncomeBooster.js';
-import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import { AdModal } from './AdModal.js';
 import { RUBY_AD_REWARD } from '../config/rubyShop.js';
+import { storageService } from '../services/StorageService.js';
 
 export class StarterTributeModal extends Container {
   constructor(app, economy, onGranted, onClose) {
@@ -146,7 +146,7 @@ export class StarterTributeModal extends Container {
       if (this.economy) this.economy.addGems(STARTER_TRIBUTE.rubies);
       incomeBoosterService.activate(Date.now(), STARTER_TRIBUTE.boosterMs);
       empireMeta.claimStarter();
-      try { await saveProgress({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
+      try { await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
       eventTracker.track('iap_starter_tribute', { rubies: STARTER_TRIBUTE.rubies });
       if (stage) UIUtils.showToast(stage, 'Кото-Бог дал ларец. +80 рубинов и час ×2');
       this.onGranted();

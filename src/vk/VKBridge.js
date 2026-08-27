@@ -207,16 +207,26 @@ export class VKService {
   }
 
   // TASK-SYNC: Сохранение в нативное облачное хранилище VK (VKWebAppStorageSet)
+  /**
+   * TASK-107: возвращает РЕАЛЬНЫЙ результат записи. Раньше отдавал true даже по
+   * таймауту — а раз VK Storage теперь единственный источник правды для прогресса,
+   * вызывающая сторона обязана отличать «записалось» от «не дождались».
+   */
   async storageSet(key, value) {
     try {
       if (!this.bridge || typeof this.bridge.send !== 'function') return false;
       const timeoutMs = isVkEnvironment() ? 5000 : 400;
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs));
-      await Promise.race([
+      const TIMED_OUT = Symbol('timeout');
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(TIMED_OUT), timeoutMs));
+      const res = await Promise.race([
         this.bridge.send('VKWebAppStorageSet', { key, value: stringValue }),
         timeout
       ]);
+      if (res === TIMED_OUT) {
+        console.warn('⚠️ VKWebAppStorageSet не ответил за', timeoutMs, 'мс');
+        return false;
+      }
       return true;
     } catch (e) {
       console.warn('VKWebAppStorageSet error:', e);

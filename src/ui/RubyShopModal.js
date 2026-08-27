@@ -3,12 +3,12 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { RUBY_PACKS, EDICT_PACK } from '../config/rubyShop.js';
-import { saveProgress } from '../api/client.js';
 import { eventTracker } from '../analytics/EventTracker.js';
 import VKService from '../vk/VKBridge.js';
 import { empireMeta, EDICT } from '../game/EmpireMeta.js';
 import { purchaseVkItem } from '../game/iapBuy.js';
 import { StarterTributeModal } from './StarterTributeModal.js';
+import { storageService } from '../services/StorageService.js';
 
 const PROCESSED_ORDERS_KEY = 'cat_empire_iap_orders';
 
@@ -269,7 +269,7 @@ export class RubyShopModal extends Container {
 
       if (this.economy) this.economy.addGems(pack.rubies);
       markOrderProcessed(orderId);
-      try { await saveProgress({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
+      try { await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
       eventTracker.track('iap_purchase_completed', {
         pack: pack.id,
         votes: pack.votes,
@@ -306,7 +306,7 @@ export class RubyShopModal extends Container {
       if (this.economy) this.economy.addGems(EDICT.rubies);
       empireMeta.activateEdict();
       eventTracker.track('iap_edict_bought', { rubies: EDICT.rubies });
-      try { await saveProgress({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
+      try { await storageService.persistCurrency({ gems: this.economy ? this.economy.gems : undefined }); } catch (e) {}
       if (stage) UIUtils.showToast(stage, 'Указ издан. Семь ночей ×2 и паёк каждый день');
       this._close();
     } catch (e) {
