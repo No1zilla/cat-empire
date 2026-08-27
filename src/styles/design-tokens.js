@@ -5,15 +5,17 @@
 
 export const TOKENS = {
   colors: {
-    // Основной фон и панели
-    background: '#0D0A1C',
-    panelBg: '#15102A',
-    panelBorder: '#271F4F',
-    
+    // TASK-120: дневной мир. Тёмная гамма спорила с пастельными котами и делала
+    // игру безликим идл-кликером. Панели теперь кремовые, текст — тёплый тёмный:
+    // на светлом фоне белые подписи не читаются, и менять их надо вместе с фоном.
+    background: '#EAF4FF',
+    panelBg: '#FFF6E6',
+    panelBorder: '#E2C39A',
+
     // Сетка и ячейки
-    gridCellBg: '#181335',
-    gridCellBorder: '#271F4F',
-    gridCellActive: '#231B4B',
+    gridCellBg: '#BFE3C6',
+    gridCellBorder: '#D9B98A',
+    gridCellActive: '#D8F0DA',
     
     // Кнопки управления (1-в-1)
     btnBuy: '#FF6B6B',
@@ -25,10 +27,10 @@ export const TOKENS = {
     gems: '#FF4757',
     income: '#A855F7',
     
-    // Текст
-    textPrimary: '#FFFFFF',
-    textSecondary: '#A4A0C1',
-    textMuted: '#6E6A8F'
+    // Текст на кремовых панелях: тёплый тёмный, не чёрный — иначе холодно и жёстко.
+    textPrimary: '#3B2A1C',
+    textSecondary: '#8A7259',
+    textMuted: '#B09A80'
   },
 
   radii: {

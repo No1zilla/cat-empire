@@ -53,8 +53,9 @@ export class MainMenu extends Container {
 
     // 2. Глянцевое свечение в центре
     const glow = new Graphics();
-    glow.circle(width / 2, height / 2 - 40, 160);
-    glow.fill({ color: 0x3d2375, alpha: 0.35 });
+    // TASK-120: тёплое солнечное пятно вместо фиолетового ореола ночной гаммы.
+    glow.circle(width / 2, height / 2 - 40, 190);
+    glow.fill({ color: 0xffffff, alpha: 0.45 });
     this.addChild(glow);
 
     const font = TOKENS.typography.fontFamily;
@@ -64,7 +65,9 @@ export class MainMenu extends Container {
       fontFamily: font,
       fontSize: 30,
       fontWeight: TOKENS.typography.fontWeightBold,
-      fill: [TOKENS.colors.textPrimary, TOKENS.colors.gold],
+      // Заголовок золотом по светлому небу не читается: тёплый тёмный сверху,
+      // золото снизу — градиент остаётся, контраст возвращается.
+      fill: [TOKENS.colors.textPrimary, '#C98A2B'],
       fillGradientStops: [0, 1],
       dropShadow: { color: '#000000', alpha: 0.7, blur: 5, distance: 2 },
       letterSpacing: 2,
@@ -95,7 +98,7 @@ export class MainMenu extends Container {
 
     const mascotBg = new Graphics();
     mascotBg.circle(0, 0, 72);
-    mascotBg.fill({ color: 0x15102A, alpha: 0.95 });
+    mascotBg.fill({ color: 0xfff6e6, alpha: 0.98 });
     mascotBg.stroke({ color: 0x271F4F, width: 3 });
     mascotContainer.addChild(mascotBg);
 
@@ -246,7 +249,7 @@ export class MainMenu extends Container {
       fontSize: 11,
       fill: TOKENS.colors.textMuted
     });
-    const footer = new Text({ text: 'v1.0.0 • VK Mini Apps', style: footerStyle });
+    const footer = new Text({ text: 'v1.6.0', style: footerStyle });
     footer.anchor.set(0.5);
     footer.position.set(width / 2, height - 30);
     this.addChild(footer);

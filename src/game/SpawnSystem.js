@@ -1,5 +1,7 @@
 import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import UIIcons from '../utils/UIIcons.js';
+import { glossyButton } from '../utils/PaintedUI.js';
 import { BALANCE } from '../config/balance.js';
 import { Cat } from './Cat.js';
 import { UIUtils } from '../utils/UIUtils.js';
@@ -60,24 +62,11 @@ export class SpawnSystem extends Container {
     this._innerContainer.position.set(btnWidth / 2, btnHeight / 2);
     this.addChild(this._innerContainer);
 
-    // 1. Нижняя тень
-    const shadowBg = new Graphics();
-    shadowBg.roundRect(0, 4, btnWidth, btnHeight, 14);
-    shadowBg.fill(0x9e2a3b);
-    this._innerContainer.addChild(shadowBg);
-
-    // 2. Основная градиентная карточка кнопки
-    const bg = new Graphics();
-    bg.roundRect(0, 0, btnWidth, btnHeight, 14);
-    bg.fill(CONFIG.COLORS.ACCENT || 0xff5e62);
-    bg.stroke({ color: '#ffffff', alpha: 0.7, width: 2.0 });
-    this._innerContainer.addChild(bg);
-
-    // 3. Блик сверху на кнопке
-    const shine = new Graphics();
-    shine.roundRect(2, 2, btnWidth - 4, 18, 10);
-    shine.fill({ color: 0xffffff, alpha: 0.22 });
-    this._innerContainer.addChild(shine);
+    // TASK-119: тело кнопки собирается из слоёв материала — кант, градиент,
+    // верхний блик, нижняя внутренняя тень. Плоская заливка с полоской блика
+    // читалась как веб-кнопка, а не как игровая.
+    const body = glossyButton(btnWidth, btnHeight, CONFIG.COLORS.ACCENT || 0xff5e62, { radius: 14 });
+    this._innerContainer.addChild(body);
 
     // 4. Единый чёткий текст на кнопке
     const titleStyle = new TextStyle({
@@ -89,10 +78,13 @@ export class SpawnSystem extends Container {
       dropShadow: { color: '#000000', alpha: 0.5, blur: 3, distance: 1 }
     });
 
-    this._btnText = new Text({ text: '🐱 Купить', style: titleStyle });
+    // TASK-118: иконка вектором вместо эмодзи в строке.
+    this._btnText = new Text({ text: 'Купить', style: titleStyle });
     this._btnText.anchor.set(0.5, 0);
-    this._btnText.position.set(btnWidth / 2, 6);
     this._innerContainer.addChild(this._btnText);
+    this._btnIcon = UIIcons.paw(15, 0xffffff);
+    this._innerContainer.addChild(this._btnIcon);
+    UIIcons.centerIconLabel(this._btnIcon, this._btnText, btnWidth / 2, 6);
 
     const subStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',

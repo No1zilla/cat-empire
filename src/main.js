@@ -1,4 +1,4 @@
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Container, Graphics, FillGradient } from 'pixi.js';
 import { CONFIG, fitGameHeight, canvasCssSize } from './config.js';
 import { PlatformService } from './services/PlatformService.js';
 import { getPlatform } from './platform/index.js';
@@ -325,15 +325,46 @@ function _createBackgroundAndParticles(app) {
 
   const bgContainer = new Container();
 
-  const bg = new Graphics();
-  bg.rect(0, 0, W, H);
-  bg.fill(0x100b20);
-  bgContainer.addChild(bg);
+  // TASK-120: мир, а не пустота. Раньше фоном была плоская тёмная заливка с
+  // фиолетовым пятном — идл-кликер, в котором почему-то сидят пастельные коты.
+  // Теперь это место: небо сверху, тёплый свет, мягкие холмы у горизонта.
+  // Растрового арта здесь нет, всё рисуется фигурами — ноль веса.
+  const sky = new Graphics();
+  sky.rect(0, 0, W, H);
+  sky.fill(new FillGradient({
+    type: 'linear',
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+    textureSpace: 'local',
+    colorStops: [
+      { offset: 0, color: 0x8ec5ff },
+      { offset: 0.42, color: 0xbfe0ff },
+      { offset: 0.72, color: 0xffe8c9 },
+      { offset: 1, color: 0xffd9a8 }
+    ]
+  }));
+  bgContainer.addChild(sky);
 
-  const glowCenter = new Graphics();
-  glowCenter.circle(W / 2, H / 2 - 50, 220);
-  glowCenter.fill({ color: 0x3d2375, alpha: 0.35 });
-  bgContainer.addChild(glowCenter);
+  // Солнце за горизонтом: тёплое пятно, к которому сходится свет всей сцены.
+  const sunGlow = new Graphics();
+  sunGlow.circle(W / 2, H * 0.72, 260);
+  sunGlow.fill({ color: 0xffffff, alpha: 0.35 });
+  bgContainer.addChild(sunGlow);
+
+  // Холмы: три слоя, дальний бледнее и выше — воздушная перспектива.
+  const hillsFar = new Graphics();
+  hillsFar.ellipse(W * 0.28, H * 0.80, W * 0.62, H * 0.20).fill({ color: 0xbfe7c0, alpha: 0.75 });
+  hillsFar.ellipse(W * 0.86, H * 0.82, W * 0.52, H * 0.17).fill({ color: 0xbfe7c0, alpha: 0.75 });
+  bgContainer.addChild(hillsFar);
+
+  const hillsNear = new Graphics();
+  hillsNear.ellipse(W * 0.12, H * 0.90, W * 0.66, H * 0.22).fill({ color: 0x8fd49a });
+  hillsNear.ellipse(W * 0.92, H * 0.93, W * 0.60, H * 0.20).fill({ color: 0x8fd49a });
+  bgContainer.addChild(hillsNear);
+
+  const ground = new Graphics();
+  ground.rect(0, H * 0.94, W, H * 0.06).fill({ color: 0x7cc98a });
+  bgContainer.addChild(ground);
 
   const particleCount = 28;
   const particles = [];
@@ -345,10 +376,10 @@ function _createBackgroundAndParticles(app) {
 
     if (isStar) {
       p.star(0, 0, 4, radius + 2, radius);
-      p.fill({ color: Math.random() > 0.3 ? 0xffd700 : 0xa8d8ff, alpha: 0.7 });
+      p.fill({ color: Math.random() > 0.3 ? 0xfff3c4 : 0xffffff, alpha: 0.75 });
     } else {
       p.circle(0, 0, radius);
-      p.fill({ color: 0xffffff, alpha: 0.6 });
+      p.fill({ color: 0xffffff, alpha: 0.7 });
     }
 
     p.x = Math.random() * W;

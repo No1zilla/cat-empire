@@ -29,9 +29,12 @@ export class HUD extends Container {
     const hudHeight = 54;
 
     // 1. Главная плашка шапки (использование токена background)
+    // TASK-120: шапка больше не полоса поверх мира — чипы висят прямо на небе.
+    // Сплошная плашка резала сцену пополам и возвращала ощущение «интерфейс
+    // поверх пустоты».
     const bg = new Graphics();
     bg.rect(0, 0, hudWidth, hudHeight);
-    bg.fill(parseInt(TOKENS.colors.background.replace('#', '0x')));
+    bg.fill({ color: 0xffffff, alpha: 0 });
     this.addChild(bg);
 
     const capH = 34;
@@ -94,7 +97,7 @@ export class HUD extends Container {
       fontFamily: font,
       fontSize: 12,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: TOKENS.colors.textPrimary,
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._coinsText = new Text({ text: '100', style: coinsStyle });
@@ -112,7 +115,7 @@ export class HUD extends Container {
       fontFamily: font,
       fontSize: 12,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: TOKENS.colors.textPrimary,
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._gemsText = new Text({ text: '10', style: gemsStyle });
@@ -147,7 +150,7 @@ export class HUD extends Container {
         fontFamily: font,
         fontSize: 13,
         fontWeight: 'bold',
-        fill: '#ffffff',
+        fill: TOKENS.colors.textPrimary,
         dropShadow: { color: '#000000', alpha: 0.55, blur: 2, distance: 1 }
       })
     });
@@ -168,7 +171,7 @@ export class HUD extends Container {
       fontFamily: font,
       fontSize: 11,
       fontWeight: 'bold',
-      fill: '#ffffff',
+      fill: TOKENS.colors.textPrimary,
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });

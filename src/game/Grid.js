@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { CONFIG } from '../config.js';
+import { insetCell, raisedPanel, shade } from '../utils/PaintedUI.js';
 import { Cat } from './Cat.js';
 
 // Класс игрового поля 5x5 (TASK-016: getActiveCatsCount)
@@ -29,12 +30,15 @@ export class Grid extends Container {
     const gridWidth = CONFIG.GRID_SIZE * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     const gridHeight = gridWidth;
 
-    // Единая тёмная подложка поля с тонким контуром
-    const bg = new Graphics();
-    bg.roundRect(0, 0, gridWidth, gridHeight, 20);
-    bg.fill(CONFIG.COLORS.GRID_BG || 0x15122c);
-    bg.stroke({ color: CONFIG.COLORS.CELL_BORDER || 0x3d356c, width: 2.0 });
-    this.addChild(bg);
+    // TASK-119: поле — это физический лоток, а не прямоугольник цвета. Приподнятая
+    // рама со светом сверху, внутри — утопленные ячейки. Разница в направлении
+    // градиента у рамы и ячеек и создаёт ощущение глубины.
+    const tray = raisedPanel(gridWidth, gridHeight, CONFIG.COLORS.GRID_BG || 0x15122c, {
+      radius: 20,
+      stroke: shade(CONFIG.COLORS.CELL_BORDER || 0x3d356c, 0.25),
+      strokeAlpha: 0.7
+    });
+    this.addChild(tray);
   }
 
   // Отрисовка 25 ячеек 5х5 с эффектом углубления и радиусом 16px
@@ -46,19 +50,10 @@ export class Grid extends Container {
       const x = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
       const y = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 
-      const cell = new Graphics();
-      // Основной уплотнённый тёмный фон ячейки
-      cell.roundRect(x, y, CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, 16);
-      cell.fill(CONFIG.COLORS.CELL_BG || 0x1d193d);
-
-      // Внутренняя стягивающая тень (эффект углубления)
-      cell.roundRect(x + 1, y + 1, CONFIG.CELL_SIZE - 2, CONFIG.CELL_SIZE - 2, 15);
-      cell.stroke({ color: 0x090616, alpha: 0.7, width: 1.5 });
-
-      // Верхний светлый блик окантовки
-      cell.roundRect(x, y, CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, 16);
-      cell.stroke({ color: 0xffffff, alpha: 0.12, width: 1.5 });
-
+      const cell = insetCell(CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, CONFIG.COLORS.CELL_BG || 0x1d193d, {
+        radius: 16
+      });
+      cell.position.set(x, y);
       this.addChild(cell);
     }
   }

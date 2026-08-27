@@ -62,7 +62,7 @@ export class CatDeck extends Container {
     // 1. Панель матового стекла (Glassmorphism): использование токенов panelBg & panelBorder
     const bg = new Graphics();
     bg.roundRect(10, 0, W - 20, deckH, TOKENS.radii.cell);
-    bg.fill({ color: parseInt(TOKENS.colors.panelBg.replace('#', '0x')), alpha: 0.85 });
+    bg.fill({ color: parseInt(TOKENS.colors.panelBg.replace('#', '0x')), alpha: 0.96 });
     bg.stroke({ color: parseInt(TOKENS.colors.panelBorder.replace('#', '0x')), alpha: 0.6, width: 1.5 });
     this.addChild(bg);
 
@@ -167,16 +167,16 @@ export class CatDeck extends Container {
 
       if (isUnlocked) {
         // Тёмный фон карточки, чтобы пьедестал выделялся
-        cardBg.fill(0x18152e);
+        cardBg.fill(0xfffaf0);
         if (level === this.maxUnlockedLevel) {
           cardBg.stroke({ color: '#ffd700', width: 2.5 });
         } else {
-          cardBg.stroke({ color: '#ffffff', alpha: 0.15, width: 1.5 });
+          cardBg.stroke({ color: 0xd9b98a, alpha: 0.9, width: 1.5 });
         }
       } else {
         // Тёмный утонченный слот заблокированного котика
-        cardBg.fill(0x18152e);
-        cardBg.stroke({ color: 0x332c52, width: 1.5 });
+        cardBg.fill(0xfffaf0);
+        cardBg.stroke({ color: 0xe2c39a, width: 1.5 });
       }
       cardGroup.addChild(cardBg);
 
@@ -226,7 +226,8 @@ export class CatDeck extends Container {
           fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
           fontSize: CAT_LABEL_FONT,
           fontWeight: 'bold',
-          fill: '#ffffff'
+          // На кремовой карточке белая подпись исчезает — тёплый тёмный.
+          fill: TOKENS.colors.textPrimary
         });
         const lvlText = new Text({ text: `Lvl ${level}`, style: lvlStyle });
         lvlText.anchor.set(0.5, 0);
@@ -272,8 +273,8 @@ export class CatDeck extends Container {
 
     const leftBtn = new Graphics();
     leftBtn.roundRect(12, arrowY, btnSize, btnSize, 8);
-    leftBtn.fill({ color: 0x1a1638, alpha: 0.95 });
-    leftBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
+    leftBtn.fill({ color: 0xfffaf0, alpha: 0.98 });
+    leftBtn.stroke({ color: 0xd9b98a, width: 1.5 });
     leftBtn.eventMode = 'static';
     leftBtn.cursor = 'pointer';
     leftBtn.hitArea = new Rectangle(12, arrowY, btnSize, btnSize);
@@ -286,7 +287,7 @@ export class CatDeck extends Container {
     const leftTextStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 12,
-      fill: '#ffffff',
+      fill: TOKENS.colors.textPrimary,
       fontWeight: 'bold'
     });
     const leftIcon = new Text({ text: '◀', style: leftTextStyle });
@@ -297,8 +298,8 @@ export class CatDeck extends Container {
 
     const rightBtn = new Graphics();
     rightBtn.roundRect(W - 40, arrowY, btnSize, btnSize, 8);
-    rightBtn.fill({ color: 0x1a1638, alpha: 0.95 });
-    rightBtn.stroke({ color: CONFIG.COLORS.ACCENT || '#ff5e62', width: 1.5 });
+    rightBtn.fill({ color: 0xfffaf0, alpha: 0.98 });
+    rightBtn.stroke({ color: 0xd9b98a, width: 1.5 });
     rightBtn.eventMode = 'static';
     rightBtn.cursor = 'pointer';
     rightBtn.hitArea = new Rectangle(W - 40, arrowY, btnSize, btnSize);
@@ -311,7 +312,7 @@ export class CatDeck extends Container {
     const rightTextStyle = new TextStyle({
       fontFamily: CONFIG.FONT_FAMILY || 'Fredoka, sans-serif',
       fontSize: 12,
-      fill: '#ffffff',
+      fill: TOKENS.colors.textPrimary,
       fontWeight: 'bold'
     });
     const rightIcon = new Text({ text: '▶', style: rightTextStyle });
