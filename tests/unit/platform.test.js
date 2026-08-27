@@ -201,6 +201,14 @@ export async function runPlatformTests() {
   assert.strictEqual(createPlatform('standalone').id, 'standalone');
   assert.strictEqual(resolvePlatformId(), 'vk', 'Без сборочного флага и без клиента остаёмся на VK');
 
+  // VK-сборка, открытая внутри Telegram, обязана стать Telegram: иначе игрок
+  // получает мёртвое окно с вызовами VK Bridge, которого там нет.
+  const prevWindow = global.window;
+  global.window = { Telegram: { WebApp: { initData: 'query_id=AA' } } };
+  assert.strictEqual(resolvePlatformId(), 'telegram', 'Живой клиент Telegram сильнее сборочного флага');
+  if (prevWindow === undefined) delete global.window;
+  else global.window = prevWindow;
+
   const stub = new Platform();
   setPlatform(stub);
   assert.strictEqual(getPlatform(), stub, 'Платформу можно подменить в тесте');

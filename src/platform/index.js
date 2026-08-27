@@ -38,9 +38,13 @@ export function detectVk() {
 export function resolvePlatformId() {
   const built = typeof __PLATFORM__ !== 'undefined' ? String(__PLATFORM__) : '';
   if (built === 'telegram') return 'telegram';
-  if (built === 'vk') return 'vk';
 
+  // Живой клиент Telegram — сигнал сильнее сборочного флага. VK-сборку могут
+  // открыть внутри Telegram по прямой ссылке из чата, и там она обязана работать,
+  // а не звать VK Bridge, которого в этом окне нет. Ложных срабатываний не бывает:
+  // window.Telegram.WebApp появляется только внутри клиента Telegram.
   if (detectTelegram()) return 'telegram';
+  if (built === 'vk') return 'vk';
   if (detectVk()) return 'vk';
 
   // Сборка под Android (Capacitor) и голый браузер: VK-мостов нет, но игра
