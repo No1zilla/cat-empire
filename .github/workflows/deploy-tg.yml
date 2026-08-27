@@ -19,6 +19,14 @@ on:
 permissions:
   contents: write
 
+# Все три деплоя пишут в одну ветку gh-pages и стартуют от одного пуша.
+# Без общей очереди второй пуш прилетает поверх первого и падает отказом —
+# именно так прод-сборка VK однажды не доехала. Очередь, а не отмена: каждая
+# сборка нужна, просто по очереди.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
