@@ -90,14 +90,31 @@ export function getVkSignHeader() {
   return sanitizeVkSignHeader(str);
 }
 
+/**
+ * TASK-113: initData Telegram — подписанная строка запуска. Сервер проверяет её
+ * HMAC-ом бота, поэтому подделать идентификатор игрока с клиента нельзя.
+ * Читаем напрямую из SDK: она обновляется самим клиентом Telegram, кэшировать
+ * её (как параметры VK) нельзя — протухшая initData отклоняется сервером.
+ */
+export function getTelegramInitData() {
+  if (typeof window === 'undefined') return '';
+  const app = window.Telegram && window.Telegram.WebApp;
+  return (app && app.initData) || '';
+}
+
 function requestHeaders(options = {}, withSign = true) {
   const headers = { ...(options.headers || {}) };
   if (options.body && !headers['Content-Type'] && !headers['content-type']) {
     headers['Content-Type'] = 'application/json';
   }
   if (withSign) {
-    const sign = getVkSignHeader();
-    if (sign) headers['x-vk-sign'] = sign;
+    const initData = getTelegramInitData();
+    if (initData) {
+      headers['x-telegram-init-data'] = initData;
+    } else {
+      const sign = getVkSignHeader();
+      if (sign) headers['x-vk-sign'] = sign;
+    }
   }
   return headers;
 }
@@ -189,6 +206,23 @@ export async function fetchProfile() {
 /**
  * Сохранение игрового прогресса (100% совместимость с PostgreSQL бэкендом: camelCase + snake_case)
  */
+/**
+ * TASK-114: ссылка на оплату звёздами. Сумму и товар определяет сервер по
+ * идентификатору — клиент не может ни назначить цену, ни выбрать, что получит.
+ */
+export async function createStarsInvoice(itemId) {
+  try {
+    const res = await apiRequest('/stars/invoice', {
+      method: 'POST',
+      body: JSON.stringify({ itemId })
+    });
+    return res && res.link ? res : null;
+  } catch (e) {
+    console.warn('Не удалось получить ссылку на оплату:', e);
+    return null;
+  }
+}
+
 export async function saveProgress(data) {
   if (!data) return null;
   try {

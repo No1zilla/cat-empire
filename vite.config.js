@@ -5,7 +5,10 @@ const pagesBase = process.env.VK_PAGES_BASE || './';
 export default defineConfig({
   base: pagesBase.endsWith('/') || pagesBase === './' ? pagesBase : `${pagesBase}/`,
   define: {
-    __PLATFORM__: JSON.stringify(process.env.PLATFORM || 'vk')
+    __PLATFORM__: JSON.stringify(process.env.PLATFORM || 'vk'),
+    // TASK-114: блок Adsgram задаётся окружением сборки. Пустая строка = рекламы
+    // нет, и платформа честно сообщает об этом вместо пустого показа.
+    __ADSGRAM_BLOCK_ID__: JSON.stringify(process.env.ADSGRAM_BLOCK_ID || '')
   },
   build: {
     outDir: 'dist'

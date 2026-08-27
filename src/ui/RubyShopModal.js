@@ -244,7 +244,12 @@ export class RubyShopModal extends Container {
         return;
       }
 
-      if (this.economy) this.economy.addGems(pack.rubies);
+      // За звёзды Telegram рубины уже начислил вебхук — локально добавлять нельзя.
+      if (result.serverGranted) {
+        await storageService.syncGemsFromServer(this.economy);
+      } else if (this.economy) {
+        this.economy.addGems(pack.rubies);
+      }
 
       // TASK-109/112: сохранить ДО того, как пометить заказ обработанным. Раньше заказ
       // сжигался первым, а падение записи глоталось молча: игрок платил голосами,
@@ -307,7 +312,11 @@ export class RubyShopModal extends Container {
         return;
       }
 
-      if (this.economy) this.economy.addGems(EDICT.rubies);
+      if (result.serverGranted) {
+        await storageService.syncGemsFromServer(this.economy);
+      } else if (this.economy) {
+        this.economy.addGems(EDICT.rubies);
+      }
       empireMeta.activateEdict();
 
       // TASK-112: заказ сжигаем только после подтверждённого сохранения. Раньше это

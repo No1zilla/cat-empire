@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:vk": "PLATFORM=vk vite build",
+    "build:tg": "PLATFORM=telegram vite build",
     "build:android": "PLATFORM=android vite build && npx cap copy android",
     "preview": "vite preview",
     "test": "node tests/runAll.js",

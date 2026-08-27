@@ -124,10 +124,72 @@ export async function runPlatformTests() {
     `Значение больше ${TG_CLOUD_VALUE_LIMIT} Б не считается сохранённым`
   );
 
-  // Касса и реклама в Фазе 0 честно недоступны, а не «как будто работают».
+  // Без openInvoice и без блока Adsgram касса и реклама честно недоступны.
   assert.deepStrictEqual(await tg.purchase('gems_pack_10'), { ok: false, unavailable: true });
-  assert.strictEqual(tg.capabilities.payments, false);
-  assert.strictEqual(tg.capabilities.ads, false);
+  assert.strictEqual(tg.capabilities.payments, false, 'Нет openInvoice — нет кассы');
+  assert.strictEqual(tg.capabilities.ads, false, 'Нет блока Adsgram — нет рекламы');
+  assert.strictEqual((await tg.showRewardedAd()).reason, 'ADS_NOT_CONFIGURED');
+
+  // --- Оплата звёздами ---
+  const invoiceCalls = [];
+  function payingApp(status) {
+    return Object.assign(fakeTelegramApp(), {
+      openInvoice(link, cb) { invoiceCalls.push(link); cb(status); }
+    });
+  }
+
+  const paid = new TelegramPlatform({
+    webApp: payingApp('paid'),
+    createInvoice: async (itemId) => ({ link: `https://t.me/invoice/${itemId}`, stars: 200, rubies: 50 })
+  });
+  assert.strictEqual(paid.capabilities.payments, true, 'openInvoice есть — касса доступна');
+
+  const paidResult = await paid.purchase('gems_pack_50');
+  assert.strictEqual(paidResult.ok, true);
+  assert.strictEqual(
+    paidResult.serverGranted,
+    true,
+    'Рубины за звёзды начисляет вебхук: клиент обязан знать, что добавлять их самому нельзя'
+  );
+  assert.deepStrictEqual(invoiceCalls, ['https://t.me/invoice/gems_pack_50']);
+
+  const cancelled = new TelegramPlatform({
+    webApp: payingApp('cancelled'),
+    createInvoice: async () => ({ link: 'https://t.me/invoice/x' })
+  });
+  assert.deepStrictEqual(await cancelled.purchase('gems_pack_50'), { ok: false, cancelled: true });
+
+  // pending — это не успех: товар ещё не выдан, обещать его игроку нельзя.
+  const pending = new TelegramPlatform({
+    webApp: payingApp('pending'),
+    createInvoice: async () => ({ link: 'https://t.me/invoice/x' })
+  });
+  assert.deepStrictEqual(await pending.purchase('gems_pack_50'), { ok: false, pending: true });
+
+  // Сервер не выписал счёт — покупка не начинается.
+  const noInvoice = new TelegramPlatform({
+    webApp: payingApp('paid'),
+    createInvoice: async () => null
+  });
+  assert.deepStrictEqual(await noInvoice.purchase('gems_pack_50'), { ok: false, unavailable: true });
+
+  // --- Реклама Adsgram ---
+  const withAds = new TelegramPlatform({
+    webApp: fakeTelegramApp(),
+    adsgramBlockId: 'block-1',
+    adController: { async show() { return { done: true }; } }
+  });
+  assert.strictEqual(withAds.capabilities.ads, true);
+  assert.strictEqual((await withAds.showRewardedAd()).success, true, 'Досмотренный ролик считается успехом');
+
+  const failingAds = new TelegramPlatform({
+    webApp: fakeTelegramApp(),
+    adsgramBlockId: 'block-1',
+    adController: { async show() { throw { description: 'no ads available' }; } }
+  });
+  const failed = await failingAds.showRewardedAd();
+  assert.strictEqual(failed.success, false);
+  assert.strictEqual(failed.reason, 'no ads available', 'Причина отказа сохраняется для аналитики');
 
   // Пустое хранилище: null означает «не ответило», а не «пусто».
   const silent = new TelegramPlatform({ webApp: { initData: '', CloudStorage: null } });

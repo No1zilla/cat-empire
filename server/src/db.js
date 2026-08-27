@@ -42,6 +42,10 @@ async function initDB() {
     await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT DEFAULT '';");
     await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';");
     await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT DEFAULT '';");
+    // TASK-113: разрез метрик по платформам. Ключ игрока по-прежнему живёт в vk_id
+    // (у Telegram он с приставкой tg:), а эта колонка нужна, чтобы считать VK и
+    // Telegram по отдельности без LIKE-запросов по ключу.
+    await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS platform VARCHAR(16) DEFAULT 'vk';");
   } catch (e) {
     // игнорируем если колонка уже существует
   }

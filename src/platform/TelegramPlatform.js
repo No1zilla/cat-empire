@@ -1,20 +1,20 @@
 /**
- * Telegram за контрактом Platform (TASK-110, Фаза 0).
+ * Telegram за контрактом Platform (TASK-110, TASK-114).
  *
- * Здесь реализовано только то, что работает БЕЗ бэкенда: запуск SDK, профиль,
- * CloudStorage, тактильный отклик, отступы, шаринг. Реклама и касса возвращают
- * `unavailable` осознанно — они появятся в Фазе 1 вместе с ботом, вебхуком Stars
- * и проверкой initData. Полурабочая касса хуже отсутствующей: игрок нажмёт и
- * решит, что игра сломана.
+ * Запуск SDK, профиль, CloudStorage, тактильный отклик, отступы, шаринг работают
+ * сами по себе. Касса (Stars) и реклама (Adsgram) требуют настройки: без токена
+ * бота на сервере и без идентификатора рекламного блока в сборке они честно
+ * отвечают `unavailable` вместо того, чтобы делать вид, что работают.
  *
  * Про личность игрока. `initDataUnsafe.user.id` — это данные КЛИЕНТА, их можно
  * подделать из консоли, на что и намекает слово unsafe в названии. Здесь он годится
  * ровно на две вещи: показать имя в интерфейсе и разложить прогресс по ключам
  * CloudStorage (который и так свой у каждого аккаунта Telegram). Всё, что стоит
- * денег или прогресса, обязано проверять подпись `initData` на сервере — это
- * первый пункт Фазы 1, до включения Stars.
+ * денег или прогресса, обязано проверять подпись `initData` на сервере — этим
+ * занимается server/src/middleware/playerAuth.js.
  */
 import { Platform } from './Platform.js';
+import { createStarsInvoice } from '../api/client.js';
 
 /** Лимит значения в Telegram CloudStorage — 4096 байт на ключ. */
 export const TG_CLOUD_VALUE_LIMIT = 4096;
@@ -28,6 +28,13 @@ export class TelegramPlatform extends Platform {
   constructor(deps = {}) {
     super();
     this._webApp = deps.webApp || null;
+    this._invoice = deps.createInvoice || createStarsInvoice;
+    // Идентификатор рекламного блока приходит из сборки: без него рекламы нет,
+    // и модалка не должна делать вид, что она есть.
+    this._adsgramBlockId = deps.adsgramBlockId !== undefined
+      ? deps.adsgramBlockId
+      : (typeof __ADSGRAM_BLOCK_ID__ !== 'undefined' ? __ADSGRAM_BLOCK_ID__ : '');
+    this._adController = deps.adController || null;
   }
 
   get id() {
@@ -40,9 +47,9 @@ export class TelegramPlatform extends Platform {
 
   get capabilities() {
     return {
-      ads: false,       // Фаза 1: Adsgram
+      ads: Boolean(this._adsgramBlockId),
       banner: false,
-      payments: false,  // Фаза 1: Stars + вебхук successful_payment
+      payments: typeof (this.app && this.app.openInvoice) === 'function',
       invite: true,
       wallPost: false,
       community: false,
@@ -227,8 +234,91 @@ export class TelegramPlatform extends Platform {
 
   async invite() {
     // Приглашение в Telegram — это та же ссылка с реферальным параметром.
-    // Сам параметр появится в Фазе 1 вместе с ботом; пока звать некуда.
+    // Сам параметр появится вместе с ботом; пока звать некуда.
     return { unavailable: true };
+  }
+
+  /**
+   * Покупка за звёзды.
+   *
+   * Клиент здесь НИЧЕГО не начисляет и не может: ссылку на оплату выписывает
+   * сервер по идентификатору товара, а рубины выдаёт вебхук `successful_payment`.
+   * Поэтому в ответе стоит `serverGranted` — вызывающий код по нему понимает, что
+   * добавлять валюту локально нельзя, надо забрать подтверждённый баланс.
+   *
+   * `openInvoice` отвечает статусом: paid | cancelled | failed | pending.
+   * `pending` — это «Telegram ещё думает»: товар не выдан, но и отказа нет,
+   * поэтому обещать игроку успех нельзя.
+   */
+  async purchase(itemId) {
+    const app = this.app;
+    if (!app || typeof app.openInvoice !== 'function') {
+      return { ok: false, unavailable: true };
+    }
+
+    const invoice = await this._invoice(itemId);
+    if (!invoice || !invoice.link) {
+      return { ok: false, unavailable: true };
+    }
+
+    const status = await new Promise((resolve) => {
+      try {
+        app.openInvoice(invoice.link, resolve);
+      } catch (e) {
+        resolve('failed');
+      }
+    });
+
+    if (status === 'paid') {
+      return { ok: true, orderId: invoice.link, serverGranted: true, rubies: invoice.rubies };
+    }
+    if (status === 'cancelled') return { ok: false, cancelled: true };
+    if (status === 'pending') return { ok: false, pending: true };
+    return { ok: false };
+  }
+
+  /**
+   * Ролик Adsgram. SDK грузится по требованию: тянуть его на старте — значит
+   * замедлить первый экран ради того, что понадобится далеко не каждому игроку.
+   */
+  async showRewardedAd() {
+    if (!this._adsgramBlockId) return { success: false, reason: 'ADS_NOT_CONFIGURED' };
+
+    try {
+      const controller = await this._getAdController();
+      if (!controller) return { success: false, reason: 'ADS_SDK_UNAVAILABLE' };
+      await controller.show();
+      // Adsgram резолвит промис только на досмотренном ролике.
+      return { success: true, format: 'adsgram_reward' };
+    } catch (e) {
+      const reason = (e && (e.description || e.message)) || 'ADS_FAILED';
+      return { success: false, reason: String(reason) };
+    }
+  }
+
+  async _getAdController() {
+    if (this._adController) return this._adController;
+    if (typeof window === 'undefined') return null;
+
+    if (!window.Adsgram) {
+      const loaded = await new Promise((resolve) => {
+        try {
+          const script = document.createElement('script');
+          script.src = 'https://sad.adsgram.ai/js/sad.min.js';
+          script.async = true;
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.head.appendChild(script);
+          setTimeout(() => resolve(Boolean(window.Adsgram)), 8000);
+        } catch (e) {
+          resolve(false);
+        }
+      });
+      if (!loaded || !window.Adsgram) return null;
+    }
+
+    this._adController = window.Adsgram.init({ blockId: String(this._adsgramBlockId) });
+    return this._adController;
   }
 
   haptic(style = 'medium') {

@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import pool from '../db.js';
 import { shouldRestoreProgressFloor } from '../utils/progressFloor.js';
+import { parsePlayerKey } from '../utils/playerKey.js';
 
 function calculateIncomePerSecond(gridStateStr) {
   try {
@@ -55,10 +56,13 @@ export class UserService {
         { slotIndex: 1, catLevel: 1 }
       ]);
       const id = randomUUID();
+      // TASK-113: платформу пишем в отдельную колонку, чтобы метрики резались по ней,
+      // а не по приставке внутри ключа.
+      const { platform } = parsePlayerKey(vkId);
       await pool.query(`
-        INSERT INTO users (id, vk_id, first_name, coins, gems, max_cat_level, total_cats_bought, total_cats_created, total_merges, grid_state, last_offline_check, created_at)
-        VALUES ($1, $2, 'Игрок', 100, 10, 1, 0, 0, 0, $3, $4, $4)
-      `, [id, vkId, initialGrid, now]);
+        INSERT INTO users (id, vk_id, platform, first_name, coins, gems, max_cat_level, total_cats_bought, total_cats_created, total_merges, grid_state, last_offline_check, created_at)
+        VALUES ($1, $2, $3, 'Игрок', 100, 10, 1, 0, 0, 0, $4, $5, $5)
+      `, [id, vkId, platform, initialGrid, now]);
 
       ({ rows } = await pool.query('SELECT * FROM users WHERE vk_id = $1', [vkId]));
     } else {

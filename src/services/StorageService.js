@@ -1,4 +1,4 @@
-import { saveProgress } from '../api/client.js';
+import { saveProgress, fetchProfile } from '../api/client.js';
 import { getPlatform } from '../platform/index.js';
 import { vkIdentity } from './VkIdentity.js';
 import { isStarterSnapshot } from '../game/bootProgress.js';
@@ -316,6 +316,29 @@ export class StorageService {
     });
     next.updatedAt = Date.now();
     return this.saveProgress(next);
+  }
+
+  /**
+   * TASK-114: забрать подтверждённый сервером баланс рубинов.
+   *
+   * За звёзды Telegram рубины начисляет вебхук, а не клиент — значит после оплаты
+   * локальная память о балансе устарела, и добавлять к ней покупку нельзя: получится
+   * двойной счёт. Забираем то, что сервер реально записал, и сохраняем как обычно.
+   *
+   * @returns {Promise<boolean>} удалось ли подтвердить баланс.
+   */
+  async syncGemsFromServer(economy) {
+    const profile = await fetchProfile().catch(() => null);
+    const serverGems = Number(profile && profile.user && profile.user.gems);
+    if (!Number.isFinite(serverGems)) return false;
+
+    // Только вверх: сервер не знает про рубины, потраченные в этой сессии офлайн,
+    // и опускать баланс по его ответу означало бы отнять их у игрока.
+    if (economy && serverGems > (Number(economy.gems) || 0)) {
+      economy.addGems(serverGems - (Number(economy.gems) || 0));
+    }
+    await this.persistCurrency({ gems: economy ? economy.gems : serverGems });
+    return true;
   }
 
   /** Текущий локальный снимок в нормализованном виде (или null, если кэша нет). */

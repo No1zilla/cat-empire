@@ -147,7 +147,11 @@ export class StarterTributeModal extends Container {
         return;
       }
 
-      if (this.economy) this.economy.addGems(STARTER_TRIBUTE.rubies);
+      if (result.serverGranted) {
+        await storageService.syncGemsFromServer(this.economy);
+      } else if (this.economy) {
+        this.economy.addGems(STARTER_TRIBUTE.rubies);
+      }
       incomeBoosterService.activate(Date.now(), STARTER_TRIBUTE.boosterMs);
       empireMeta.claimStarter();
 

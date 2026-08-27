@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import vkAuth, { requireVkSign } from '../middleware/vkAuth.js';
+import playerAuth, { requirePlayer } from '../middleware/playerAuth.js';
+import { playerKey } from '../utils/playerKey.js';
 import userService from '../services/userService.js';
 
 const router = Router();
 
 // GET /api/user/profile - Получение или авто-создание профиля
-router.get('/profile', vkAuth, requireVkSign, async (req, res) => {
+router.get('/profile', playerAuth, requirePlayer, async (req, res) => {
   try {
-    const user = await userService.getOrCreateUser(req.vkUserId);
+    const user = await userService.getOrCreateUser(playerKey(req.player));
     res.json({ user });
   } catch (error) {
     console.error('Ошибка в GET /api/user/profile:', error);
@@ -16,10 +17,10 @@ router.get('/profile', vkAuth, requireVkSign, async (req, res) => {
 });
 
 // POST /api/user/save - Сохранение прогресса игрока
-router.post('/save', vkAuth, requireVkSign, async (req, res) => {
+router.post('/save', playerAuth, requirePlayer, async (req, res) => {
   try {
     const body = req.body || {};
-    const user = await userService.saveUserProgress(req.vkUserId, {
+    const user = await userService.saveUserProgress(playerKey(req.player), {
       coins: body.coins,
       gems: body.gems,
       maxCatLevel: body.maxCatLevel ?? body.max_cat_level,

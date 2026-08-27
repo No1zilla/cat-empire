@@ -15,6 +15,8 @@ import paymentsRouter, {
 } from './routes/payments.js';
 import { fetchGithubPages, shouldProxyToPages } from './pagesProxy.js';
 import { isSignatureEnforced } from './middleware/vkAuth.js';
+import starsRouter from './routes/stars.js';
+import { isTelegramAuthEnforced } from './middleware/playerAuth.js';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -48,7 +50,8 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     serverTime: new Date().toISOString(),
-    vkSignature: isSignatureEnforced() ? 'enforced' : 'disabled_no_secret'
+    vkSignature: isSignatureEnforced() ? 'enforced' : 'disabled_no_secret',
+    telegramSignature: isTelegramAuthEnforced() ? 'enforced' : 'disabled_no_token'
   });
 });
 
@@ -83,6 +86,10 @@ app.use('/api/events', eventsRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/payments', paymentsRouter);
+// TASK-114: Stars. /invoice выдаёт ссылку на оплату, /webhook принимает апдейты бота —
+// именно он, а не клиент, начисляет купленные рубины.
+app.use('/api/stars', starsRouter);
+app.use('/api/telegram', starsRouter);
 
 app.use((req, res, next) => {
   if (!shouldProxyToPages(req)) return next();
