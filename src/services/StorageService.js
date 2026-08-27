@@ -115,9 +115,16 @@ export class StorageService {
       };
       this._writeLocalCache(cleanResetState, cleanResetState.updatedAt);
       // Не ждём VK Storage / API на сплэше — облако пишем в фоне.
-      this.saveProgress(cleanResetState).catch((e) => {
-        console.warn('Сброс: облако не записалось на загрузке', e);
-      });
+      this.saveProgress(cleanResetState)
+        .then(() => {
+          // TASK-109: сброс доехал до облака — флаг больше не нужен. Пока он висел,
+          // КАЖДАЯ загрузка возвращалась сюда и переписывала VK Storage пустышкой,
+          // то есть прогресс обнулялся при любом обновлении страницы.
+          if (this.lastCloudSaveOk) this._clearResetFlag();
+        })
+        .catch((e) => {
+          console.warn('Сброс: облако не записалось на загрузке', e);
+        });
       return cleanResetState;
     }
 
@@ -204,18 +211,39 @@ export class StorageService {
     } catch (e) {}
   }
 
+  /** Стоит ли флаг «прогресс только что сброшен». */
+  _isResetFlagged() {
+    if (typeof localStorage === 'undefined') return false;
+    try {
+      return localStorage.getItem('cat_empire_is_reset') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** Снять флаг сброса. Единственная точка — чтобы он снова не залип. */
+  _clearResetFlag() {
+    if (typeof localStorage === 'undefined') return;
+    try { localStorage.removeItem('cat_empire_is_reset'); } catch (e) {}
+  }
+
   async saveProgress(data) {
     if (!data) return;
 
     const timestamp = Number(data.updatedAt) || Date.now();
-    const resetSave = Boolean(data.isReset)
-      || (typeof localStorage !== 'undefined' && localStorage.getItem('cat_empire_is_reset') === '1');
+    const starter = isStarterSnapshot(data);
+
+    // TASK-109: флаг сброса помечает только сам сброс и стартовое состояние сразу
+    // после него. Раньше он делал resetSave=true у ЛЮБОГО сохранения — включая
+    // настоящую империю, — а снять флаг мог лишь код под `!resetSave`. Условие
+    // противоречило само себе: единожды выставленный флаг не снимался никогда, и
+    // loadProgress на каждой загрузке отдавал чистый баланс поверх прогресса.
+    const resetSave = Boolean(data.isReset) || (this._isResetFlagged() && starter);
     if (!resetSave) this._rememberHighWater(data);
     this._writeLocalCache(data, timestamp);
 
-    if (!resetSave && !isStarterSnapshot(data) && typeof localStorage !== 'undefined') {
-      try { localStorage.removeItem('cat_empire_is_reset'); } catch (e) {}
-    }
+    // Игрок сыграл после сброса — флагу конец, дальше сохраняемся как обычно.
+    if (!starter) this._clearResetFlag();
 
     // TASK-106: не затираем облако состоянием, которого не подтверждали.
     // Если загрузка свалилась в стартовую заглушку по таймауту, писать её в VK Storage

@@ -65,7 +65,59 @@ export async function runProgressResetTests() {
   assert.strictEqual(state.coins, 100);
   assert.strictEqual(state.maxCatLevel, 1);
 
+  // TASK-109: флаг сброса залипал навсегда. resetSave становился true у любого
+  // сохранения, пока флаг стоял, а снять флаг мог только код под `!resetSave` —
+  // условие противоречило себе. Итог: loadProgress на каждой перезагрузке отдавал
+  // чистые 100 монет и записывал их в VK Storage поверх настоящей империи.
+  global.localStorage = new LocalStorageMock();
+  localStorage.setItem('cat_empire_is_reset', '1');
+
+  const afterReset = new StorageService();
+  afterReset.lastLoadVerified = true;
+  let cloudWrites = 0;
+  afterReset._writeCloud = async () => { cloudWrites += 1; };
+
+  const realEmpire = {
+    coins: 50000,
+    gems: 30,
+    maxCatLevel: 8,
+    totalCatsBought: 120,
+    totalMerges: 40,
+    gridState: [{ slotIndex: 0, catLevel: 8 }],
+    updatedAt: Date.now()
+  };
+  await afterReset.saveProgress(realEmpire);
+
+  assert.strictEqual(
+    localStorage.getItem('cat_empire_is_reset'),
+    null,
+    'Первое сохранение реального прогресса снимает флаг сброса'
+  );
+
+  const reloaded = await afterReset.loadProgress();
+  assert.strictEqual(reloaded.maxCatLevel, 8, 'После перезагрузки уровень не откатывается в 1');
+  assert.strictEqual(reloaded.totalMerges, 40, 'После перезагрузки слияния на месте');
+  assert.strictEqual(reloaded.coins, 50000, 'После перезагрузки монеты на месте');
+
+  // Стартовое состояние сразу после сброса флаг не снимает: империя из облака
+  // не должна вернуться, пока игрок не сыграл заново.
+  global.localStorage = new LocalStorageMock();
+  localStorage.setItem('cat_empire_is_reset', '1');
+  const stillReset = new StorageService();
+  stillReset.lastLoadVerified = true;
+  await stillReset.saveProgress({
+    coins: 100, gems: 10, maxCatLevel: 1, totalCatsBought: 0, totalMerges: 0,
+    gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+    updatedAt: Date.now()
+  });
+  assert.strictEqual(
+    localStorage.getItem('cat_empire_is_reset'),
+    '1',
+    'Стартовый снимок после сброса флаг не снимает'
+  );
+
   global.localStorage = previousLs;
 
   console.log('  ✅ Сброс остаётся чистым стартом, случайный вайп по-прежнему ловится');
+  console.log('  ✅ Флаг сброса снимается первым реальным прогрессом и не обнуляет игру');
 }
