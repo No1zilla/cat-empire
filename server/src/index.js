@@ -17,10 +17,14 @@ import { fetchGithubPages, shouldProxyToPages } from './pagesProxy.js';
 import { isSignatureEnforced } from './middleware/vkAuth.js';
 import starsRouter from './routes/stars.js';
 import referralRouter from './routes/referral.js';
-import { isTelegramAuthEnforced } from './middleware/playerAuth.js';
+import { isTelegramAuthEnforced, telegramBotToken } from './middleware/playerAuth.js';
+import { ensureTelegramWebhook, ensureMenuButton } from './services/telegramSetup.js';
 
 // Загрузка переменных окружения
 dotenv.config();
+
+/** Состояние привязки вебхука Telegram; заполняется на старте, видно в /api/health. */
+let webhookState = { status: 'pending' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,7 +56,8 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     serverTime: new Date().toISOString(),
     vkSignature: isSignatureEnforced() ? 'enforced' : 'disabled_no_secret',
-    telegramSignature: isTelegramAuthEnforced() ? 'enforced' : 'disabled_no_token'
+    telegramSignature: isTelegramAuthEnforced() ? 'enforced' : 'disabled_no_token',
+    telegramWebhook: webhookState
   });
 });
 
@@ -109,4 +114,34 @@ app.use((req, res) => {
 // Запуск сервера — слушаем на 0.0.0.0 для Railway (v1.1.0 - Analytics & Admin Dashboard)
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Сервер «Империя Котиков» v1.1.0 запущен на порту ${PORT}`);
+
+  // TASK-116: вебхук привязывает сам сервер — токен уже у него, и никому не нужно
+  // подставлять секрет руками. Идемпотентно: трогаем настройку, только если адрес
+  // отличается. Состояние уезжает в /api/health, иначе проверить привязку можно
+  // было бы только имея токен на руках.
+  ensureTelegramWebhook({
+    token: telegramBotToken(),
+    url: process.env.WEBHOOK_URL || '',
+    secret: process.env.TELEGRAM_WEBHOOK_SECRET || ''
+  })
+    .then((result) => {
+      webhookState = result;
+      if (result.status === 'updated') console.log(`🔗 Вебхук Telegram привязан: ${result.url}`);
+      else if (result.status === 'already_set') console.log('🔗 Вебхук Telegram уже привязан');
+      else console.warn('🔗 Вебхук Telegram не привязан:', result.status, result.error || '');
+      if (result.error) {
+        console.warn(`⚠️ Telegram сообщает об ошибке доставки: ${result.error}`);
+      }
+      return ensureMenuButton({
+        token: telegramBotToken(),
+        miniAppUrl: process.env.MINI_APP_URL || ''
+      });
+    })
+    .then((menu) => {
+      if (menu && menu.status === 'set') console.log('🔘 Кнопка меню ведёт в Mini App');
+    })
+    .catch((e) => {
+      webhookState = { status: 'failed', error: String((e && e.message) || e) };
+      console.error('Не удалось настроить вебхук:', e);
+    });
 });
