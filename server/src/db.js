@@ -50,6 +50,17 @@ async function initDB() {
     // игнорируем если колонка уже существует
   }
 
+  // TASK-115: связь «кто кого привёл». Первичный ключ по приглашённому — это и есть
+  // защита от повторного начисления: гонка двух запросов проиграет базе, а не коду.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS referrals (
+      invitee_key TEXT PRIMARY KEY,
+      referrer_key TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_key);
+  `);
+
   // Таблица аналитических событий (TASK-066)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS analytics_events (

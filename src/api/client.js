@@ -223,6 +223,21 @@ export async function createStarsInvoice(itemId) {
   }
 }
 
+/**
+ * TASK-115: засчитать приглашение. Кто пришёл — сервер решает по подписи initData,
+ * из тела берётся только идентификатор пригласившего.
+ */
+export async function claimReferral(ref) {
+  try {
+    return await apiRequest('/referral/claim', {
+      method: 'POST',
+      body: JSON.stringify({ ref })
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function saveProgress(data) {
   if (!data) return null;
   try {

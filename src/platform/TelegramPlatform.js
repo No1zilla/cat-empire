@@ -15,6 +15,7 @@
  */
 import { Platform } from './Platform.js';
 import { createStarsInvoice } from '../api/client.js';
+import { telegramInviteLink, parseReferralParam } from '../config/telegram.js';
 
 /** Лимит значения в Telegram CloudStorage — 4096 байт на ключ. */
 export const TG_CLOUD_VALUE_LIMIT = 4096;
@@ -232,10 +233,33 @@ export class TelegramPlatform extends Platform {
     }
   }
 
+  /** Кто привёл игрока: параметр из ссылки `?startapp=ref_<id>`. */
+  referrerId() {
+    const app = this.app;
+    const unsafe = app && app.initDataUnsafe;
+    return parseReferralParam(unsafe && unsafe.start_param);
+  }
+
+  /**
+   * Приглашение — это ссылка на бота с параметром. Открываем штатный диалог
+   * «поделиться»: он предлагает выбрать чат, а не отправляет что-то за игрока.
+   */
   async invite() {
-    // Приглашение в Telegram — это та же ссылка с реферальным параметром.
-    // Сам параметр появится вместе с ботом; пока звать некуда.
-    return { unavailable: true };
+    const app = this.app;
+    const user = this._user();
+    if (!app || typeof app.openTelegramLink !== 'function' || !user || !user.id) {
+      return { unavailable: true };
+    }
+    const link = telegramInviteLink(user.id);
+    const text = 'Забирай котиков и 25 рубинов на старте';
+    try {
+      app.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`
+      );
+      return { success: true, link };
+    } catch (e) {
+      return { unavailable: true };
+    }
   }
 
   /**

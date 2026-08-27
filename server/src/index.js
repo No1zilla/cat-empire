@@ -16,6 +16,7 @@ import paymentsRouter, {
 import { fetchGithubPages, shouldProxyToPages } from './pagesProxy.js';
 import { isSignatureEnforced } from './middleware/vkAuth.js';
 import starsRouter from './routes/stars.js';
+import referralRouter, { ensureReferralTable } from './routes/referral.js';
 import { isTelegramAuthEnforced } from './middleware/playerAuth.js';
 
 // Загрузка переменных окружения
@@ -90,6 +91,8 @@ app.use('/api/payments', paymentsRouter);
 // именно он, а не клиент, начисляет купленные рубины.
 app.use('/api/stars', starsRouter);
 app.use('/api/telegram', starsRouter);
+// TASK-115: приглашения друзей — единственный бесплатный канал роста в Telegram.
+app.use('/api/referral', referralRouter);
 
 app.use((req, res, next) => {
   if (!shouldProxyToPages(req)) return next();

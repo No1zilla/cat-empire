@@ -5,7 +5,7 @@ import { getPlatform } from './platform/index.js';
 import { Game } from './game/Game.js';
 import { loadCatTextures } from './utils/catTextures.js';
 import { soundManager } from './audio/SoundManager.js';
-import { saveProgress } from './api/client.js';
+import { saveProgress, claimReferral } from './api/client.js';
 import {
   readCssSafeArea,
   resolveViewInsets,
@@ -206,6 +206,20 @@ async function initApp() {
     platform.showBannerAd().catch((e) => {
       console.warn('Banner during splash skipped:', e);
     });
+  }
+
+  // TASK-115: игрок пришёл по ссылке друга. Не ждём ответа: награду начисляет
+  // сервер, и держать ради неё сплэш незачем — рубины подтянутся ближайшим
+  // обновлением баланса, а отказ (себя пригласил, уже засчитано) игрока не касается.
+  if (typeof platform.referrerId === 'function') {
+    const referrer = platform.referrerId();
+    if (referrer) {
+      claimReferral(referrer)
+        .then((res) => {
+          if (res && res.ok) console.log(`🤝 Приглашение засчитано: +${res.reward} рубинов`);
+        })
+        .catch(() => {});
+    }
   }
 
   // 3. Создать PIXI.Application для PixiJS v8
