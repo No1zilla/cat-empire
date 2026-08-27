@@ -1,7 +1,7 @@
 import { saveProgress, fetchProfile } from '../api/client.js';
 import { getPlatform } from '../platform/index.js';
 import { vkIdentity } from './VkIdentity.js';
-import { isStarterSnapshot } from '../game/bootProgress.js';
+import { isStarterSnapshot, starterGrid } from '../game/bootProgress.js';
 
 // TASK-110: облако — это «облако текущей платформы», а не VK. В VK за этим стоит
 // тот же VKWebAppStorageGet/Set, в Telegram — CloudStorage. Берём платформу лениво,
@@ -46,7 +46,7 @@ export class StorageService {
     } else {
       gridState = (Number(maxCatLevel) || 1) > 1
         ? []
-        : [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }];
+        : starterGrid();
     }
 
     let updatedAt = raw.t !== undefined ? raw.t : (raw.updatedAt !== undefined ? raw.updatedAt : (raw.updated_at !== undefined ? (typeof raw.updated_at === 'string' ? Date.parse(raw.updated_at) : raw.updated_at) : 0));
@@ -112,7 +112,7 @@ export class StorageService {
         maxCatLevel: 1,
         totalCatsBought: 0,
         totalMerges: 0,
-        gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+        gridState: starterGrid(),
         updatedAt: Date.now(),
         isReset: true
       };
@@ -183,7 +183,7 @@ export class StorageService {
       totalCatsBought: 0,
       totalMerges: 0,
       updatedAt: Date.now(),
-      gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
+      gridState: starterGrid()
     };
 
     this._writeLocalCache(finalState, Number(finalState.updatedAt) || Date.now());
@@ -375,7 +375,7 @@ export class StorageService {
         localStorage.setItem('cat_empire_last_total_bought', '0');
         localStorage.setItem('cat_empire_last_total_merges', '0');
         localStorage.setItem('cat_empire_last_updated_at', String(now));
-        localStorage.setItem('cat_empire_grid_state', JSON.stringify([{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]));
+        localStorage.setItem('cat_empire_grid_state', JSON.stringify(starterGrid()));
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem('cat_empire_last_timestamp');
         localStorage.removeItem('cat_empire_tutorial_done');
@@ -394,7 +394,7 @@ export class StorageService {
       maxCatLevel: 1,
       totalCatsBought: 0,
       totalMerges: 0,
-      gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }],
+      gridState: starterGrid(),
       updatedAt: now,
       isReset: true
     };
@@ -402,7 +402,7 @@ export class StorageService {
     // Гарантированно параллельно отправляем и дожидаемся перезаписи в VK Storage и серверную БД
     await Promise.allSettled([
       cloud().storageSet(STORAGE_KEY, {
-        c: 100, g: 10, m: 1, b: 0, r: 0, s: [[0, 1], [1, 1]], t: now, x: 1
+        c: 100, g: 10, m: 1, b: 0, r: 0, s: starterGrid().map((c) => [c.slotIndex, c.catLevel]), t: now, x: 1
       }),
       saveProgress(resetPayload)
     ]);

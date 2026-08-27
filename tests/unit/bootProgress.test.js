@@ -1,11 +1,5 @@
 import assert from 'node:assert';
-import {
-  loadBootProgress,
-  shouldSaveOnBoot,
-  isStarterSnapshot,
-  starterProgress,
-  BOOT_LOAD_TIMEOUT_MS
-} from '../../src/game/bootProgress.js';
+import { loadBootProgress, shouldSaveOnBoot, isStarterSnapshot, starterProgress, BOOT_LOAD_TIMEOUT_MS, starterGrid } from '../../src/game/bootProgress.js';
 
 /**
  * Загрузка прогресса на старте (TASK-108).
@@ -57,7 +51,34 @@ export async function runBootProgressTests() {
   const a = starterProgress();
   const b = starterProgress();
   a.gridState.push({ slotIndex: 5, catLevel: 3 });
-  assert.strictEqual(b.gridState.length, 2, 'копии не делят один массив');
+  assert.strictEqual(b.gridState.length, starterGrid().length, 'копии не делят один массив');
+
+  // TASK-117: стартовое поле обязано давать слияния сразу. Пустое поле с парой
+  // котов — это ноль действий для новичка, и по воронке он на этом и уходил.
+  const grid = starterGrid();
+  const byLevel = grid.reduce((acc, cell) => {
+    acc[cell.catLevel] = (acc[cell.catLevel] || 0) + 1;
+    return acc;
+  }, {});
+  const pairs = Object.values(byLevel).reduce((sum, n) => sum + Math.floor(n / 2), 0);
+  assert.ok(pairs >= 3, `на старте должно быть минимум три готовых слияния, есть ${pairs}`);
+
+  // Все коты первого уровня: иначе isStarterSnapshot перестанет узнавать стартовое
+  // состояние, а на нём держится защита от затирания облака (TASK-106).
+  assert.ok(
+    grid.every((cell) => cell.catLevel === 1),
+    'стартовое поле обязано состоять из котов первого уровня'
+  );
+  assert.strictEqual(
+    isStarterSnapshot(starterProgress()),
+    true,
+    'заряженное поле всё ещё считается стартовым снимком'
+  );
+
+  // Слоты не должны повторяться — иначе кот затрёт кота.
+  const slots = grid.map((c) => c.slotIndex);
+  assert.strictEqual(new Set(slots).size, slots.length, 'слоты стартового поля уникальны');
+  assert.ok(slots.every((i) => i >= 0 && i < 25), 'слоты помещаются в сетку 5x5');
 
   // 6. Разовое сохранение сразу после загрузки
   assert.strictEqual(

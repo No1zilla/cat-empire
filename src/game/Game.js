@@ -23,7 +23,7 @@ import { ACTION_BTN_H, ACTION_ROW_MARGIN } from '../ui/actionRowLayout.js';
 import { ActionRow } from '../ui/ActionRow.js';
 import { CAT_DECK_H, catDeckFrame } from '../ui/catDeckLayout.js';
 import { whenCatTexturesChange } from '../utils/catTextures.js';
-import { loadBootProgress, shouldSaveOnBoot } from './bootProgress.js';
+import { loadBootProgress, shouldSaveOnBoot, starterGrid } from './bootProgress.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
 import { incomeBoosterService } from './IncomeBooster.js';
@@ -154,10 +154,8 @@ export class Game {
     if (gridToImport && Array.isArray(gridToImport) && gridToImport.length > 0) {
       this.grid.importState(gridToImport);
     } else {
-      this.grid.importState([
-        { slotIndex: 0, catLevel: 1 },
-        { slotIndex: 1, catLevel: 1 }
-      ]);
+      // TASK-117: заряженное поле новичка живёт в одном месте — bootProgress.
+      this.grid.importState(starterGrid());
     }
 
     // Вычисляем максимальный уровень на сетке при старте

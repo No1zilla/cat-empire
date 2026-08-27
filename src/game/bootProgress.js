@@ -10,6 +10,35 @@
 /** Сколько ждём загрузку, прежде чем показать игроку хоть что-то. */
 export const BOOT_LOAD_TIMEOUT_MS = 7000;
 
+/**
+ * Стартовое поле новой империи (TASK-117).
+ *
+ * Было два кота на пустой сетке: одно доступное действие, и после него снова
+ * пусто. По воронке 40% игроков уходили, не сделав ни одной покупки — им просто
+ * нечего было делать.
+ *
+ * Теперь на поле четыре пары: четыре слияния доступны сразу, а их результаты
+ * дают ещё три. Семь шагов каскадом, каждый со скачком дохода — первая минута
+ * наполняется тем, ради чего игру и открывают.
+ *
+ * ВСЕ коты первого уровня — это не украшательство. `isStarterSnapshot()` считает
+ * снимок стартовым по `maxCatLevel <= 1`, и на этом держится защита от затирания
+ * облака заглушкой (TASK-106). Положи сюда кота второго уровня — и защита
+ * перестанет узнавать стартовое состояние.
+ */
+export function starterGrid() {
+  return [
+    { slotIndex: 0, catLevel: 1 },
+    { slotIndex: 1, catLevel: 1 },
+    { slotIndex: 3, catLevel: 1 },
+    { slotIndex: 4, catLevel: 1 },
+    { slotIndex: 10, catLevel: 1 },
+    { slotIndex: 11, catLevel: 1 },
+    { slotIndex: 13, catLevel: 1 },
+    { slotIndex: 14, catLevel: 1 }
+  ];
+}
+
 /** Состояние новой империи. Отдаём копию: у гридов есть кому мутировать. */
 export function starterProgress() {
   return {
@@ -18,10 +47,7 @@ export function starterProgress() {
     maxCatLevel: 1,
     totalCatsBought: 0,
     totalMerges: 0,
-    gridState: [
-      { slotIndex: 0, catLevel: 1 },
-      { slotIndex: 1, catLevel: 1 }
-    ]
+    gridState: starterGrid()
   };
 }
 
