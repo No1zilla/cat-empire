@@ -23,7 +23,7 @@ import { ACTION_BTN_H, ACTION_ROW_MARGIN } from '../ui/actionRowLayout.js';
 import { ActionRow } from '../ui/ActionRow.js';
 import { CAT_DECK_H, catDeckFrame } from '../ui/catDeckLayout.js';
 import { whenCatTexturesChange } from '../utils/catTextures.js';
-import { isStarterSnapshot } from '../services/StorageService.js';
+import { loadBootProgress, shouldSaveOnBoot } from './bootProgress.js';
 import { AdModal } from '../ui/AdModal.js';
 import { RubyShopModal } from '../ui/RubyShopModal.js';
 import { incomeBoosterService } from './IncomeBooster.js';
@@ -77,18 +77,18 @@ export class Game {
     this.userName = userName;
     this.vkProfile = profile && typeof profile === 'object' ? profile : {};
     // 1. Единый модуль загрузки через StorageService с каскадной конвергенцией
-    const progress = await Promise.race([
-      storageService.loadProgress().catch(() => null),
-      new Promise((resolve) => setTimeout(() => resolve(null), 7000))
-    ]) || {
-      coins: 100,
-      gems: 10,
-      maxCatLevel: 1,
-      totalCatsBought: 0,
-      totalMerges: 0,
-      gridState: [{ slotIndex: 0, catLevel: 1 }, { slotIndex: 1, catLevel: 1 }]
-    };
-    this._cloudSaveOk = Boolean(progress && progress.isReset) || !isStarterSnapshot(progress);
+    // TASK-108: решения о загрузке вынесены в bootProgress.js и покрыты тестами.
+    const boot = await loadBootProgress(() => storageService.loadProgress());
+    const progress = boot.progress;
+
+    // Гонка выше могла истечь, а loadProgress — завершиться уже после неё и выставить
+    // lastLoadVerified = true. Тогда защита из TASK-106 снималась, хотя на экране
+    // стартовая заглушка, и она уезжала в облако поверх настоящей империи.
+    // Пока не увидели реальное состояние, облачные записи держим закрытыми: их
+    // откроет следующая успешная загрузка (в том числе при возврате на вкладку).
+    if (!boot.loaded) storageService.lastLoadVerified = false;
+
+    this._cloudSaveOk = shouldSaveOnBoot(progress);
 
     if (progress && progress.vkId) {
       eventTracker.setUserId(progress.vkId);

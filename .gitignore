@@ -20,3 +20,10 @@ server/node_modules
 
 # visual regression debug artifacts
 snapshots/diffs/
+
+# repowise: локальный индекс (14 МБ) и конфиги редакторов, машинозависимые пути
+.repowise/
+.mcp.json
+.vscode/mcp.json
+.vscode/extensions.json
+.claude/

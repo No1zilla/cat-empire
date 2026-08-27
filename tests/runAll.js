@@ -22,6 +22,7 @@ import { runProgressResetTests } from './unit/progressReset.test.js';
 import { runOfflineClaimTests } from './unit/offlineClaim.test.js';
 import { runApiClientTests } from './unit/apiClient.test.js';
 import { runRubyShopHitsTests } from './unit/rubyShopHits.test.js';
+import { runBootProgressTests } from './unit/bootProgress.test.js';
 import { runSessionLifecycleTests } from './unit/sessionLifecycle.test.js';
 import { runViewInsetsTests } from './unit/viewInsets.test.js';
 
@@ -56,6 +57,7 @@ async function main() {
     runRubyShopHitsTests();
     runViewInsetsTests();
     await runSessionLifecycleTests();
+    await runBootProgressTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {

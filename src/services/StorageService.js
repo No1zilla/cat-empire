@@ -1,6 +1,7 @@
 import { saveProgress } from '../api/client.js';
 import { VKService } from '../vk/VKBridge.js';
 import { vkIdentity } from './VkIdentity.js';
+import { isStarterSnapshot } from '../game/bootProgress.js';
 
 const vkService = new VKService();
 const STORAGE_KEY = 'cat_empire_progress';
@@ -13,11 +14,9 @@ export function progressRank(state = {}) {
     + (Number(state.totalCatsBought) || 0);
 }
 
-export function isStarterSnapshot(state = {}) {
-  return (Number(state.maxCatLevel) || 1) <= 1
-    && (Number(state.totalMerges) || 0) <= 0
-    && (Number(state.totalCatsBought) || 0) <= 2;
-}
+// TASK-108: правило живёт в bootProgress.js — чистом модуле без vk-bridge, чтобы
+// его можно было покрыть тестами. Здесь реэкспорт, чтобы не плодить вторую копию.
+export { isStarterSnapshot };
 
 /**
  * Единый Сервис Хранения Данных с Алгоритмом Трехсторонней Конвергенции (Smart Tri-State Merger)
