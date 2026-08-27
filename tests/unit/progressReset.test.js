@@ -65,7 +65,7 @@ export async function runProgressResetTests() {
   assert.strictEqual(state.coins, 100);
   assert.strictEqual(state.maxCatLevel, 1);
 
-  // TASK-109: флаг сброса залипал навсегда. resetSave становился true у любого
+  // TASK-111: флаг сброса залипал навсегда. resetSave становился true у любого
   // сохранения, пока флаг стоял, а снять флаг мог только код под `!resetSave` —
   // условие противоречило себе. Итог: loadProgress на каждой перезагрузке отдавал
   // чистые 100 монет и записывал их в VK Storage поверх настоящей империи.
@@ -74,8 +74,6 @@ export async function runProgressResetTests() {
 
   const afterReset = new StorageService();
   afterReset.lastLoadVerified = true;
-  let cloudWrites = 0;
-  afterReset._writeCloud = async () => { cloudWrites += 1; };
 
   const realEmpire = {
     coins: 50000,
