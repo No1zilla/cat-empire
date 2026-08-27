@@ -25,6 +25,8 @@ import { runRubyShopHitsTests } from './unit/rubyShopHits.test.js';
 import { runBootProgressTests } from './unit/bootProgress.test.js';
 import { runSessionLifecycleTests } from './unit/sessionLifecycle.test.js';
 import { runViewInsetsTests } from './unit/viewInsets.test.js';
+import { runPlatformTests } from './unit/platform.test.js';
+import { runVkAuthTests } from './unit/vkAuth.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -56,8 +58,10 @@ async function main() {
     await runApiClientTests();
     runRubyShopHitsTests();
     runViewInsetsTests();
+    runVkAuthTests();
     await runSessionLifecycleTests();
     await runBootProgressTests();
+    await runPlatformTests();
     console.log('----------------------------------------------------');
     console.log('🎉 ВСЕ ПРОГРАММНЫЕ АВТО-ТЕСТЫ УСПЕШНО ПРОЙДЕНЫ! (100% GREEN)');
   } catch (error) {
