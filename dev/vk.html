@@ -197,6 +197,11 @@
       100% { opacity: 1.0; }
     }
   </style>
+  <!-- TASK-114: SDK Telegram Mini Apps. Грузится всегда и стоит копейки, но
+       window.Telegram.WebApp обязан существовать ДО старта игры: по нему
+       платформенный слой понимает, где он запущен. В VK скрипт просто ничего
+       не делает. -->
+  <script src="https://telegram.org/js/telegram-web-app.js?57"></script>
   <script>
     window.resetTutorial = function() {
       localStorage.removeItem('cat_empire_tutorial_done');
@@ -204,7 +209,7 @@
       location.reload();
     };
   </script>
-  <script type="module" crossorigin src="./assets/index-Bm5y_qbr.js"></script>
+  <script type="module" crossorigin src="./assets/index-trE50Qte.js"></script>
 </head>
 <body>
   <!-- 🔥 Единый Сплаш-Экран Загрузки в стиле MainMenu -->
