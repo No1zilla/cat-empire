@@ -1,5 +1,5 @@
 import { Graphics, Container, Text, TextStyle } from 'pixi.js';
-import { CONFIG } from '../config.js';
+import { CONFIG, SLOT_COUNT } from '../config.js';
 import { getPlatform } from '../platform/index.js';
 
 // Система управления перетаскиванием (Drag-and-Drop) и Тапом (Tap to Move / Tap to Merge)
@@ -32,7 +32,7 @@ export class DragSystem {
 
   // Выделить слот с помощью тапа
   selectSlot(slotIndex) {
-    if (slotIndex < 0 || slotIndex >= 25) return;
+    if (slotIndex < 0 || slotIndex >= SLOT_COUNT) return;
     const cat = this.grid.getCatAtSlot(slotIndex);
     if (!cat) {
       this.clearSelection();
@@ -78,7 +78,7 @@ export class DragSystem {
       const row = Math.floor((localY - CONFIG.GRID_PADDING / 2) / cellStep);
 
       if (col >= 0 && col < 5 && row >= 0 && row < 5) {
-        const targetSlot = row * 5 + col;
+        const targetSlot = row * CONFIG.GRID_SIZE + col;
         if (targetSlot !== this.selectedSlot && this.grid.slots[targetSlot] === null) {
           // Перемещение выделенного котика в пустую ячейку
           const cat = this.grid.slots[this.selectedSlot];

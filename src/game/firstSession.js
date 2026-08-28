@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js';
+import { CONFIG, ROOM_HEIGHT } from '../config.js';
 
 /**
  * Первая сессия: сразу поле и три кнопки. Календарь — после первого слияния.
@@ -30,7 +30,7 @@ export function getTutorialTargets() {
   const pad = CONFIG.GRID_PADDING;
   const gridW = 5 * (cell + pad) + pad;
   const gridX = Math.max(0, Math.floor((CONFIG.GAME_WIDTH - gridW) / 2));
-  const gridY = 58;
+  const gridY = ROOM_HEIGHT;
   return {
     slots: {
       x: gridX + pad,

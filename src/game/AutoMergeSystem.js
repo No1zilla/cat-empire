@@ -1,4 +1,4 @@
-import { CONFIG } from '../config.js';
+import { CONFIG, SLOT_COUNT } from '../config.js';
 
 /**
  * TASK-012: Система каскадного авто-слияния котиков на поле 5x5 с задержкой 120мс
@@ -28,7 +28,7 @@ export class AutoMergeSystem {
       for (let level = 1; level < CONFIG.MAX_CAT_LEVEL; level++) {
         const matchingSlots = [];
 
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < SLOT_COUNT; i++) {
           const cat = this.grid.getCatAtSlot(i);
           if (cat && cat.level === level) {
             matchingSlots.push({ slotIndex: i, cat });

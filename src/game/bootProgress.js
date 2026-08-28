@@ -27,15 +27,16 @@ export const BOOT_LOAD_TIMEOUT_MS = 7000;
  * перестанет узнавать стартовое состояние.
  */
 export function starterGrid() {
+  // Раскладка под поле 4x4: две пары в верхнем ряду, две в третьем.
   return [
     { slotIndex: 0, catLevel: 1 },
     { slotIndex: 1, catLevel: 1 },
+    { slotIndex: 2, catLevel: 1 },
     { slotIndex: 3, catLevel: 1 },
-    { slotIndex: 4, catLevel: 1 },
+    { slotIndex: 8, catLevel: 1 },
+    { slotIndex: 9, catLevel: 1 },
     { slotIndex: 10, catLevel: 1 },
-    { slotIndex: 11, catLevel: 1 },
-    { slotIndex: 13, catLevel: 1 },
-    { slotIndex: 14, catLevel: 1 }
+    { slotIndex: 11, catLevel: 1 }
   ];
 }
 

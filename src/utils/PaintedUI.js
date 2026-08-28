@@ -332,4 +332,143 @@ export function gameTextStyle(TextStyleCtor, { size = 14, fill = '#ffffff', outl
   });
 }
 
-export default { glossyButton, raisedPanel, insetCell, shade, woodPanel, grassPatch, ribbon, boltDot, gameTextStyle };
+
+/**
+ * СТИЛЬ КРЕМОВЫХ КАРТОЧЕК (TASK-122).
+ *
+ * Правила сняты с эталона жанра — кото-мерджа в Telegram, на который смотрит
+ * наша аудитория:
+ *   1. поверхность всегда тёплый крем, не белая и не тёмная;
+ *   2. у КАЖДОГО элемента толстый коричневый кант — это подпись стиля;
+ *   3. плоско: работает кант и радиус, а не градиенты с бликами;
+ *   4. текст тёмно-коричневый, обводка только на цветном фоне;
+ *   5. один сочный акцент на экран, остальное спокойное;
+ *   6. орнамент — следы лапок.
+ *
+ * Важное следствие: такой стиль не требует растрового арта. Он держится на
+ * форме, а не на текстуре, поэтому рисуется примитивами целиком.
+ */
+
+export const CREAM = {
+  surface: 0xf7e7c6,
+  card: 0xfff6e2,
+  cardDeep: 0xf0dcb4,
+  border: 0xc89b62,
+  borderDark: 0x9c7440,
+  text: 0x5b3a1e,
+  textSoft: 0x9a7248,
+  accent: 0x6bbf4e,
+  accentBorder: 0x3f8c33
+};
+
+/**
+ * Карточка стиля: плоская кремовая заливка, толстый кант, мягкая тень.
+ * Никаких градиентов — в этом и смысл.
+ */
+export function creamCard(width, height, options = {}) {
+  const radius = options.radius !== undefined ? options.radius : 18;
+  const fill = options.fill !== undefined ? options.fill : CREAM.card;
+  const border = options.border !== undefined ? options.border : CREAM.border;
+  const borderWidth = options.borderWidth !== undefined ? options.borderWidth : 3;
+
+  const g = new Graphics();
+  if (options.shadow !== false) {
+    g.roundRect(0, 3, width, height, radius).fill({ color: CREAM.borderDark, alpha: 0.28 });
+  }
+  g.roundRect(0, 0, width, height, radius).fill({ color: fill });
+  g.roundRect(borderWidth / 2, borderWidth / 2, width - borderWidth, height - borderWidth, radius - borderWidth / 2)
+    .stroke({ color: border, width: borderWidth });
+  return g;
+}
+
+/**
+ * Кнопка-действие: насыщенная заливка, кант того же тона потемнее, белый текст
+ * с обводкой. Тот же силуэт, что у карточки, — семейство не разваливается.
+ */
+export function creamButton(width, height, color, options = {}) {
+  const radius = options.radius !== undefined ? options.radius : 16;
+  const border = options.border !== undefined ? options.border : shade(color, -0.35);
+
+  const box = new Container();
+
+  const shadow = new Graphics();
+  shadow.roundRect(0, 4, width, height, radius).fill({ color: CREAM.borderDark, alpha: 0.35 });
+  box.addChild(shadow);
+
+  const body = new Graphics();
+  body.roundRect(0, 0, width, height, radius).fill({ color });
+  // Лёгкий верхний подсвет: не глянец, а намёк на объём.
+  body.roundRect(3, 3, width - 6, height * 0.38, radius - 3).fill({ color: shade(color, 0.22), alpha: 0.5 });
+  body.roundRect(1.5, 1.5, width - 3, height - 3, radius - 1.5).stroke({ color: border, width: 3 });
+  box.addChild(body);
+
+  const content = new Container();
+  box.addChild(content);
+  box.content = content;
+
+  box.setPressed = (pressed) => {
+    const drop = pressed ? 3 : 0;
+    body.y = drop;
+    content.y = drop;
+    shadow.alpha = pressed ? 0.18 : 1;
+  };
+  return box;
+}
+
+/** Следы лапок — фоновый орнамент панелей. Дёшево и несёт бренд. */
+export function pawPrints(width, height, options = {}) {
+  const color = options.color !== undefined ? options.color : CREAM.border;
+  const alpha = options.alpha !== undefined ? options.alpha : 0.28;
+  const count = options.count !== undefined ? options.count : 6;
+
+  const g = new Graphics();
+  for (let i = 0; i < count; i += 1) {
+    const x = ((i * 137) % Math.max(1, width - 24)) + 12;
+    const y = ((i * 83) % Math.max(1, height - 20)) + 10;
+    const r = 2.2 + (i % 3) * 0.5;
+    g.ellipse(x, y + r * 1.7, r * 1.5, r * 1.25).fill({ color, alpha });
+    g.circle(x - r * 1.5, y - r * 0.4, r * 0.62).fill({ color, alpha });
+    g.circle(x - r * 0.5, y - r * 1.1, r * 0.6).fill({ color, alpha });
+    g.circle(x + r * 0.6, y - r * 1.1, r * 0.6).fill({ color, alpha });
+    g.circle(x + r * 1.5, y - r * 0.3, r * 0.6).fill({ color, alpha });
+  }
+  return g;
+}
+
+
+/**
+ * Коврик-слот: мягкий овал вместо клетки.
+ *
+ * Клетка — это про головоломку, коврик — про место, где живёт кот. Форма
+ * работает на смысл сильнее, чем цвет: даже пустой слот читается как «здесь
+ * кто-то должен лежать».
+ */
+export function matSlot(width, height, options = {}) {
+  const base = options.color !== undefined ? options.color : 0xf3c9cf;
+  const g = new Graphics();
+
+  const cx = width / 2;
+  const cy = height * 0.62;
+  const rx = width * 0.42;
+  const ry = height * 0.30;
+
+  // Тень под ковриком — он лежит на полу, а не парит.
+  g.ellipse(cx, cy + 3, rx, ry).fill({ color: 0x000000, alpha: 0.13 });
+  g.ellipse(cx, cy, rx, ry).fill({ color: shade(base, -0.22) });
+  g.ellipse(cx, cy - 1, rx * 0.88, ry * 0.84).fill({ color: base });
+  g.ellipse(cx, cy - 1, rx * 0.88, ry * 0.84)
+    .stroke({ color: shade(base, -0.3), width: 1.5, alpha: 0.6 });
+
+  // След лапки по центру — коврик именно кошачий.
+  const r = Math.min(width, height) * 0.055;
+  const pawColor = shade(base, -0.28);
+  g.ellipse(cx, cy + r * 1.5, r * 1.5, r * 1.2).fill({ color: pawColor, alpha: 0.5 });
+  g.circle(cx - r * 1.6, cy - r * 0.4, r * 0.6).fill({ color: pawColor, alpha: 0.5 });
+  g.circle(cx - r * 0.55, cy - r * 1.2, r * 0.58).fill({ color: pawColor, alpha: 0.5 });
+  g.circle(cx + r * 0.55, cy - r * 1.2, r * 0.58).fill({ color: pawColor, alpha: 0.5 });
+  g.circle(cx + r * 1.6, cy - r * 0.4, r * 0.6).fill({ color: pawColor, alpha: 0.5 });
+
+  return g;
+}
+
+export default { matSlot, creamCard, creamButton, pawPrints, CREAM, glossyButton, raisedPanel, insetCell, shade, woodPanel, grassPatch, ribbon, boltDot, gameTextStyle };

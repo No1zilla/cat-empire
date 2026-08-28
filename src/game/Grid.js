@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
-import { CONFIG } from '../config.js';
-import { woodPanel, grassPatch } from '../utils/PaintedUI.js';
+import { CONFIG, SLOT_COUNT } from '../config.js';
+import { creamCard, matSlot } from '../utils/PaintedUI.js';
 import { Cat } from './Cat.js';
 
 // Класс игрового поля 5x5 (TASK-016: getActiveCatsCount)
@@ -8,13 +8,13 @@ export class Grid extends Container {
   constructor(app) {
     super();
     this.app = app;
-    this.slots = new Array(25).fill(null); // null = пусто, Cat = объект котика
+    this.slots = new Array(SLOT_COUNT).fill(null); // null = пусто, Cat = объект котика
 
     this._drawBackground();
     this._drawCells();
   }
 
-  // TASK-016: Метод получения количества активных котиков на сетке (0..25)
+  // TASK-016: Метод получения количества активных котиков на сетке
   getActiveCatsCount() {
     return this.slots.filter((cat) => cat !== null).length;
   }
@@ -37,24 +37,25 @@ export class Grid extends Container {
     // была плашка со скруглением, то есть форма, неотличимая от любой другой.
     // Рама выступает за сетку на 10px со всех сторон: только так дерево читается
     // как ящик, а не как перемычки между клетками.
+    // TASK-123: лоток кремовый с кантом. Деревянный терялся на деревянном полу,
+    // а кремовое пятно, наоборот, отделяет игру от комнаты.
     const frame = 10;
-    const tray = woodPanel(gridWidth + frame * 2, gridHeight + frame * 2, { radius: 18, color: 0xc98f4e });
+    const tray = creamCard(gridWidth + frame * 2, gridHeight + frame * 2, { radius: 22, borderWidth: 4 });
     tray.position.set(-frame, -frame);
     this.addChild(tray);
   }
 
-  // Отрисовка 25 ячеек 5х5 с эффектом углубления и радиусом 16px
+  // Отрисовка ячеек поля
   _drawCells() {
-    for (let i = 0; i < 25; i++) {
-      const col = i % 5;
-      const row = Math.floor(i / 5);
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const col = i % CONFIG.GRID_SIZE;
+      const row = Math.floor(i / CONFIG.GRID_SIZE);
 
       const x = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
       const y = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 
-      const cell = grassPatch(CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, {
-        radius: 14,
-        color: CONFIG.COLORS.CELL_BG || 0x7fc98a
+      const cell = matSlot(CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, {
+        color: CONFIG.COLORS.CELL_BG || 0xf3c9cf
       });
       cell.position.set(x, y);
       this.addChild(cell);
@@ -63,14 +64,14 @@ export class Grid extends Container {
 
   // Получить котика в указанном слоте
   getCatAtSlot(slotIndex) {
-    if (slotIndex < 0 || slotIndex >= 25) return null;
+    if (slotIndex < 0 || slotIndex >= SLOT_COUNT) return null;
     return this.slots[slotIndex] || null;
   }
 
   // Получить позицию для котика внутри слота
   getSlotPosition(slotIndex) {
-    const col = slotIndex % 5;
-    const row = Math.floor(slotIndex / 5);
+    const col = slotIndex % CONFIG.GRID_SIZE;
+    const row = Math.floor(slotIndex / CONFIG.GRID_SIZE);
 
     const cellX = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
     const cellY = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
@@ -86,8 +87,8 @@ export class Grid extends Container {
     const cat = this.getCatAtSlot(slotIndex);
     if (!cat) return false;
 
-    const col = slotIndex % 5;
-    const row = Math.floor(slotIndex / 5);
+    const col = slotIndex % CONFIG.GRID_SIZE;
+    const row = Math.floor(slotIndex / CONFIG.GRID_SIZE);
 
     const neighbors = [
       col > 0 ? this.getCatAtSlot(slotIndex - 1) : null, // Влево
@@ -101,7 +102,7 @@ export class Grid extends Container {
 
   // TASK-011: Управление умной подсветкой котиков
   updateBoardGlow(draggingCat = null) {
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < SLOT_COUNT; i++) {
       const cat = this.slots[i];
       if (!cat) continue;
 
@@ -134,7 +135,7 @@ export class Grid extends Container {
 
   // Добавить котика в слот
   addCat(cat, slotIndex) {
-    if (slotIndex < 0 || slotIndex >= 25) return;
+    if (slotIndex < 0 || slotIndex >= SLOT_COUNT) return;
 
     if (this.slots[slotIndex] && this.slots[slotIndex] !== cat) {
       this.removeCat(slotIndex);
@@ -171,7 +172,7 @@ export class Grid extends Container {
   // Экспорт состояния слотов
   exportState() {
     const state = [];
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < SLOT_COUNT; i++) {
       if (this.slots[i] !== null) {
         state.push({
           slotIndex: i,
@@ -184,7 +185,7 @@ export class Grid extends Container {
 
   // Импорт состояния
   importState(gridStateArr) {
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < SLOT_COUNT; i++) {
       this.removeCat(i);
     }
 
@@ -201,7 +202,7 @@ export class Grid extends Container {
 
     if (Array.isArray(items)) {
       items.forEach((item) => {
-        if (item && item.slotIndex >= 0 && item.slotIndex < 25) {
+        if (item && item.slotIndex >= 0 && item.slotIndex < SLOT_COUNT) {
           const cat = new Cat(item.catLevel || 1, item.slotIndex);
           this.addCat(cat, item.slotIndex);
         }
@@ -221,7 +222,7 @@ export class Grid extends Container {
     this._pairGlowContainer.removeChildren();
 
     const levelCounts = {};
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < SLOT_COUNT; i++) {
       const cat = this.slots[i];
       if (cat && cat.level < CONFIG.MAX_CAT_LEVEL) {
         levelCounts[cat.level] = (levelCounts[cat.level] || 0) + 1;
@@ -236,11 +237,11 @@ export class Grid extends Container {
 
     if (pairLevels.size === 0) return;
 
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < SLOT_COUNT; i++) {
       const cat = this.slots[i];
       if (cat && pairLevels.has(cat.level)) {
-        const col = i % 5;
-        const row = Math.floor(i / 5);
+        const col = i % CONFIG.GRID_SIZE;
+        const row = Math.floor(i / CONFIG.GRID_SIZE);
         const cellX = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
         const cellY = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 

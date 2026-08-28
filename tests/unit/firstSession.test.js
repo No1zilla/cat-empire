@@ -1,5 +1,6 @@
 import assert from 'node:assert';
 import { shouldRevealMidgameChrome, shouldOfferDailyNow, shouldSkipBootMenu, fillRowAlwaysVisible, getTutorialTargets } from '../../src/game/firstSession.js';
+import { CONFIG, ROOM_HEIGHT } from '../../src/config.js';
 
 export function runFirstSessionTests() {
   console.log('🧪 Тестирование первой сессии: поле и кнопки сразу...');
@@ -29,9 +30,20 @@ export function runFirstSessionTests() {
     alreadyOffered: true
   }), false);
 
+  // TASK-123: поле уехало вниз под комнату, поэтому проверяем не абсолютные
+  // пиксели, а смысл: дыра туториала лежит ровно на первом ряду слотов и
+  // высотой в одну ячейку. Так тест переживёт следующий переезд раскладки.
   const hole = getTutorialTargets().slots;
-  assert.ok(hole.y < 140, 'Дыра туториала должна быть на первом ряду котов');
-  assert.ok(hole.y + hole.h < 250, 'Карточка подсказки не должна перекрывать котов');
+  assert.strictEqual(
+    hole.y,
+    ROOM_HEIGHT + CONFIG.GRID_PADDING,
+    'Дыра туториала начинается на первом ряду слотов'
+  );
+  assert.strictEqual(hole.h, CONFIG.CELL_SIZE, 'Высота дыры — одна ячейка');
+  assert.ok(
+    hole.w > CONFIG.CELL_SIZE && hole.w <= CONFIG.CELL_SIZE * 2 + CONFIG.GRID_PADDING,
+    'Подсвечиваем пару соседних котов, а не всё поле'
+  );
   assert.ok(hole.w > 140, 'Дыра покрывает двух стартовых котиков');
 
   console.log('  ✅ Первая сессия: меню пропущено, заполнить на месте');

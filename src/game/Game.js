@@ -1,5 +1,6 @@
 import { Container, Text, TextStyle } from 'pixi.js';
-import { CONFIG, gameContainerOffsetX } from '../config.js';
+import { CONFIG, gameContainerOffsetX , SLOT_COUNT, ROOM_HEIGHT } from '../config.js';
+import { Room } from '../ui/Room.js';
 import { BALANCE } from '../config/balance.js';
 import { Grid } from './Grid.js';
 import { Cat } from './Cat.js';
@@ -146,7 +147,17 @@ export class Game {
     this.grid = new Grid(this.app);
     const gridWidth = 5 * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING) + CONFIG.GRID_PADDING;
     this.grid.x = Math.max(0, Math.floor((CONFIG.GAME_WIDTH - gridWidth) / 2));
-    this.grid.y = 58;
+    // TASK-123: поле опускается — сверху живёт комната с гуляющими котами.
+    this.grid.y = ROOM_HEIGHT;
+    // TASK-123: комната живёт под сеткой и над фоном.
+    this.room = new Room(CONFIG.GAME_WIDTH, CONFIG.GAME_HEIGHT, {
+      // Гуляют между стеной и верхом лотка: под лотком пола не видно.
+      walkTop: 112,
+      walkBottom: ROOM_HEIGHT - 6
+    });
+    this.room.zIndex = 20;
+    this.gameContainer.addChild(this.room);
+
     this.grid.zIndex = 50;
     this.gameContainer.addChild(this.grid);
 
@@ -202,7 +213,7 @@ export class Game {
     // B) 📦 Заполнить — выкуп свободных слотов за монеты
     this.fillAllButton = new FillAllButton(this.app, this.grid, this.economy, async () => {
       const freeSlots = [];
-      for (let i = 0; i < 25; i++) {
+      for (let i = 0; i < SLOT_COUNT; i++) {
         if (this.grid.slots[i] === null) {
           freeSlots.push(i);
         }
@@ -308,7 +319,10 @@ export class Game {
     });
     this.catDeck.updateMaxLevel(this.maxCatLevel);
     this.catDeck.zIndex = 70;
-    this.gameContainer.addChild(this.catDeck);
+    // TASK-123: на поле Котопедии больше нет. В новый бюджет высоты она не влезает
+    // (комната 200 + поле 350 + кнопки), а главное — на главном экране должна быть
+    // игра, а не витрина. Открывается из меню, объект живой ради этого вызова.
+    this.catDeck.visible = false;
     this._dailyOfferedThisBoot = false;
     this._bootHooksRan = false;
     this._applyFirstSessionChrome();
@@ -406,6 +420,7 @@ export class Game {
     });
 
     this._startFloatingIncomePopups();
+    this._startRoomLoop();
     this._bindLifecycleFlushes();
 
     const showTutorialIfNeeded = (force = false) => {
@@ -608,6 +623,18 @@ export class Game {
       if (!this.economy) return;
       syncManager.flushImmediate(this._getStateSnapshot());
     });
+  }
+
+  /** Шаг анимации комнаты: коты гуляют, пока игрок смотрит на поле. */
+  _startRoomLoop() {
+    const step = () => {
+      if (this._roomLoopStopped) return;
+      if (this.room && typeof this.room.update === 'function') {
+        this.room.update(Date.now());
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   _startFloatingIncomePopups() {
