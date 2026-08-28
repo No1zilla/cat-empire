@@ -12,8 +12,8 @@ export const CONFIG = {
     // мягкая мята: белые коты с тёмным контуром на ней читаются лучше всего.
     BG_TOP: 0x8ec5ff,      // Небо сверху
     BG_BOTTOM: 0xffd9a8,   // Тёплый горизонт
-    GRID_BG: 0xf7e6c8,     // Кремовый лоток поля
-    CELL_BG: 0xbfe3c6,     // Мятная ячейка
+    GRID_BG: 0xc98f4e,     // Деревянный ящик поля
+    CELL_BG: 0x7fc98a,     // Травяная грядка
     CELL_BORDER: 0xd9b98a, // Тёплый кант лотка
     ACCENT: 0xff5e62,      // Coral/Pink акцентный цвет
     GOLD: 0xffd700,        // Золото

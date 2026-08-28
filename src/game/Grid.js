@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { CONFIG } from '../config.js';
-import { insetCell, raisedPanel, shade } from '../utils/PaintedUI.js';
+import { woodPanel, grassPatch } from '../utils/PaintedUI.js';
 import { Cat } from './Cat.js';
 
 // Класс игрового поля 5x5 (TASK-016: getActiveCatsCount)
@@ -33,11 +33,13 @@ export class Grid extends Container {
     // TASK-119: поле — это физический лоток, а не прямоугольник цвета. Приподнятая
     // рама со светом сверху, внутри — утопленные ячейки. Разница в направлении
     // градиента у рамы и ячеек и создаёт ощущение глубины.
-    const tray = raisedPanel(gridWidth, gridHeight, CONFIG.COLORS.GRID_BG || 0x15122c, {
-      radius: 20,
-      stroke: shade(CONFIG.COLORS.CELL_BORDER || 0x3d356c, 0.25),
-      strokeAlpha: 0.7
-    });
+    // TASK-121: поле — деревянный ящик с волокном и болтами по углам. Раньше это
+    // была плашка со скруглением, то есть форма, неотличимая от любой другой.
+    // Рама выступает за сетку на 10px со всех сторон: только так дерево читается
+    // как ящик, а не как перемычки между клетками.
+    const frame = 10;
+    const tray = woodPanel(gridWidth + frame * 2, gridHeight + frame * 2, { radius: 18, color: 0xc98f4e });
+    tray.position.set(-frame, -frame);
     this.addChild(tray);
   }
 
@@ -50,8 +52,9 @@ export class Grid extends Container {
       const x = CONFIG.GRID_PADDING + col * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
       const y = CONFIG.GRID_PADDING + row * (CONFIG.CELL_SIZE + CONFIG.GRID_PADDING);
 
-      const cell = insetCell(CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, CONFIG.COLORS.CELL_BG || 0x1d193d, {
-        radius: 16
+      const cell = grassPatch(CONFIG.CELL_SIZE, CONFIG.CELL_SIZE, {
+        radius: 14,
+        color: CONFIG.COLORS.CELL_BG || 0x7fc98a
       });
       cell.position.set(x, y);
       this.addChild(cell);

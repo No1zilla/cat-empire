@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { UIUtils } from '../utils/UIUtils.js';
 import { TOKENS } from '../styles/design-tokens.js';
 import { getPlatform } from '../platform/index.js';
+import { gameTextStyle, woodPanel } from '../utils/PaintedUI.js';
 
 /**
  * Премиальный HUD AAA-уровня с подключением TOKENS (TASK-047)
@@ -41,7 +42,7 @@ export class HUD extends Container {
     const capY = 10;
     const capRadius = TOKENS.radii.hud || 14;
     const font = CONFIG.FONT_FAMILY || 'Fredoka, sans-serif';
-    const panelFill = parseInt(TOKENS.colors.panelBg.replace('#', '0x'));
+    const panelFill = 0xc98f4e; // дерево
     const panelStroke = parseInt(TOKENS.colors.panelBorder.replace('#', '0x'));
     const gemsFill = parseInt(TOKENS.colors.gems.replace('#', '0x'));
 
@@ -49,16 +50,11 @@ export class HUD extends Container {
       const chip = new Container();
       chip.position.set(x, y);
 
-      const cShadow = new Graphics();
-      cShadow.roundRect(0, 2, w, h, capRadius);
-      cShadow.fill({ color: 0x000000, alpha: 0.35 });
-      chip.addChild(cShadow);
-
-      const cBg = new Graphics();
-      cBg.roundRect(0, 0, w, h, capRadius);
-      cBg.fill(fill);
-      cBg.stroke({ color: stroke, width: 1.5, alpha: strokeAlpha });
-      chip.addChild(cBg);
+      // TASK-121: чип — деревянная табличка, как и поле. Кремовая плашка с белым
+      // текстом давала кашу: белое по светлому держится только обводкой, а она
+      // на кегле 12 съедает буквы.
+      const woodenChip = woodPanel(w, h, { radius: capRadius, color: fill, bolts: false });
+      chip.addChild(woodenChip);
 
       const shine = new Graphics();
       shine.roundRect(2, 2, w - 4, 11, 10);
@@ -97,7 +93,8 @@ export class HUD extends Container {
       fontFamily: font,
       fontSize: 12,
       fontWeight: 'bold',
-      fill: TOKENS.colors.textPrimary,
+      fill: '#ffffff',
+      stroke: { color: 0x4a2c12, width: 2.0, join: 'round' },
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._coinsText = new Text({ text: '100', style: coinsStyle });
@@ -115,7 +112,8 @@ export class HUD extends Container {
       fontFamily: font,
       fontSize: 12,
       fontWeight: 'bold',
-      fill: TOKENS.colors.textPrimary,
+      fill: '#ffffff',
+      stroke: { color: 0x4a2c12, width: 2.0, join: 'round' },
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._gemsText = new Text({ text: '10', style: gemsStyle });
@@ -150,7 +148,8 @@ export class HUD extends Container {
         fontFamily: font,
         fontSize: 13,
         fontWeight: 'bold',
-        fill: TOKENS.colors.textPrimary,
+        fill: '#ffffff',
+      stroke: { color: 0x4a2c12, width: 2.2, join: 'round' },
         dropShadow: { color: '#000000', alpha: 0.55, blur: 2, distance: 1 }
       })
     });
@@ -171,7 +170,8 @@ export class HUD extends Container {
       fontFamily: font,
       fontSize: 11,
       fontWeight: 'bold',
-      fill: TOKENS.colors.textPrimary,
+      fill: '#ffffff',
+      stroke: { color: 0x4a2c12, width: 1.8, join: 'round' },
       dropShadow: { color: '#000000', alpha: 0.6, blur: 2, distance: 1 }
     });
     this._ipsText = new Text({ text: '+0/сек', style: ipsStyle });

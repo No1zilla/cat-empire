@@ -186,4 +186,150 @@ export function insetCell(width, height, color, options = {}) {
   return g;
 }
 
-export default { glossyButton, raisedPanel, insetCell, shade };
+
+/**
+ * ФОРМА, А НЕ ТОЛЬКО МАТЕРИАЛ (TASK-121).
+ *
+ * Смена палитры стиль не меняет: если все элементы остаются скруглёнными
+ * прямоугольниками одного радиуса, игра выглядит так же, только другого цвета.
+ * Стиль задают силуэт, композиция и типографика.
+ *
+ * Здесь силуэт: деревянные доски с волокном и болтами, травяные грядки, ленты
+ * заголовков. Всё рисуется примитивами — растрового арта по-прежнему ноль.
+ */
+
+/** Болт в углу доски: маленькая деталь, которая делает предмет предметом. */
+export function boltDot(radius = 3, color = 0x8a6134) {
+  const g = new Graphics();
+  g.circle(0, 0, radius).fill({ color: shade(color, -0.35) });
+  g.circle(0, -0.5, radius * 0.72).fill({ color: shade(color, 0.25) });
+  g.moveTo(-radius * 0.45, 0).lineTo(radius * 0.45, 0).stroke({ color: shade(color, -0.5), width: 1 });
+  return g;
+}
+
+/**
+ * Деревянная доска: тело с волокном, тёмный торец снизу, болты по углам.
+ * Волокно — несколько тонких дуг разной прозрачности, а не текстура.
+ */
+export function woodPanel(width, height, options = {}) {
+  const radius = options.radius !== undefined ? options.radius : 10;
+  const base = options.color !== undefined ? options.color : 0xc98f4e;
+  const withBolts = options.bolts !== false;
+
+  const panel = new Container();
+
+  const shadow = new Graphics();
+  shadow.roundRect(0, 4, width, height, radius).fill({ color: 0x000000, alpha: 0.3 });
+  panel.addChild(shadow);
+
+  const body = new Graphics();
+  body.roundRect(0, 0, width, height, radius).fill({ color: shade(base, -0.4) });
+  body.roundRect(2, 2, width - 4, height - 5, radius - 2).fill(
+    verticalGradient([
+      [0, shade(base, 0.2)],
+      [0.55, base],
+      [1, shade(base, -0.2)]
+    ])
+  );
+  panel.addChild(body);
+
+  // Волокно: длинные тонкие штрихи вдоль доски.
+  const grain = new Graphics();
+  const lines = Math.max(2, Math.round(height / 9));
+  for (let i = 1; i < lines; i += 1) {
+    const y = (height / lines) * i + (i % 2 ? 1 : -1);
+    grain.moveTo(6, y);
+    grain.bezierCurveTo(width * 0.35, y - 1.5, width * 0.65, y + 1.5, width - 6, y);
+    grain.stroke({ color: shade(base, -0.3), width: i % 2 ? 1 : 0.75, alpha: i % 2 ? 0.35 : 0.22 });
+  }
+  panel.addChild(grain);
+
+  if (withBolts && width > 40 && height > 24) {
+    [[9, 9], [width - 9, 9], [9, height - 10], [width - 9, height - 10]].forEach(([x, y]) => {
+      const b = boltDot(2.6, base);
+      b.position.set(x, y);
+      panel.addChild(b);
+    });
+  }
+
+  return panel;
+}
+
+/**
+ * Травяная грядка — ячейка поля. Не «скруглённый прямоугольник цвета»: сверху
+ * земля темнее, снизу трава светлее, по верхней кромке торчат травинки.
+ */
+export function grassPatch(width, height, options = {}) {
+  const radius = options.radius !== undefined ? options.radius : 14;
+  const base = options.color !== undefined ? options.color : 0x7fc98a;
+
+  const g = new Graphics();
+  // Земля — тёмный кант, на котором держится грядка.
+  g.roundRect(0, 0, width, height, radius).fill({ color: 0x6b4a2a });
+  // Дёрн: тёмный у верхней кромки, сочный к низу.
+  g.roundRect(2, 2, width - 4, height - 4, radius - 2).fill(
+    verticalGradient([
+      [0, shade(base, -0.34)],
+      [0.35, shade(base, -0.05)],
+      [1, shade(base, 0.22)]
+    ])
+  );
+  // Тень от верхнего края внутрь — грядка утоплена в ящик.
+  g.roundRect(3, 3, width - 6, height * 0.42, radius - 3).fill(
+    verticalGradient([
+      [0, 0x1d3b1f, 0.30],
+      [1, 0x1d3b1f, 0]
+    ])
+  );
+
+  // Травинки: длиннее и разной высоты, иначе читаются как царапины.
+  const blades = Math.max(4, Math.round(width / 9));
+  for (let i = 0; i < blades; i += 1) {
+    const x = 7 + i * ((width - 14) / Math.max(1, blades - 1));
+    const h = 5 + ((i * 5) % 6);
+    const lean = i % 3 === 0 ? 2.4 : (i % 3 === 1 ? -2.0 : 0.6);
+    g.moveTo(x, 9).quadraticCurveTo(x + lean * 0.5, 9 - h * 0.6, x + lean, 9 - h);
+    g.stroke({ color: shade(base, 0.42), width: 1.6, cap: 'round', alpha: 0.85 });
+  }
+  return g;
+}
+
+/**
+ * Лента-заголовок: прямоугольник с вырезанными «хвостами» по краям.
+ * Силуэт, который сразу читается как игровой, а не как строка текста.
+ */
+export function ribbon(width, height, color = 0xff8a5c) {
+  const tail = Math.min(18, height * 0.9);
+  const g = new Graphics();
+  g.moveTo(0, 0)
+    .lineTo(width, 0)
+    .lineTo(width - tail * 0.55, height / 2)
+    .lineTo(width, height)
+    .lineTo(0, height)
+    .lineTo(tail * 0.55, height / 2)
+    .closePath()
+    .fill(verticalGradient([
+      [0, shade(color, 0.25)],
+      [1, shade(color, -0.18)]
+    ]));
+  g.moveTo(0, 0).lineTo(width, 0).stroke({ color: shade(color, 0.45), width: 1.5, alpha: 0.7 });
+  return g;
+}
+
+/**
+ * Игровая типографика: жирный кегль с тёмной обводкой и тенью.
+ * Обводка — половина стиля: без неё подписи выглядят как веб-текст поверх
+ * картинки, с ней читаются на любом фоне и становятся частью мира.
+ */
+export function gameTextStyle(TextStyleCtor, { size = 14, fill = '#ffffff', outline = 0x4a2c12, outlineWidth = 3, font } = {}) {
+  return new TextStyleCtor({
+    fontFamily: font || 'Fredoka, Nunito, sans-serif',
+    fontSize: size,
+    fontWeight: '700',
+    fill,
+    stroke: { color: outline, width: outlineWidth, join: 'round' },
+    dropShadow: { color: '#000000', alpha: 0.35, blur: 2, distance: 2, angle: Math.PI / 2 }
+  });
+}
+
+export default { glossyButton, raisedPanel, insetCell, shade, woodPanel, grassPatch, ribbon, boltDot, gameTextStyle };
