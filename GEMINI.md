@@ -16,19 +16,25 @@
 
 ## 🔑 Git & SSH Доступ
 - **SSH Ключ для Git:** `~/.ssh/id_rsa_gith`
-- **Команда деплоя/пуша в GitHub (Vercel):**
+- **Команда пуша в GitHub:**
   ```bash
-  GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_gith" git push origin main
+  GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_gith" git push origin dev
   ```
 - **Репозиторий:** `git@github.com:No1zilla/cat-empire.git` (ветка `main`)
 
 ---
 
 ## 🚀 Процесс деплоя фронтенда (VK Mini App)
-1. Сборка для VK: `npm run build:vk`
-2. Фиксация изменений: `git add . && git commit -m "..."`
-3. Пуш в репозиторий: `GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_gith" git push origin main`
-4. **Vercel** автоматически подхватывает коммит из `main` и обновляет продакшн.
+Собирает и выкатывает **GitHub Actions** (`.github/workflows/deploy-pages.yml`),
+не Vercel — Vercel не используется с момента переезда на Railway и GitHub Pages.
+
+1. Фиксация изменений: `git add . && git commit -m "..."`
+2. Пуш в `dev`: `GIT_SSH_COMMAND="ssh -i ~/.ssh/id_rsa_gith" git push origin dev`
+3. Воркфлоу сам делает `npm ci` → тесты → сборку и публикует в `/dev`.
+   Публикация идёт только после зелёных тестов и сборки — сломанное до стенда не доедет.
+4. В прод — мержем `dev` → `main`. Только с `main` собирается VK в корень и Telegram в `/tg`.
+
+Локальная сборка (`npm run build:vk`) нужна лишь для проверки перед пушем — выкладку делает CI.
 
 ---
 

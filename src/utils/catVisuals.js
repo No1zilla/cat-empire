@@ -26,10 +26,6 @@ export function setCatWorld(index = 1) {
   currentWorldIndex = Math.max(1, Number(index) || 1);
 }
 
-export function getCatWorld() {
-  return currentWorldIndex;
-}
-
 export function getCatWorldTint(index = currentWorldIndex) {
   return getWorldTint(index);
 }

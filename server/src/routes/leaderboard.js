@@ -1,29 +1,18 @@
 import { Router } from 'express';
 import pool from '../db.js';
-import vkAuth from '../middleware/vkAuth.js';
+import playerAuth from '../middleware/playerAuth.js';
+import playerKey from '../utils/playerKey.js';
+import { buildLeaderboardPayload } from '../utils/leaderboardPayload.js';
 
 const router = Router();
 
-function mapRow(r) {
-  return {
-    id: r.id,
-    vkId: String(r.vk_id),
-    firstName: r.first_name || '',
-    lastName: r.last_name || '',
-    avatar: r.avatar || '',
-    maxCatLevel: Number(r.max_cat_level) || 1,
-    coins: parseFloat(r.coins) || 0,
-    rank: Number(r.rank) || 0
-  };
-}
-
-router.get('/', vkAuth, async (req, res) => {
+router.get('/', playerAuth, async (req, res) => {
   try {
     if (!pool || !process.env.DATABASE_URL) {
       return res.json({ leaderboard: [], me: null });
     }
 
-    const meId = String(req.vkUserId || '');
+    const meKey = playerKey(req.player || {});
     const { rows } = await pool.query(
       `
       WITH ranked AS (
@@ -34,6 +23,7 @@ router.get('/', vkAuth, async (req, res) => {
           )::int AS rank
         FROM users
         WHERE vk_id IS NOT NULL
+          AND vk_id <> ''
           AND vk_id NOT IN ('0', '999999999')
       )
       SELECT * FROM ranked
@@ -41,14 +31,10 @@ router.get('/', vkAuth, async (req, res) => {
       ORDER BY rank
       LIMIT 11
       `,
-      [meId]
+      [meKey]
     );
 
-    const mapped = rows.map(mapRow);
-    const leaderboard = mapped.filter((row) => row.rank > 0 && row.rank <= 10);
-    const me = mapped.find((row) => row.vkId === meId) || null;
-
-    res.json({ leaderboard, me });
+    res.json(buildLeaderboardPayload(rows, meKey));
   } catch (error) {
     console.error('Ошибка при получении таблицы лидеров:', error);
     res.status(500).json({ error: 'Не удалось получить таблицу лидеров' });

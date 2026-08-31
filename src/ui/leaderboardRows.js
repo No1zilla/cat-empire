@@ -29,7 +29,10 @@ export function buildLeaderboardRows(data, playerStats = {}, youVk = '') {
     maxCatLevel: entry.maxCatLevel || 1,
     coins: entry.coins || 0,
     rank: Number(entry.rank) || (index + 1),
-    isYou: !!(youVk && String(entry.vkId) === String(youVk))
+    // TASK-125: свой ряд помечает сервер — только он знает формат ключа
+    // (`tg:4242` у Telegram против голого id у VK). Сравнение на клиенте
+    // остаётся запасным путём для старых ответов без `isMe`.
+    isYou: entry.isMe === true || !!(youVk && String(entry.vkId) === String(youVk))
   }));
 
   if (me && Number(me.rank) > 10) {

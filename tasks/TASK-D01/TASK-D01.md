@@ -27,7 +27,7 @@
 
 ```
 APP_ID      = 54692477
-APP_SECRET  = nVJywtYjkHNQVNbrswbJ
+APP_SECRET  = <секрет — только в переменных окружения, не в репозитории>
 ```
 
 ### Шаг 3: Настройки приложения
@@ -47,7 +47,7 @@ APP_SECRET  = nVJywtYjkHNQVNbrswbJ
 ```env
 DATABASE_URL="file:./dev.db"
 PORT=3001
-VK_APP_SECRET=nVJywtYjkHNQVNbrswbJ
+VK_APP_SECRET=<секрет — только в переменных окружения, не в репозитории>
 ```
 
 ---

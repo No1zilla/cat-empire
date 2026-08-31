@@ -32,6 +32,7 @@ import { runStarsPaymentsTests } from './unit/starsPayments.test.js';
 import { runReferralTests } from './unit/referral.test.js';
 import { runTelegramSetupTests } from './unit/telegramSetup.test.js';
 import { runVkAuthTests } from './unit/vkAuth.test.js';
+import { runLeaderboardTests } from './unit/leaderboard.test.js';
 
 console.log('🚀 ЗАПУСК ПОЛНОЙ ПРОГРАММНОЙ СЮИТЫ АВТО-ТЕСТОВ (ФАЗА 3)...');
 console.log('----------------------------------------------------');
@@ -69,6 +70,7 @@ async function main() {
     await runPlatformTests();
     await runOrderLedgerTests();
     runTelegramAuthTests();
+    runLeaderboardTests();
     await runStarsPaymentsTests();
     await runReferralTests();
     await runTelegramSetupTests();
