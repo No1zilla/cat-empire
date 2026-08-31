@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import userService from '../services/userService.js';
-import playerAuth, { requirePlayer } from '../middleware/playerAuth.js';
+import playerAuth, { requireVerifiedPlayer } from '../middleware/playerAuth.js';
 import { playerKey } from '../utils/playerKey.js';
 import { claimReferral } from '../services/referralService.js';
 
@@ -36,7 +36,7 @@ async function defaultInsertLink(inviteeKey, referrerKey) {
 }
 
 /** POST /api/referral/claim — тело: { ref: '<id пригласившего>' } */
-router.post('/claim', playerAuth, requirePlayer, async (req, res) => {
+router.post('/claim', playerAuth, requireVerifiedPlayer, async (req, res) => {
   try {
     const player = req.player || {};
     const inviteeKey = playerKey(player);

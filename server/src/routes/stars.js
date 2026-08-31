@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import pool from '../db.js';
 import userService from '../services/userService.js';
-import playerAuth, { requirePlayer, telegramBotToken } from '../middleware/playerAuth.js';
+import playerAuth, { requireVerifiedPlayer, telegramBotToken } from '../middleware/playerAuth.js';
 import { playerKey } from '../utils/playerKey.js';
 import { findStarsItem } from '../utils/starsCatalog.js';
 import { handleTelegramUpdate as handleUpdate } from '../services/starsService.js';
@@ -80,7 +80,7 @@ async function recordGrant({ key, item, chargeId, stars }) {
  * POST /api/stars/invoice — ссылка на оплату.
  * Клиент открывает её через Telegram.WebApp.openInvoice.
  */
-router.post('/invoice', playerAuth, requirePlayer, async (req, res) => {
+router.post('/invoice', playerAuth, requireVerifiedPlayer, async (req, res) => {
   try {
     const player = req.player || {};
     if (player.platform !== 'telegram') {

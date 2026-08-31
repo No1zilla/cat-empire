@@ -104,4 +104,24 @@ export function requirePlayer(req, res, next) {
   return res.status(401).json({ error: 'Invalid launch signature' });
 }
 
+/**
+ * Строгий гард: подпись обязана быть валидной ВСЕГДА.
+ *
+ * `requirePlayer` намеренно не роняет прод, когда секрета платформы нет — это
+ * разумно для прогресса, источник правды по которому всё равно в облаке клиента
+ * (см. TASK-107). Но для денег и наград тот же размен неверен: без токена любой
+ * может выписать инвойс на чужой ключ или собрать реферальную награду за чужой id.
+ * Здесь «не можем проверить» обязано означать отказ, а не пропуск.
+ */
+export function requireVerifiedPlayer(req, res, next) {
+  const player = req.player || identifyPlayer(req);
+  if (player.verified) return next();
+
+  console.warn(
+    '[player-auth] отклонён запрос к защищённой ручке:',
+    req.method, req.path, player.platform, player.reason
+  );
+  return res.status(401).json({ error: 'Invalid launch signature' });
+}
+
 export default playerAuth;

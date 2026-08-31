@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import crypto from 'node:crypto';
 import { verifyTelegramInitData, parseInitData } from '../../server/src/utils/telegramCheckSign.js';
-import { identifyPlayer, requirePlayer, extractInitData } from '../../server/src/middleware/playerAuth.js';
+import { identifyPlayer, requirePlayer, requireVerifiedPlayer, extractInitData } from '../../server/src/middleware/playerAuth.js';
 
 const BOT_TOKEN = '123456:TEST-BOT-TOKEN';
 
@@ -42,6 +42,19 @@ function runGuard(req) {
     }
   };
   requirePlayer(req, res, () => { captured.nextCalled = true; });
+  return captured;
+}
+
+/** Строгий гард денежных ручек: /stars/invoice, /referral/claim. */
+function runStrictGuard(req) {
+  const captured = { status: null, nextCalled: false };
+  const res = {
+    status(code) {
+      captured.status = code;
+      return { json: (p) => p };
+    }
+  };
+  requireVerifiedPlayer(req, res, () => { captured.nextCalled = true; });
   return captured;
 }
 
@@ -118,6 +131,23 @@ export function runTelegramAuthTests() {
   assert.strictEqual(vkPlayer.platform, 'vk');
   assert.strictEqual(vkPlayer.verified, false);
   assert.strictEqual(vkPlayer.reason, 'no_secret');
+
+  // --- Деньги и награды: «нечем проверить» обязано означать отказ (TASK-124) ---
+  // Без токена мягкий гард пропускает — это осознанный размен для прогресса.
+  delete process.env.TELEGRAM_BOT_TOKEN;
+  const noTokenReq = makeReq({ 'x-telegram-init-data': buildInitData(freshFields()) });
+  noTokenReq.player = identifyPlayer(noTokenReq);
+  assert.strictEqual(noTokenReq.player.reason, 'no_bot_token');
+  assert.strictEqual(runGuard(noTokenReq).nextCalled, true, 'прогресс без токена не роняем');
+  // ...а строгий обязан отклонить: иначе инвойс и реферальная награда открыты всем.
+  assert.strictEqual(runStrictGuard(noTokenReq).status, 401, 'деньги без токена — отказ');
+
+  // То же и для VK без секрета.
+  delete process.env.VK_APP_SECRET;
+  const vkNoSecret = makeReq({ 'x-vk-sign': 'vk_user_id=816275327' });
+  vkNoSecret.player = identifyPlayer(vkNoSecret);
+  assert.strictEqual(runGuard(vkNoSecret).nextCalled, true, 'VK-прогресс без секрета не роняем');
+  assert.strictEqual(runStrictGuard(vkNoSecret).status, 401, 'VK-деньги без секрета — отказ');
 
   if (prevToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
   else process.env.TELEGRAM_BOT_TOKEN = prevToken;
